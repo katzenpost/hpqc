@@ -24,8 +24,9 @@ import (
 	"io"
 
 	"github.com/henrydcase/nobs/dh/csidh"
-	"github.com/katzenpost/katzenpost/core/crypto/nike"
-	"github.com/katzenpost/katzenpost/core/crypto/rand"
+
+	"github.com/katzenpost/hpqc/primitive/nike"
+	"github.com/katzenpost/hpqc/rand"
 )
 
 // CSIDHScheme is the nobs CSIDH-512 NIKE.

@@ -1,3 +1,6 @@
+//go:build exclude
+// +build exclude
+
 // sphincs.go - Implements interface wrapper around a specific parameterization of Sphincs+.
 // Copyright (C) 2022  David Stainton.
 //

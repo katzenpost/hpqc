@@ -6,7 +6,7 @@ package bench
 import (
 	"testing"
 
-	"github.com/katzenpost/katzenpost/core/crypto/sign/ed25519sphincsplus"
+	"github.com/katzenpost/hpqc/primitive/sign/ed25519sphincsplus"
 )
 
 func BenchmarkSign(b *testing.B) {

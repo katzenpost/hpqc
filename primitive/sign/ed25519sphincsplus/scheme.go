@@ -1,3 +1,6 @@
+//go:build exclude
+// +build exclude
+
 package ed25519sphincsplus
 
 import (
@@ -7,9 +10,9 @@ import (
 
 	"golang.org/x/crypto/blake2b"
 
-	"github.com/katzenpost/katzenpost/core/crypto/eddsa"
-	"github.com/katzenpost/katzenpost/core/crypto/pem"
-	"github.com/katzenpost/katzenpost/core/crypto/sign"
+	"github.com/katzenpost/hpqc/primitive/pem"
+	"github.com/katzenpost/hpqc/primitive/sign"
+	"github.com/katzenpost/hpqc/primitive/sign/eddsa"
 
 	sphincs "github.com/katzenpost/katzenpost/sphincsplus/ref"
 )
@@ -17,8 +20,8 @@ import (
 var (
 	ErrPrivateKeySize = errors.New("byte slice length must match PrivateKeySize")
 	ErrPublicKeySize  = errors.New("byte slice length must match PublicKeySize")
-	PrivateKeyType = "ED25519 SPHINCS+ PRIVATE KEY"
-	PublicKeyType = "ED25519 SPHINCS+ PUBLIC KEY"
+	PrivateKeyType    = "ED25519 SPHINCS+ PRIVATE KEY"
+	PublicKeyType     = "ED25519 SPHINCS+ PUBLIC KEY"
 	// Scheme implements our sign.Scheme interface using the ed25519 wrapper.
 	Scheme = &scheme{}
 )
