@@ -12,7 +12,7 @@ import (
 
 	"github.com/cloudflare/circl/kem"
 
-	"github.com/katzenpost/hpqc/primitive/kem/utils"
+	"github.com/katzenpost/hpqc/primitive/kem/util"
 )
 
 var (
@@ -303,7 +303,7 @@ func (sch *Scheme) EncapsulateDeterministically(publicKey kem.PublicKey, seed []
 		ciphertextBlob = append(ciphertextBlob, cct...)
 	}
 
-	ss = utils.SplitPRF(sharedSecrets, ciphertexts)
+	ss = util.SplitPRF(sharedSecrets, ciphertexts)
 
 	return ciphertextBlob, ss, nil
 }
@@ -341,7 +341,7 @@ func (sch *Scheme) Decapsulate(sk kem.PrivateKey, ct []byte) ([]byte, error) {
 		offset += ciphertextSize
 	}
 
-	return utils.SplitPRF(sharedSecrets, ciphertexts), nil
+	return util.SplitPRF(sharedSecrets, ciphertexts), nil
 }
 
 // UnmarshalBinaryPublicKey unmarshals a binary blob representing a public key.

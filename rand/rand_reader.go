@@ -69,7 +69,7 @@ func (r *nonShitRandReader) Read(b []byte) (int, error) {
 	}
 	defer func() {
 		xof.Reset()
-		utils.ExplicitBzero(xofEntropy[:])
+		util.ExplicitBzero(xofEntropy[:])
 	}()
 	if err := r.getentropyFn(xofEntropy[:]); err != nil {
 		return 0, err

@@ -13,7 +13,7 @@ import (
 // NIKE to KEM adapter, located in core/crypto/kem/schemes/kem_test.go
 
 func TestNikeToKemAdapter(t *testing.T) {
-	ecdhNike := ecdh.NewEcdhNike(rand.Reader)
+	ecdhNike := ecdh.Scheme(rand.Reader)
 	s := FromNIKE(ecdhNike)
 
 	t.Logf("hello my name is %s", s.Name())

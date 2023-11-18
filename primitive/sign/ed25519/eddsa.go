@@ -16,8 +16,8 @@ import (
 	"filippo.io/edwards25519"
 
 	"github.com/katzenpost/hpqc/primitive/nike/x25519"
-	"github.com/katzenpost/hpqc/rand"
 	"github.com/katzenpost/hpqc/primitive/sign"
+	"github.com/katzenpost/hpqc/rand"
 	"github.com/katzenpost/hpqc/util"
 )
 
@@ -113,7 +113,7 @@ func (p *PrivateKey) Sign(message []byte) (signature []byte) {
 
 func (p *PrivateKey) Reset() {
 	p.pubKey.Reset()
-	utils.ExplicitBzero(p.privKey)
+	util.ExplicitBzero(p.privKey)
 }
 
 func (p *PrivateKey) Bytes() []byte {
@@ -183,7 +183,7 @@ func (p *PublicKey) Verify(signature, message []byte) bool {
 }
 
 func (p *PublicKey) Reset() {
-	utils.ExplicitBzero(p.pubKey)
+	util.ExplicitBzero(p.pubKey)
 	p.b64String = "[scrubbed]"
 }
 

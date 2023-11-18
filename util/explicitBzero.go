@@ -14,12 +14,13 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package utils
+package util
 
 import "runtime"
 
 // ExplicitBzero explicitly clears out the buffer b, by filling it with 0x00
 // bytes.
+//
 //go:noinline
 func ExplicitBzero(b []byte) {
 	for i := range b {

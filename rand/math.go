@@ -41,7 +41,7 @@ type randSource struct {
 
 func (s *randSource) feedForward() {
 	var seed [chacha20.KeySize]byte
-	defer utils.ExplicitBzero(seed[:])
+	defer util.ExplicitBzero(seed[:])
 	s.s.KeyStream(seed[:])
 	if s.s.ReKey(seed[:], mNonce[:]) != nil {
 		panic("chacha20 ReKey failed, not expected.")
@@ -71,7 +71,7 @@ func (s *randSource) Int63() int64 {
 
 func (s *randSource) Seed(unused int64) {
 	var seed [chacha20.KeySize]byte
-	defer utils.ExplicitBzero(seed[:])
+	defer util.ExplicitBzero(seed[:])
 	if _, err := io.ReadFull(Reader, seed[:]); err != nil {
 		panic("crypto/rand: failed to read entropy: " + err.Error())
 	}
