@@ -25,7 +25,7 @@ import (
 
 	eddsa "github.com/katzenpost/hpqc/primitive/sign/ed25519"
 	"github.com/katzenpost/hpqc/rand"
-	"github.com/katzenpost/hpqc/utils/epochtime"
+	"github.com/katzenpost/hpqc/util/epochtime"
 )
 
 func TestExpiredCertificate(t *testing.T) {

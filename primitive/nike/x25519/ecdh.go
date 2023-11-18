@@ -11,7 +11,7 @@ import (
 	"golang.org/x/crypto/curve25519"
 
 	"github.com/katzenpost/hpqc/primitive/nike"
-	"github.com/katzenpost/hpqc/utils"
+	"github.com/katzenpost/hpqc/util"
 )
 
 const (

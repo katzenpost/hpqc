@@ -18,7 +18,7 @@ import (
 	"github.com/katzenpost/hpqc/primitive/nike/x25519"
 	"github.com/katzenpost/hpqc/rand"
 	"github.com/katzenpost/hpqc/primitive/sign"
-	"github.com/katzenpost/hpqc/utils"
+	"github.com/katzenpost/hpqc/util"
 )
 
 const (

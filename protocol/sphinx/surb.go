@@ -22,7 +22,7 @@ import (
 
 	"github.com/katzenpost/hpqc/protocol/sphinx/constants"
 	"github.com/katzenpost/hpqc/protocol/sphinx/internal/crypto"
-	"github.com/katzenpost/hpqc/utils"
+	"github.com/katzenpost/hpqc/util"
 )
 
 const (

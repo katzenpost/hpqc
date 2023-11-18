@@ -24,7 +24,7 @@ import (
 	"github.com/katzenpost/hpqc/primitive/sign"
 	"github.com/katzenpost/hpqc/protocol/sphinx/constants"
 	"github.com/katzenpost/hpqc/protocol/sphinx/geo"
-	"github.com/katzenpost/hpqc/utils"
+	"github.com/katzenpost/hpqc/util"
 )
 
 const (

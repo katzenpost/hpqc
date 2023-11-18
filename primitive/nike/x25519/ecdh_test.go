@@ -24,7 +24,7 @@ import (
 	"golang.org/x/crypto/curve25519"
 
 	"github.com/katzenpost/hpqc/rand"
-	"github.com/katzenpost/hpqc/utils"
+	"github.com/katzenpost/hpqc/util"
 )
 
 func TestEcdhNike(t *testing.T) {

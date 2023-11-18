@@ -26,7 +26,7 @@ import (
 	"github.com/fxamacker/cbor/v2"
 	"github.com/henrydcase/nobs/dh/csidh"
 
-	"github.com/katzenpost/hpqc/utils"
+	"github.com/katzenpost/hpqc/util"
 )
 
 var (

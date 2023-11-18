@@ -26,7 +26,7 @@ import (
 	"sync"
 
 	"github.com/katzenpost/chacha20"
-	"github.com/katzenpost/hpqc/utils"
+	"github.com/katzenpost/hpqc/util"
 )
 
 const seedSize = chacha20.KeySize
