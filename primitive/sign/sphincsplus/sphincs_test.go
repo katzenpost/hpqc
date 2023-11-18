@@ -1,6 +1,8 @@
-//go:build exclude
-// +build exclude
+//go:build sphincsplus
+// +build sphincsplus
 
+// SPDX-FileCopyrightText: (c) 2022-2023 David Stainton
+// SPDX-License-Identifier: AGPL-3.0-only
 package sphincsplus
 
 import (
