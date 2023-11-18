@@ -22,8 +22,9 @@ package ctidh
 import (
 	"testing"
 
-	ctidh "github.com/katzenpost/ctidh_cgo"
 	"github.com/stretchr/testify/require"
+
+	ctidh "github.com/katzenpost/ctidh_cgo"
 )
 
 func TestCtidhNike(t *testing.T) {

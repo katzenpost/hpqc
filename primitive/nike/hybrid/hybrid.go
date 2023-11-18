@@ -4,7 +4,7 @@ import (
 	"encoding/base64"
 	"io"
 
-	"github.com/katzenpost/katzenpost/core/crypto/nike"
+	"github.com/katzenpost/katzenpost/hpqc/primitive/nike"
 )
 
 var _ nike.PrivateKey = (*privateKey)(nil)

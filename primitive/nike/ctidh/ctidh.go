@@ -25,7 +25,7 @@ import (
 
 	ctidh "github.com/katzenpost/ctidh_cgo"
 
-	"github.com/katzenpost/katzenpost/core/crypto/nike"
+	"github.com/katzenpost/hpqc/primitive/nike"
 )
 
 // CTIDH implements the Nike interface using our CTIDH module.

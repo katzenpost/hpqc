@@ -24,9 +24,9 @@ import (
 
 	"golang.org/x/crypto/blake2b"
 
-	"github.com/katzenpost/katzenpost/core/crypto/eddsa"
-	"github.com/katzenpost/katzenpost/core/crypto/rand"
-	"github.com/katzenpost/katzenpost/core/crypto/sign"
+	"github.com/katzenpost/hpqc/primitive/eddsa"
+	"github.com/katzenpost/hpqc/primitive/sign"
+	"github.com/katzenpost/hpqc/rand"
 )
 
 // Scheme implements our sign.Scheme interface using the ed25519 wrapper.
