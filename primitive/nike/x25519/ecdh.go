@@ -36,8 +36,6 @@ var _ nike.PrivateKey = (*PrivateKey)(nil)
 var _ nike.PublicKey = (*PublicKey)(nil)
 var _ nike.Scheme = (*scheme)(nil)
 
-var EcdhScheme nike.Scheme
-
 // EcdhNike implements the Nike interface using our ecdh module.
 type scheme struct {
 	rng io.Reader
@@ -61,7 +59,7 @@ func (p *PrivateKey) Public() nike.PublicKey {
 
 func (p *PrivateKey) Reset() {
 	p.pubKey.Reset()
-	utils.ExplicitBzero(p.privBytes[:])
+	util.ExplicitBzero(p.privBytes[:])
 }
 
 func (p *PrivateKey) Bytes() []byte {
@@ -116,12 +114,12 @@ func (p *PublicKey) Blind(blindingFactor nike.PrivateKey) error {
 	}
 	pubBytes := Exp(p.pubBytes[:], blindingFactor.Bytes())
 	copy(p.pubBytes[:], pubBytes)
-	utils.ExplicitBzero(pubBytes)
+	util.ExplicitBzero(pubBytes)
 	return nil
 }
 
 func (p *PublicKey) Reset() {
-	utils.ExplicitBzero(p.pubBytes[:])
+	util.ExplicitBzero(p.pubBytes[:])
 	p.b64String = "[scrubbed]"
 }
 

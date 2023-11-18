@@ -25,7 +25,6 @@ import (
 
 	"github.com/fxamacker/cbor/v2"
 
-	"github.com/katzenpost/hpqc/primitive/sign/ed25519sphincsplus"
 	"github.com/katzenpost/hpqc/util/epochtime"
 )
 
@@ -73,9 +72,6 @@ var (
 
 	// ErrThresholdNotMet indicates that there were not enough valid signatures to meet the threshold.
 	ErrThresholdNotMet = errors.New("threshold failure")
-
-	// Scheme is the signature scheme we are using throughout various components of the network.
-	Scheme = ed25519sphincsplus.Scheme
 
 	// Create reusable EncMode interface with immutable options, safe for concurrent use.
 	ccbor cbor.EncMode

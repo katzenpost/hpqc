@@ -26,7 +26,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/katzenpost/hpqc/primitive/nike"
-	ecdhnike ecdh "github.com/katzenpost/hpqc/primitive/nike/x25519"
+	ecdhnike "github.com/katzenpost/hpqc/primitive/nike/x25519"
 	"github.com/katzenpost/hpqc/protocol/sphinx/commands"
 	"github.com/katzenpost/hpqc/protocol/sphinx/geo"
 )
@@ -56,7 +56,7 @@ type hexSphinxTest struct {
 func NoTestBuildFileVectorSphinx(t *testing.T) {
 	require := require.New(t)
 
-	mynike := ecdhnike.NewEcdhNike(rand.Reader)
+	mynike := ecdhnike.Scheme(rand.Reader)
 
 	withSURB := false
 	g := geo.GeometryFromUserForwardPayloadLength(mynike, 103, withSURB, 5)
@@ -78,7 +78,7 @@ func NoTestBuildFileVectorSphinx(t *testing.T) {
 
 func TestVectorSphinx(t *testing.T) {
 	require := require.New(t)
-	mynike := ecdhnike.NewEcdhNike(rand.Reader)
+	mynike := ecdhnike.Scheme(rand.Reader)
 
 	serialized, err := os.ReadFile(sphinxVectorsFile)
 	require.NoError(err)

@@ -23,9 +23,9 @@ import (
 	"crypto/rand"
 	"testing"
 
-	ecdhnike ecdh "github.com/katzenpost/hpqc/primitive/nike/x25519"
+	"github.com/katzenpost/hpqc/primitive/nike/x25519"
 )
 
 func BenchmarkEcdhSphinxUnwrap(b *testing.B) {
-	benchmarkSphinxUnwrap(b, ecdhnike.NewEcdhNike(rand.Reader))
+	benchmarkSphinxUnwrap(b, x25519.Scheme(rand.Reader))
 }
