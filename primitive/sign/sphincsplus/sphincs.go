@@ -28,7 +28,7 @@ import (
 
 	sphincs "github.com/katzenpost/katzenpost/sphincsplus/ref"
 
-	"github.com/katzenpost/katzenpost/core/crypto/sign"
+	"github.com/katzenpost/hpqc/primitive/sign"
 )
 
 var (

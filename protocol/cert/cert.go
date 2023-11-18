@@ -25,8 +25,8 @@ import (
 
 	"github.com/fxamacker/cbor/v2"
 
-	"github.com/katzenpost/katzenpost/core/crypto/sign/ed25519sphincsplus"
-	"github.com/katzenpost/katzenpost/core/epochtime"
+	"github.com/katzenpost/hpqc/primitive/sign/ed25519sphincsplus"
+	"github.com/katzenpost/hpqc/utils/epochtime"
 )
 
 const (

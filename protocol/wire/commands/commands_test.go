@@ -21,7 +21,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/katzenpost/katzenpost/core/crypto/cert"
+	"github.com/katzenpost/hpqc/protocol/cert"
 	"github.com/katzenpost/hpqc/primitive/nike/ecdh"
 	"github.com/katzenpost/hpqc/rand"
 	"github.com/katzenpost/hpqc/protocol/sphinx"

@@ -93,7 +93,7 @@ func NewKeyFromSeed(seed []byte) (*PublicKey, *PrivateKey) {
 }
 
 // GenerateKeyPair generates public and private keys using entropy from rand.
-// If rand is nil, katzenpost/core/crypto/rand.Reader will be used.
+// If rand is nil, hpqc/rand.Reader will be used.
 func GenerateKeyPair(rng io.Reader) (*PublicKey, *PrivateKey, error) {
 	var seed [KeySeedSize]byte
 	if rng == nil {
@@ -213,7 +213,7 @@ func (pk *PublicKey) Scheme() kem.Scheme {
 // Panics if ss, ct or seed are not of length SharedKeySize, CiphertextSize
 // and EncapsulationSeedSize respectively.
 //
-// seed may be nil, in which case katzenpost/core/crypto/rand.Reader is used to generate one.
+// seed may be nil, in which case hpqc/rand.Reader is used to generate one.
 func (pk *PublicKey) EncapsulateTo(ct, ss []byte, seed []byte) {
 	if seed == nil {
 		seed = make([]byte, EncapsulationSeedSize)

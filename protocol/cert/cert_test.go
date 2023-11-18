@@ -20,11 +20,12 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/katzenpost/katzenpost/core/crypto/eddsa"
-	"github.com/katzenpost/katzenpost/core/crypto/rand"
-	"github.com/katzenpost/katzenpost/core/epochtime"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	eddsa "github.com/katzenpost/hpqc/primitive/sign/ed25519"
+	"github.com/katzenpost/hpqc/rand"
+	"github.com/katzenpost/hpqc/utils/epochtime"
 )
 
 func TestExpiredCertificate(t *testing.T) {

@@ -23,8 +23,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/katzenpost/katzenpost/core/crypto/eddsa"
 	"github.com/stretchr/testify/assert"
+
+ eddsa "github.com/katzenpost/hpqc/primitive/ed25519"
 )
 
 type inTest struct {

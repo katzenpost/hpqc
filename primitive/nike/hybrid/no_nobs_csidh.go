@@ -3,9 +3,9 @@
 package hybrid
 
 import (
-	"github.com/katzenpost/katzenpost/core/crypto/nike"
-	"github.com/katzenpost/katzenpost/core/crypto/nike/ecdh"
-	"github.com/katzenpost/katzenpost/core/crypto/rand"
+	"github.com/katzenpost/hpqc/primitive/nike"
+	"github.com/katzenpost/hpqc/primitive/nike/ecdh"
+	"github.com/katzenpost/hpqc/rand"
 )
 
 var NOBS_CSIDH512X25519 nike.Scheme = &scheme{
