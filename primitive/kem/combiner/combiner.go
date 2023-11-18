@@ -11,7 +11,8 @@ import (
 	"fmt"
 
 	"github.com/cloudflare/circl/kem"
-	"github.com/katzenpost/katzenpost/core/crypto/kem/utils"
+
+	"github.com/katzenpost/hpqc/primitive/kem/utils"
 )
 
 var (
