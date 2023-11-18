@@ -24,7 +24,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/katzenpost/hpqc/utils"
+	"github.com/katzenpost/hpqc/util"
 )
 
 // KeyMaterial

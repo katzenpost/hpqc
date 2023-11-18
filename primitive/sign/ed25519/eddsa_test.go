@@ -24,7 +24,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/katzenpost/hpqc/rand"
-	"github.com/katzenpost/hpqc/utils"
+	"github.com/katzenpost/hpqc/util"
 )
 
 func TestEddsaScheme(t *testing.T) {

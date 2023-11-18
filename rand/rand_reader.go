@@ -19,7 +19,7 @@ package rand
 import (
 	"io"
 
-	"github.com/katzenpost/hpqc/utils"
+	"github.com/katzenpost/hpqc/util"
 	"golang.org/x/crypto/blake2b"
 )
 
