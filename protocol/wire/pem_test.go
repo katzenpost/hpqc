@@ -9,7 +9,7 @@ import (
 	"github.com/katzenpost/nyquist/kem"
 
 	"github.com/katzenpost/hpqc/primitive/kem/schemes"
-	"github.com/katzenpost/hpqc/primitive/pem"
+	"github.com/katzenpost/hpqc/util/pem"
 )
 
 func TestToFromPEM(t *testing.T) {

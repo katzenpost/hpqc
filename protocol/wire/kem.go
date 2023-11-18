@@ -33,7 +33,7 @@ import (
 	"github.com/katzenpost/nyquist/seec"
 
 	"github.com/katzenpost/hpqc/primitive/kem/schemes"
-	cpem "github.com/katzenpost/hpqc/primitive/pem"
+	cpem "github.com/katzenpost/hpqc/util/pem"
 )
 
 // PublicKeyHashSize indicates the hash size returned
