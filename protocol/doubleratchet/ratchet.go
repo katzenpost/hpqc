@@ -25,7 +25,8 @@ import (
 	"github.com/awnumar/memguard"
 	"github.com/fxamacker/cbor/v2"
 	"github.com/henrydcase/nobs/dh/csidh"
-	"github.com/katzenpost/katzenpost/doubleratchet/utils"
+
+	"github.com/katzenpost/hpqc/utils"
 )
 
 var (
@@ -55,7 +56,7 @@ var (
 	ErrCSIDHPublicExport                      = errors.New("Ratchet: CSIDH: failed to export public key")
 	ErrCSIDHPublicImport                      = errors.New("Ratchet: CSIDH: failed to import public key")
 	ErrCSIDHInvalidPublicKey                  = errors.New("Ratchet: CSIDH public key validation failure")
-	ErrInconsistentState                       = errors.New("Ratchet: the state is inconsistent")
+	ErrInconsistentState                      = errors.New("Ratchet: the state is inconsistent")
 
 	// These constants are used as the label argument to deriveKey to derive
 	// independent keys from a master key.

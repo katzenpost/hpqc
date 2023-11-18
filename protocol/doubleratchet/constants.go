@@ -3,8 +3,9 @@ package ratchet
 import (
 	"time"
 
-	"github.com/henrydcase/nobs/dh/csidh"
 	"golang.org/x/crypto/nacl/secretbox"
+
+	"github.com/henrydcase/nobs/dh/csidh"
 )
 
 const (
