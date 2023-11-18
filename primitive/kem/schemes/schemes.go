@@ -12,7 +12,7 @@ import (
 	"github.com/katzenpost/hpqc/primitive/kem/combiner"
 	kemhybrid "github.com/katzenpost/hpqc/primitive/kem/hybrid"
 	"github.com/katzenpost/hpqc/primitive/kem/sntrup"
-	"github.com/katzenpost/hpqc/primitive/nike/ecdh"
+	ecdh "github.com/katzenpost/hpqc/primitive/nike/x25519"
 	"github.com/katzenpost/hpqc/rand"
 )
 
