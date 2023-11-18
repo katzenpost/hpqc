@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: © 2023 David Stainton
 // SPDX-License-Identifier: AGPL-3.0-only
 
-package utils
+package util
 
 import (
 	"github.com/go-faster/xor"

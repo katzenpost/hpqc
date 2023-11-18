@@ -27,8 +27,8 @@ import (
 
 	"github.com/katzenpost/hpqc/primitive/nike"
 	"github.com/katzenpost/hpqc/primitive/nike/ctidh"
-	ecdhnike ecdh "github.com/katzenpost/hpqc/primitive/nike/x25519"
 	"github.com/katzenpost/hpqc/primitive/nike/hybrid"
+	ecdhnike "github.com/katzenpost/hpqc/primitive/nike/x25519"
 	"github.com/katzenpost/hpqc/protocol/sphinx/geo"
 )
 
@@ -49,7 +49,7 @@ func TestHybridCtidhForwardSphinx(t *testing.T) {
 
 func TestSphinxConstruction(t *testing.T) {
 	var mynike nike.Scheme
-	mynike = ecdhnike.NewEcdhNike(rand.Reader)
+	mynike = ecdhnike.Scheme(rand.Reader)
 	g := geo.GeometryFromUserForwardPayloadLength(mynike, 12345, false, 5)
 	t.Logf("NIKEName %s", g.NIKEName)
 	sphinx := NewSphinx(g)

@@ -66,7 +66,7 @@ func ToPEMString(key KeyMaterial) string {
 
 func ToPEMBytes(key KeyMaterial) []byte {
 	keyType := strings.ToUpper(key.KeyType())
-	if utils.CtIsZero(key.Bytes()) {
+	if util.CtIsZero(key.Bytes()) {
 		panic(fmt.Sprintf("ToPEMString/%s: attempted to serialize scrubbed key", keyType))
 	}
 	blk := &pem.Block{

@@ -44,8 +44,8 @@ func TestSNTRUPKEM(t *testing.T) {
 
 	ct1, ss1, err := s.Encapsulate(pubkey1)
 	require.NoError(t, err)
-	require.False(t, utils.CtIsZero(ss1))
-	require.False(t, utils.CtIsZero(ct1))
+	require.False(t, util.CtIsZero(ss1))
+	require.False(t, util.CtIsZero(ct1))
 
 	ss1b, err := s.Decapsulate(privkey1, ct1)
 	require.NoError(t, err)

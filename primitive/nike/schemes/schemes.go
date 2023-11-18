@@ -4,15 +4,15 @@ import (
 	"strings"
 
 	"github.com/katzenpost/hpqc/primitive/nike"
-	ecdh "github.com/katzenpost/hpqc/primitive/nike/x25519"
 	"github.com/katzenpost/hpqc/primitive/nike/hybrid"
+	ecdh "github.com/katzenpost/hpqc/primitive/nike/x25519"
 	"github.com/katzenpost/hpqc/rand"
 )
 
 // NOTE(david): The CTIDH schemes won't work unless you build with
 // "ctidh" build tag.
 var allSchemes = [...]nike.Scheme{
-	ecdh.NewEcdhNike(rand.Reader),
+	ecdh.Scheme(rand.Reader),
 	hybrid.NOBS_CSIDH512X25519,
 	// Must build with `ctidh` build tag (and other supporting env vars)
 	// for CTIDH usage:

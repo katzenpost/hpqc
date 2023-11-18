@@ -54,7 +54,7 @@ func (s *Sphinx) newKemSURB(r io.Reader, path []*PathHop) ([]byte, []byte, error
 	if _, err := io.ReadFull(r, keyPayload[:]); err != nil {
 		return nil, nil, err
 	}
-	defer utils.ExplicitBzero(keyPayload[:])
+	defer util.ExplicitBzero(keyPayload[:])
 
 	hdr, sprpKeys, err := s.createKEMHeader(r, path)
 	if err != nil {
@@ -141,7 +141,7 @@ func (s *Sphinx) createKEMHeader(r io.Reader, path []*PathHop) ([]byte, []*sprpK
 		if err != nil {
 			panic(err)
 		}
-		defer utils.ExplicitBzero(sharedSecret)
+		defer util.ExplicitBzero(sharedSecret)
 
 		// set the second arg (NIKE interface object) to nil
 		// so we don't need to generate blinding factors
@@ -157,7 +157,7 @@ func (s *Sphinx) createKEMHeader(r io.Reader, path []*PathHop) ([]byte, []*sprpK
 
 	for i := 0; i < nrHops; i++ {
 		keyStream := make([]byte, s.geometry.RoutingInfoLength+s.geometry.PerHopRoutingInfoLength)
-		defer utils.ExplicitBzero(keyStream)
+		defer util.ExplicitBzero(keyStream)
 
 		streamCipher := crypto.NewStream(&keys[i].HeaderEncryption, &keys[i].HeaderEncryptionIV)
 		streamCipher.KeyStream(keyStream)
@@ -257,7 +257,7 @@ func (s *Sphinx) unwrapKem(privKey kem.PrivateKey, pkt []byte) ([]byte, []byte, 
 	}
 
 	var sharedSecret []byte
-	defer utils.ExplicitBzero(sharedSecret)
+	defer util.ExplicitBzero(sharedSecret)
 
 	// Calculate the hop's shared secret, and replay_tag.
 	kemCiphertext := pkt[geOff:riOff]
@@ -355,7 +355,7 @@ func (s *Sphinx) unwrapKem(privKey kem.PrivateKey, pkt []byte) ([]byte, []byte, 
 		}
 		// Validate the payload tag, iff this is not a SURB reply.
 		if surbReply == nil {
-			if !utils.CtIsZero(payload[:s.geometry.PayloadTagLength]) {
+			if !util.CtIsZero(payload[:s.geometry.PayloadTagLength]) {
 				return nil, replayTag[:], nil, errInvalidTag
 			}
 			payload = payload[s.geometry.PayloadTagLength:]

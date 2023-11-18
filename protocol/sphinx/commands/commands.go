@@ -74,7 +74,7 @@ func FromBytes(b []byte, g *geo.Geometry) (cmd RoutingCommand, rest []byte, err 
 	case null:
 		// The null command, being the terminal command is a special case.
 		if len(b) > 0 {
-			if !utils.CtIsZero(b) {
+			if !util.CtIsZero(b) {
 				err = errInvalidCommand
 				return
 			}

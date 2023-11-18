@@ -19,7 +19,7 @@ import (
 
 	"github.com/cloudflare/circl/kem"
 
-	"github.com/katzenpost/hpqc/primitive/kem/utils"
+	"github.com/katzenpost/hpqc/primitive/kem/util"
 )
 
 var (
@@ -190,7 +190,7 @@ func (sch *Scheme) EncapsulateDeterministically(publicKey kem.PublicKey, seed []
 		return nil, nil, err
 	}
 
-	ss = utils.PairSplitPRF(ss1, ss2, ct1, ct2)
+	ss = util.PairSplitPRF(ss1, ss2, ct1, ct2)
 
 	return append(ct1, ct2...), ss, nil
 }
@@ -215,7 +215,7 @@ func (sch *Scheme) Decapsulate(sk kem.PrivateKey, ct []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	return utils.PairSplitPRF(ss1, ss2, ct[:firstSize], ct[firstSize:]), nil
+	return util.PairSplitPRF(ss1, ss2, ct[:firstSize], ct[firstSize:]), nil
 }
 
 func (sch *Scheme) UnmarshalBinaryPublicKey(buf []byte) (kem.PublicKey, error) {

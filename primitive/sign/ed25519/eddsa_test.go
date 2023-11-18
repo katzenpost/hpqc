@@ -74,7 +74,7 @@ func TestKeypair(t *testing.T) {
 	assert.Equal(privKey, &privKey2, "PrivateKey.ToBytes()->FromBytes()")
 
 	privKey2.Reset()
-	assert.True(utils.CtIsZero(privKey2.privKey), "PrivateKey.Reset()")
+	assert.True(util.CtIsZero(privKey2.privKey), "PrivateKey.Reset()")
 
 	var pubKey PublicKey
 	assert.Error(pubKey.FromBytes(shortBuffer), "PublicKey.FromBytes(short)")

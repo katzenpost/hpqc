@@ -36,7 +36,7 @@ func (s *Sphinx) newNikeSURB(r io.Reader, path []*PathHop) ([]byte, []byte, erro
 	if _, err := io.ReadFull(r, keyPayload[:]); err != nil {
 		return nil, nil, err
 	}
-	defer utils.ExplicitBzero(keyPayload[:])
+	defer util.ExplicitBzero(keyPayload[:])
 
 	hdr, sprpKeys, err := s.createHeader(r, path)
 	if err != nil {
@@ -83,9 +83,9 @@ func (s *Sphinx) NewPacketFromSURB(surb, payload []byte) ([]byte, *[constants.No
 
 	copy(nodeID[:], surb[idOff:keyOff])
 	copy(sprpKey[:], surb[keyOff:ivOff])
-	defer utils.ExplicitBzero(sprpKey[:])
+	defer util.ExplicitBzero(sprpKey[:])
 	copy(sprpIV[:], surb[ivOff:])
-	defer utils.ExplicitBzero(sprpIV[:])
+	defer util.ExplicitBzero(sprpIV[:])
 
 	// Assemble the packet.
 	pkt := make([]byte, 0, len(hdr)+s.geometry.PayloadTagLength+len(payload))
@@ -105,7 +105,7 @@ func (s *Sphinx) NewPacketFromSURB(surb, payload []byte) ([]byte, *[constants.No
 // with the provided keys, and returns the plaintext.  The keys are obliterated
 // at the end of this call.
 func (s *Sphinx) DecryptSURBPayload(payload, keys []byte) ([]byte, error) {
-	defer utils.ExplicitBzero(keys)
+	defer util.ExplicitBzero(keys)
 	nrHops := len(keys) / sprpKeyMaterialLength
 	if len(keys)%sprpKeyMaterialLength != 0 || nrHops < 1 {
 		return nil, errors.New("sphinx: invalid SURB decryption keys")
@@ -117,8 +117,8 @@ func (s *Sphinx) DecryptSURBPayload(payload, keys []byte) ([]byte, error) {
 	k := keys[0:]
 	var sprpKey [crypto.SPRPKeyLength]byte
 	var sprpIV [crypto.SPRPIVLength]byte
-	defer utils.ExplicitBzero(sprpKey[:])
-	defer utils.ExplicitBzero(sprpIV[:])
+	defer util.ExplicitBzero(sprpKey[:])
+	defer util.ExplicitBzero(sprpIV[:])
 
 	b := payload
 	for i := 0; i < nrHops; i++ {
@@ -134,7 +134,7 @@ func (s *Sphinx) DecryptSURBPayload(payload, keys []byte) ([]byte, error) {
 	}
 
 	// Authenticate the payload.
-	if !utils.CtIsZero(b[:s.geometry.PayloadTagLength]) {
+	if !util.CtIsZero(b[:s.geometry.PayloadTagLength]) {
 		return nil, errInvalidTag
 	}
 

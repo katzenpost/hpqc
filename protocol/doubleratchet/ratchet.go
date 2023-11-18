@@ -79,8 +79,8 @@ type keyExchange struct {
 }
 
 func (k *keyExchange) Wipe() {
-	utils.ExplicitBzero(k.Dh0)
-	utils.ExplicitBzero(k.Dh1)
+	util.ExplicitBzero(k.Dh0)
+	util.ExplicitBzero(k.Dh1)
 }
 
 // messageKey is structure containing the data associated with the message key
@@ -228,7 +228,7 @@ func (r *Ratchet) randBytes(buf []byte) {
 // wiped afterwards. The new *Ratchet is returned unless
 // there's an error.
 func NewRatchetFromBytes(rand io.Reader, data []byte) (*Ratchet, error) {
-	defer utils.ExplicitBzero(data)
+	defer util.ExplicitBzero(data)
 	state := state{}
 	if err := cbor.Unmarshal(data, &state); err != nil {
 		return nil, err
@@ -772,7 +772,7 @@ func (r *Ratchet) Decrypt(ciphertext []byte) ([]byte, error) {
 	sealedHeader = sealedHeader[len(nonce):]
 
 	header, ok := secretbox.Open(nil, sealedHeader, &nonce, r.recvHeaderKey.ByteArray32())
-	ok = ok && !utils.CtIsZero(r.recvHeaderKey.Bytes())
+	ok = ok && !util.CtIsZero(r.recvHeaderKey.Bytes())
 
 	if ok {
 		if len(header) != headerSize {

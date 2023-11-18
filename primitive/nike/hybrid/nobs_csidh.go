@@ -11,6 +11,6 @@ import (
 
 var NOBS_CSIDH512X25519 nike.Scheme = &scheme{
 	name:   "NOBS_CSIDH-X25519",
-	first:  ecdh.NewEcdhNike(rand.Reader),
+	first:  ecdh.Scheme(rand.Reader),
 	second: csidh.NOBS_CSIDH512Scheme,
 }

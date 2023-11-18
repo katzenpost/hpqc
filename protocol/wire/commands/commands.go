@@ -779,7 +779,7 @@ func (c *Commands) messageFromBytes(b []byte) (Command, error) {
 		}
 
 		padding := b[c.geo.UserForwardPayloadLength:]
-		if !utils.CtIsZero(padding) {
+		if !util.CtIsZero(padding) {
 			return nil, errInvalidCommand
 		}
 		b = b[:c.geo.UserForwardPayloadLength]
@@ -795,7 +795,7 @@ func (c *Commands) messageFromBytes(b []byte) (Command, error) {
 			return nil, errInvalidCommand
 		}
 
-		if !utils.CtIsZero(b) {
+		if !util.CtIsZero(b) {
 			return nil, errInvalidCommand
 		}
 
@@ -827,7 +827,7 @@ func (c *Commands) FromBytes(b []byte) (Command, error) {
 	padding := b[cmdLen:]
 
 	// Ensure that it is zero padded.
-	if !utils.CtIsZero(padding) {
+	if !util.CtIsZero(padding) {
 		return nil, errInvalidCommand
 	}
 

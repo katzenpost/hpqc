@@ -109,8 +109,8 @@ type sprpKey struct {
 }
 
 func (k *sprpKey) Reset() {
-	utils.ExplicitBzero(k.key[:])
-	utils.ExplicitBzero(k.iv[:])
+	util.ExplicitBzero(k.key[:])
+	util.ExplicitBzero(k.iv[:])
 }
 
 func (s *Sphinx) commandsToBytes(cmds []commands.RoutingCommand, isTerminal bool) ([]byte, error) {
@@ -150,7 +150,7 @@ func (s *Sphinx) createHeader(r io.Reader, path []*PathHop) ([]byte, []*sprpKey,
 	keys := make([]*crypto.PacketKeys, s.geometry.NrHops)
 
 	sharedSecret := s.nike.DeriveSecret(clientPrivateKey, path[0].NIKEPublicKey)
-	defer utils.ExplicitBzero(sharedSecret)
+	defer util.ExplicitBzero(sharedSecret)
 
 	keys[0] = crypto.KDF(sharedSecret, s.nike)
 	defer keys[0].Reset()
@@ -191,7 +191,7 @@ func (s *Sphinx) createHeader(r io.Reader, path []*PathHop) ([]byte, []*sprpKey,
 
 	for i := 0; i < nrHops; i++ {
 		keyStream := make([]byte, s.geometry.RoutingInfoLength+s.geometry.PerHopRoutingInfoLength)
-		defer utils.ExplicitBzero(keyStream)
+		defer util.ExplicitBzero(keyStream)
 
 		streamCipher := crypto.NewStream(&keys[i].HeaderEncryption, &keys[i].HeaderEncryptionIV)
 		streamCipher.KeyStream(keyStream)
@@ -323,7 +323,7 @@ func (s *Sphinx) unwrapNike(privKey nike.PrivateKey, pkt []byte) ([]byte, []byte
 	}
 
 	var sharedSecret []byte
-	defer utils.ExplicitBzero(sharedSecret)
+	defer util.ExplicitBzero(sharedSecret)
 
 	// Calculate the hop's shared secret, and replay_tag.
 	groupElement, err := s.nike.UnmarshalBinaryPublicKey(pkt[geOff:riOff])
@@ -419,7 +419,7 @@ func (s *Sphinx) unwrapNike(privKey nike.PrivateKey, pkt []byte) ([]byte, []byte
 		}
 		// Validate the payload tag, iff this is not a SURB reply.
 		if surbReply == nil {
-			if !utils.CtIsZero(payload[:s.geometry.PayloadTagLength]) {
+			if !util.CtIsZero(payload[:s.geometry.PayloadTagLength]) {
 				return nil, replayTag[:], nil, errInvalidTag
 			}
 			payload = payload[s.geometry.PayloadTagLength:]

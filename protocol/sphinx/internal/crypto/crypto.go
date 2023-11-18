@@ -84,7 +84,7 @@ type Stream struct {
 func (s *Stream) KeyStream(dst []byte) {
 	// TODO: Add a fast path for implementations that support it, to
 	// shave off the memset and XOR.
-	utils.ExplicitBzero(dst)
+	util.ExplicitBzero(dst)
 	s.XORKeyStream(dst, dst)
 }
 
@@ -156,10 +156,10 @@ type PacketKeys struct {
 // Reset clears the PacketKeys structure such that no sensitive data is left
 // in memory.
 func (k *PacketKeys) Reset() {
-	utils.ExplicitBzero(k.HeaderMAC[:])
-	utils.ExplicitBzero(k.HeaderEncryption[:])
-	utils.ExplicitBzero(k.HeaderEncryptionIV[:])
-	utils.ExplicitBzero(k.PayloadEncryption[:])
+	util.ExplicitBzero(k.HeaderMAC[:])
+	util.ExplicitBzero(k.HeaderEncryption[:])
+	util.ExplicitBzero(k.HeaderEncryptionIV[:])
+	util.ExplicitBzero(k.PayloadEncryption[:])
 	if k.BlindingFactor != nil {
 		k.BlindingFactor.Reset()
 	}
@@ -180,7 +180,7 @@ func KDF(ikm []byte, scheme nike.Scheme) *PacketKeys {
 	if err != nil {
 		panic(err)
 	}
-	defer utils.ExplicitBzero(okm)
+	defer util.ExplicitBzero(okm)
 	ptr := okm
 
 	k := new(PacketKeys)
