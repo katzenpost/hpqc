@@ -26,7 +26,7 @@ import (
 	"github.com/cloudflare/circl/kem/kyber/kyber768"
 
 	"github.com/katzenpost/hpqc/primitive/kem/adapter"
-	"github.com/katzenpost/hpqc/primitive/nike/ecdh"
+	ecdh "github.com/katzenpost/hpqc/primitive/nike/x25519"
 	"github.com/katzenpost/hpqc/rand"
 	"github.com/katzenpost/hpqc/protocol/sphinx/commands"
 	"github.com/katzenpost/hpqc/protocol/sphinx/geo"

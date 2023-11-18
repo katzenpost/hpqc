@@ -23,7 +23,7 @@ import (
 	"crypto/rand"
 	"testing"
 
-	ecdhnike "github.com/katzenpost/hpqc/primitive/nike/ecdh"
+	ecdhnike ecdh "github.com/katzenpost/hpqc/primitive/nike/x25519"
 )
 
 func BenchmarkEcdhSphinxUnwrap(b *testing.B) {

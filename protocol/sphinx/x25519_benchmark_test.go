@@ -19,7 +19,7 @@ package sphinx
 import (
 	"testing"
 
-	"github.com/katzenpost/hpqc/primitive/nike/ecdh"
+	ecdh "github.com/katzenpost/hpqc/primitive/nike/x25519"
 )
 
 func BenchmarkX25519SphinxUnwrap(b *testing.B) {

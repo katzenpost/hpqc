@@ -26,7 +26,7 @@ import (
 	"encoding/hex"
 	"testing"
 
-	"github.com/katzenpost/hpqc/primitive/nike/ecdh"
+	ecdh "github.com/katzenpost/hpqc/primitive/nike/x25519"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/crypto/hkdf"

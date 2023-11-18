@@ -27,7 +27,7 @@ import (
 
 	"github.com/katzenpost/hpqc/primitive/nike"
 	"github.com/katzenpost/hpqc/primitive/nike/ctidh"
-	ecdhnike "github.com/katzenpost/hpqc/primitive/nike/ecdh"
+	ecdhnike ecdh "github.com/katzenpost/hpqc/primitive/nike/x25519"
 	"github.com/katzenpost/hpqc/primitive/nike/hybrid"
 	"github.com/katzenpost/hpqc/protocol/sphinx/geo"
 )
