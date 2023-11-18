@@ -6,8 +6,9 @@ package sntrup
 import (
 	"testing"
 
-	"github.com/katzenpost/katzenpost/core/utils"
 	"github.com/stretchr/testify/require"
+
+	"github.com/katzenpost/hpqc/utils"
 )
 
 func TestSNTRUPKEM(t *testing.T) {

@@ -16,7 +16,7 @@ import (
 
 	sntrup "github.com/katzenpost/sntrup4591761"
 
-	"github.com/katzenpost/katzenpost/core/crypto/rand"
+	"github.com/katzenpost/hpqc/rand"
 )
 
 const (

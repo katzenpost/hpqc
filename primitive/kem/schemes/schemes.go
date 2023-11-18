@@ -8,12 +8,12 @@ import (
 
 	"github.com/cloudflare/circl/kem/kyber/kyber768"
 
-	"github.com/katzenpost/katzenpost/core/crypto/kem/adapter"
-	"github.com/katzenpost/katzenpost/core/crypto/kem/combiner"
-	kemhybrid "github.com/katzenpost/katzenpost/core/crypto/kem/hybrid"
-	"github.com/katzenpost/katzenpost/core/crypto/kem/sntrup"
-	"github.com/katzenpost/katzenpost/core/crypto/nike/ecdh"
-	"github.com/katzenpost/katzenpost/core/crypto/rand"
+	"github.com/katzenpost/hpqc/primitive/kem/adapter"
+	"github.com/katzenpost/hpqc/primitive/kem/combiner"
+	kemhybrid "github.com/katzenpost/hpqc/primitive/kem/hybrid"
+	"github.com/katzenpost/hpqc/primitive/kem/sntrup"
+	"github.com/katzenpost/hpqc/primitive/nike/ecdh"
+	"github.com/katzenpost/hpqc/rand"
 )
 
 var allSchemes = [...]kem.Scheme{
