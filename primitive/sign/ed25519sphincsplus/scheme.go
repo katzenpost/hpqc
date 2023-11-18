@@ -10,7 +10,7 @@ import (
 
 	"golang.org/x/crypto/blake2b"
 
-	"github.com/katzenpost/hpqc/primitive/pem"
+	"github.com/katzenpost/hpqc/util/pem"
 	"github.com/katzenpost/hpqc/primitive/sign"
 	"github.com/katzenpost/hpqc/primitive/sign/eddsa"
 
