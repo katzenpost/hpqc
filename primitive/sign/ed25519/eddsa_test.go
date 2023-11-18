@@ -1,5 +1,6 @@
-// eddsa_test.go - EdDSA wrapper tests.
-// Copyright (C) 2017  Yawning Angel.
+// eddsa_test.go - Test eddsa wrapper signature scheme tests.
+//
+// Copyright (C) 2022  David Stainton.
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as
@@ -14,16 +15,47 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package eddsa
+package ed25519
 
 import (
-	"crypto/rand"
 	"testing"
 
-	"github.com/katzenpost/katzenpost/core/utils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/katzenpost/hpqc/rand"
+	"github.com/katzenpost/hpqc/utils"
 )
+
+func TestEddsaScheme(t *testing.T) {
+	t.Parallel()
+	message := []byte("hello world")
+	privKey, pubKey := Scheme().NewKeypair()
+	signature := privKey.Sign(message)
+	require.Equal(t, len(signature), Scheme().SignatureSize())
+	ok := pubKey.Verify(signature, message)
+	require.True(t, ok)
+
+}
+
+func TestEddsaSchemeTextUnmarshaler(t *testing.T) {
+	t.Parallel()
+	message := []byte("hello world")
+	privKey, pubKey := Scheme().NewKeypair()
+
+	pubKeyText, err := pubKey.MarshalBinary()
+	require.NoError(t, err)
+
+	pubKey2, err := Scheme().UnmarshalBinaryPublicKey(pubKeyText)
+	require.NoError(t, err)
+
+	signature := privKey.Sign(message)
+	ok := pubKey.Verify(signature, message)
+	require.True(t, ok)
+
+	ok = pubKey2.Verify(signature, message)
+	require.True(t, ok)
+}
 
 func TestKeypair(t *testing.T) {
 	t.Parallel()
