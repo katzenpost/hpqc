@@ -17,7 +17,7 @@ import (
 )
 
 var allSchemes = [...]kem.Scheme{
-	adapter.FromNIKE(ecdh.NewEcdhNike(rand.Reader)),
+	adapter.FromNIKE(ecdh.Scheme(rand.Reader)),
 	// Must build with `ctidh` build tag (and other supporting env vars)
 	// for CTIDH usage:
 	// adapter.FromNIKE(hybrid.CTIDH1024X25519),
@@ -28,21 +28,21 @@ var allSchemes = [...]kem.Scheme{
 	//),
 	kemhybrid.New(
 		"Kyber768-X25519",
-		adapter.FromNIKE(ecdh.NewEcdhNike(rand.Reader)),
+		adapter.FromNIKE(ecdh.Scheme(rand.Reader)),
 		kyber768.Scheme(),
 	),
 
 	combiner.New(
 		"Kyber768-X25519_combiner",
 		[]kem.Scheme{
-			adapter.FromNIKE(ecdh.NewEcdhNike(rand.Reader)),
+			adapter.FromNIKE(ecdh.Scheme(rand.Reader)),
 			kyber768.Scheme(),
 		},
 	),
 
 	kemhybrid.New(
 		"sntrup4591761-X25519",
-		adapter.FromNIKE(ecdh.NewEcdhNike(rand.Reader)),
+		adapter.FromNIKE(ecdh.Scheme(rand.Reader)),
 		sntrup.Scheme(),
 	),
 }
