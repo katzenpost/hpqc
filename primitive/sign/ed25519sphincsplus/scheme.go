@@ -1,5 +1,8 @@
-//go:build exclude
-// +build exclude
+//go:build sphincsplus
+// +build sphincsplus
+
+// SPDX-FileCopyrightText: (c) 2022-2023 David Stainton
+// SPDX-License-Identifier: AGPL-3.0-only
 
 package ed25519sphincsplus
 
@@ -10,11 +13,11 @@ import (
 
 	"golang.org/x/crypto/blake2b"
 
-	"github.com/katzenpost/hpqc/util/pem"
 	"github.com/katzenpost/hpqc/primitive/sign"
-	"github.com/katzenpost/hpqc/primitive/sign/eddsa"
+	"github.com/katzenpost/hpqc/primitive/sign/ed25519"
+	"github.com/katzenpost/hpqc/util/pem"
 
-	sphincs "github.com/katzenpost/katzenpost/sphincsplus/ref"
+	sphincs "github.com/katzenpost/sphincsplus/ref"
 )
 
 var (
@@ -31,7 +34,7 @@ type scheme struct{}
 var _ sign.Scheme = (*scheme)(nil)
 
 func (s *scheme) NewKeypair() (sign.PrivateKey, sign.PublicKey) {
-	eprivKey, err := eddsa.NewKeypair(rand.Reader)
+	eprivKey, err := ed25519.NewKeypair(rand.Reader)
 	if err != nil {
 		panic(err)
 	}
@@ -81,15 +84,15 @@ func (s *scheme) UnmarshalTextPublicKey(text []byte) (sign.PublicKey, error) {
 }
 
 func (s *scheme) SignatureSize() int {
-	return eddsa.SignatureSize + sphincs.SignatureSize
+	return ed25519.SignatureSize + sphincs.SignatureSize
 }
 
 func (s *scheme) PublicKeySize() int {
-	return eddsa.PublicKeySize + sphincs.PublicKeySize
+	return ed25519.PublicKeySize + sphincs.PublicKeySize
 }
 
 func (s *scheme) PrivateKeySize() int {
-	return eddsa.PrivateKeySize + sphincs.PrivateKeySize
+	return ed25519.PrivateKeySize + sphincs.PrivateKeySize
 }
 
 func (s *scheme) Name() string {
@@ -105,13 +108,13 @@ func (s *scheme) PublicKeyType() string {
 }
 
 type privateKey struct {
-	e *eddsa.PrivateKey
+	e *ed25519.PrivateKey
 	s *sphincs.PrivateKey
 }
 
 func NewEmptyPrivateKey() *privateKey {
 	return &privateKey{
-		e: new(eddsa.PrivateKey),
+		e: new(ed25519.PrivateKey),
 		s: new(sphincs.PrivateKey),
 	}
 }
@@ -136,14 +139,14 @@ func (p *privateKey) Bytes() []byte {
 }
 
 func (p *privateKey) FromBytes(data []byte) error {
-	if len(data) != eddsa.PrivateKeySize+sphincs.PrivateKeySize {
+	if len(data) != ed25519.PrivateKeySize+sphincs.PrivateKeySize {
 		return ErrPrivateKeySize
 	}
-	err := p.e.FromBytes(data[:eddsa.PrivateKeySize])
+	err := p.e.FromBytes(data[:ed25519.PrivateKeySize])
 	if err != nil {
 		return err
 	}
-	err = p.s.FromBytes(data[eddsa.PrivateKeySize:])
+	err = p.s.FromBytes(data[ed25519.PrivateKeySize:])
 	if err != nil {
 		return err
 	}
@@ -151,14 +154,14 @@ func (p *privateKey) FromBytes(data []byte) error {
 }
 
 type publicKey struct {
-	e    *eddsa.PublicKey
+	e    *ed25519.PublicKey
 	s    *sphincs.PublicKey
 	hash [32]byte
 }
 
 func NewEmptyPublicKey() *publicKey {
 	return &publicKey{
-		e: new(eddsa.PublicKey),
+		e: new(ed25519.PublicKey),
 		s: new(sphincs.PublicKey),
 	}
 }
@@ -176,10 +179,10 @@ func (p *publicKey) Equal(pubKey sign.PublicKey) bool {
 }
 
 func (p *publicKey) Verify(signature, message []byte) bool {
-	if !p.e.Verify(signature[:eddsa.SignatureSize], message) {
+	if !p.e.Verify(signature[:ed25519.SignatureSize], message) {
 		return false
 	}
-	if !p.s.Verify(signature[eddsa.SignatureSize:], message) {
+	if !p.s.Verify(signature[ed25519.SignatureSize:], message) {
 		return false
 	}
 	return true
@@ -196,14 +199,14 @@ func (p *publicKey) Bytes() []byte {
 }
 
 func (p *publicKey) FromBytes(data []byte) error {
-	if len(data) != eddsa.PublicKeySize+sphincs.PublicKeySize {
+	if len(data) != ed25519.PublicKeySize+sphincs.PublicKeySize {
 		return ErrPublicKeySize
 	}
-	err := p.e.FromBytes(data[:eddsa.PublicKeySize])
+	err := p.e.FromBytes(data[:ed25519.PublicKeySize])
 	if err != nil {
 		return err
 	}
-	err = p.s.FromBytes(data[eddsa.PublicKeySize:])
+	err = p.s.FromBytes(data[ed25519.PublicKeySize:])
 	if err != nil {
 		return err
 	}
