@@ -25,11 +25,11 @@ import (
 	"github.com/cloudflare/circl/kem/kyber/kyber512"
 	"github.com/cloudflare/circl/kem/kyber/kyber768"
 
-	"github.com/katzenpost/katzenpost/core/crypto/kem/adapter"
-	"github.com/katzenpost/katzenpost/core/crypto/nike/ecdh"
-	"github.com/katzenpost/katzenpost/core/crypto/rand"
-	"github.com/katzenpost/katzenpost/core/sphinx/commands"
-	"github.com/katzenpost/katzenpost/core/sphinx/geo"
+	"github.com/katzenpost/hpqc/primitive/kem/adapter"
+	"github.com/katzenpost/hpqc/primitive/nike/ecdh"
+	"github.com/katzenpost/hpqc/rand"
+	"github.com/katzenpost/hpqc/protocol/sphinx/commands"
+	"github.com/katzenpost/hpqc/protocol/sphinx/geo"
 )
 
 func BenchmarkKEMSphinxUnwrapX25519(b *testing.B) {

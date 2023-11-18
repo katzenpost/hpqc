@@ -25,8 +25,8 @@ import (
 	"github.com/cloudflare/circl/kem/kyber/kyber1024"
 	"github.com/cloudflare/circl/kem/kyber/kyber512"
 	"github.com/cloudflare/circl/kem/kyber/kyber768"
-	"github.com/katzenpost/katzenpost/core/sphinx/commands"
-	"github.com/katzenpost/katzenpost/core/sphinx/geo"
+	"github.com/katzenpost/hpqc/protocol/sphinx/commands"
+	"github.com/katzenpost/hpqc/protocol/sphinx/geo"
 	"github.com/stretchr/testify/require"
 )
 

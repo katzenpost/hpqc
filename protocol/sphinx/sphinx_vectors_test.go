@@ -25,10 +25,10 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/katzenpost/katzenpost/core/crypto/nike"
-	ecdhnike "github.com/katzenpost/katzenpost/core/crypto/nike/ecdh"
-	"github.com/katzenpost/katzenpost/core/sphinx/commands"
-	"github.com/katzenpost/katzenpost/core/sphinx/geo"
+	"github.com/katzenpost/hpqc/primitive/nike"
+	ecdhnike "github.com/katzenpost/hpqc/primitive/nike/ecdh"
+	"github.com/katzenpost/hpqc/protocol/sphinx/commands"
+	"github.com/katzenpost/hpqc/protocol/sphinx/geo"
 )
 
 const sphinxVectorsFile = "testdata/sphinx_vectors.json"

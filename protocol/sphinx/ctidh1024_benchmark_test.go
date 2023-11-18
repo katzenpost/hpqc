@@ -22,8 +22,8 @@ package sphinx
 import (
 	"testing"
 
-	"github.com/katzenpost/katzenpost/core/crypto/kem/adapter"
-	"github.com/katzenpost/katzenpost/core/crypto/nike/ctidh"
+	"github.com/katzenpost/hpqc/primitive/kem/adapter"
+	"github.com/katzenpost/hpqc/primitive/nike/ctidh"
 )
 
 func BenchmarkCtidh1024SphinxUnwrap(b *testing.B) {

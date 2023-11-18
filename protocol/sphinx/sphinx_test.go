@@ -22,9 +22,9 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/katzenpost/katzenpost/core/crypto/nike"
-	"github.com/katzenpost/katzenpost/core/sphinx/commands"
-	"github.com/katzenpost/katzenpost/core/sphinx/constants"
+	"github.com/katzenpost/hpqc/primitive/nike"
+	"github.com/katzenpost/hpqc/protocol/sphinx/commands"
+	"github.com/katzenpost/hpqc/protocol/sphinx/constants"
 )
 
 type nodeParams struct {

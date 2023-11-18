@@ -25,11 +25,11 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/katzenpost/katzenpost/core/crypto/nike"
-	"github.com/katzenpost/katzenpost/core/crypto/nike/ctidh"
-	ecdhnike "github.com/katzenpost/katzenpost/core/crypto/nike/ecdh"
-	"github.com/katzenpost/katzenpost/core/crypto/nike/hybrid"
-	"github.com/katzenpost/katzenpost/core/sphinx/geo"
+	"github.com/katzenpost/hpqc/primitive/nike"
+	"github.com/katzenpost/hpqc/primitive/nike/ctidh"
+	ecdhnike "github.com/katzenpost/hpqc/primitive/nike/ecdh"
+	"github.com/katzenpost/hpqc/primitive/nike/hybrid"
+	"github.com/katzenpost/hpqc/protocol/sphinx/geo"
 )
 
 func TestHybridCtidhForwardSphinx(t *testing.T) {

@@ -22,10 +22,10 @@ import (
 	"encoding/binary"
 	"errors"
 
-	"github.com/katzenpost/katzenpost/core/sphinx/constants"
-	"github.com/katzenpost/katzenpost/core/sphinx/geo"
-	"github.com/katzenpost/katzenpost/core/sphinx/internal/crypto"
-	"github.com/katzenpost/katzenpost/core/utils"
+	"github.com/katzenpost/hpqc/protocol/sphinx/constants"
+	"github.com/katzenpost/hpqc/protocol/sphinx/geo"
+	"github.com/katzenpost/hpqc/protocol/sphinx/internal/crypto"
+	"github.com/katzenpost/hpqc/utils"
 )
 
 const (

@@ -26,11 +26,11 @@ import (
 	"encoding/hex"
 	"testing"
 
-	"github.com/katzenpost/katzenpost/core/crypto/nike/ecdh"
+	"github.com/katzenpost/hpqc/primitive/nike/ecdh"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/crypto/hkdf"
-	ourVeryOwnRand "github.com/katzenpost/katzenpost/core/crypto/rand"
+	ourVeryOwnRand "github.com/katzenpost/hpqc/rand"
 
 )
 

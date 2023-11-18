@@ -24,11 +24,11 @@ import (
 
 	"github.com/cloudflare/circl/kem"
 
-	"github.com/katzenpost/katzenpost/core/crypto/rand"
-	"github.com/katzenpost/katzenpost/core/sphinx/commands"
-	"github.com/katzenpost/katzenpost/core/sphinx/geo"
-	"github.com/katzenpost/katzenpost/core/sphinx/internal/crypto"
-	"github.com/katzenpost/katzenpost/core/utils"
+	"github.com/katzenpost/hpqc/rand"
+	"github.com/katzenpost/hpqc/protocol/sphinx/commands"
+	"github.com/katzenpost/hpqc/protocol/sphinx/geo"
+	"github.com/katzenpost/hpqc/protocol/sphinx/internal/crypto"
+	"github.com/katzenpost/hpqc/utils"
 )
 
 // NewKEMSphinx creates a new instance of KEMSphinx, the Sphinx

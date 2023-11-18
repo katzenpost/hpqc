@@ -20,9 +20,9 @@ import (
 	"crypto/rand"
 	"testing"
 
-	"github.com/katzenpost/katzenpost/core/crypto/nike"
-	"github.com/katzenpost/katzenpost/core/sphinx/commands"
-	"github.com/katzenpost/katzenpost/core/sphinx/geo"
+	"github.com/katzenpost/hpqc/primitive/nike"
+	"github.com/katzenpost/hpqc/protocol/sphinx/commands"
+	"github.com/katzenpost/hpqc/protocol/sphinx/geo"
 )
 
 func benchmarkSphinxUnwrap(b *testing.B, mynike nike.Scheme) {

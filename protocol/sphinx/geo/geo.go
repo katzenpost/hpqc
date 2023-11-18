@@ -13,10 +13,10 @@ import (
 	"github.com/cloudflare/circl/kem"
 	kemschemes "github.com/cloudflare/circl/kem/schemes"
 
-	"github.com/katzenpost/katzenpost/core/crypto/nike"
-	"github.com/katzenpost/katzenpost/core/crypto/nike/schemes"
-	"github.com/katzenpost/katzenpost/core/sphinx/constants"
-	"github.com/katzenpost/katzenpost/core/sphinx/internal/crypto"
+	"github.com/katzenpost/hpqc/primitive/nike"
+	"github.com/katzenpost/hpqc/primitive/nike/schemes"
+	"github.com/katzenpost/hpqc/protocol/sphinx/constants"
+	"github.com/katzenpost/hpqc/protocol/sphinx/internal/crypto"
 )
 
 const (

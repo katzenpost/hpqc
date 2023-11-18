@@ -20,8 +20,8 @@ import (
 	"crypto/rand"
 	"testing"
 
-	"github.com/katzenpost/katzenpost/core/crypto/nike/ecdh"
-	"github.com/katzenpost/katzenpost/core/sphinx/geo"
+	"github.com/katzenpost/hpqc/primitive/nike/ecdh"
+	"github.com/katzenpost/hpqc/protocol/sphinx/geo"
 	"github.com/stretchr/testify/require"
 )
 

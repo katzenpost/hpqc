@@ -20,8 +20,8 @@ import (
 	"io"
 
 	"github.com/cloudflare/circl/kem"
-	"github.com/katzenpost/katzenpost/core/crypto/nike"
-	"github.com/katzenpost/katzenpost/core/sphinx/commands"
+	"github.com/katzenpost/hpqc/primitive/nike"
+	"github.com/katzenpost/hpqc/protocol/sphinx/commands"
 )
 
 // NewPacket creates a forward Sphinx packet with the provided path and
