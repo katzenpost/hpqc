@@ -27,13 +27,13 @@ import (
 
 	"github.com/katzenpost/hpqc/primitive/kem/adapter"
 	ecdh "github.com/katzenpost/hpqc/primitive/nike/x25519"
-	"github.com/katzenpost/hpqc/rand"
 	"github.com/katzenpost/hpqc/protocol/sphinx/commands"
 	"github.com/katzenpost/hpqc/protocol/sphinx/geo"
+	"github.com/katzenpost/hpqc/rand"
 )
 
 func BenchmarkKEMSphinxUnwrapX25519(b *testing.B) {
-	benchmarkKEMSphinxUnwrap(b, adapter.FromNIKE(ecdh.NewEcdhNike(rand.Reader)))
+	benchmarkKEMSphinxUnwrap(b, adapter.FromNIKE(ecdh.Scheme(rand.Reader)))
 }
 
 func BenchmarkKEMSphinxUnwrapKyber512(b *testing.B) {
