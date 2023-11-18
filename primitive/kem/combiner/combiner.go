@@ -10,8 +10,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/cloudflare/circl/kem"
-
+	"github.com/katzenpost/hpqc/primitive/kem"
 	"github.com/katzenpost/hpqc/primitive/kem/util"
 )
 

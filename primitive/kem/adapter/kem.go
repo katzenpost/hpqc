@@ -4,9 +4,9 @@ import (
 	"crypto/hmac"
 	"fmt"
 
-	"github.com/cloudflare/circl/kem"
 	"golang.org/x/crypto/blake2b"
 
+	"github.com/katzenpost/hpqc/primitive/kem"
 	"github.com/katzenpost/hpqc/primitive/nike"
 	"github.com/katzenpost/hpqc/rand"
 )

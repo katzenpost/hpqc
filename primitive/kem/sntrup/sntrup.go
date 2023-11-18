@@ -12,7 +12,7 @@ import (
 	"golang.org/x/crypto/blake2b"
 	"golang.org/x/crypto/hkdf"
 
-	"github.com/cloudflare/circl/kem"
+	"github.com/katzenpost/hpqc/primitive/kem"
 
 	sntrup "github.com/katzenpost/sntrup4591761"
 
