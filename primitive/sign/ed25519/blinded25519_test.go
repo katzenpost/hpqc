@@ -1,14 +1,18 @@
-package eddsa
+// SPDX-FileCopyrightText: (c) 2021 - Anonymous contributor
+// SPDX-License-Identifier: AGPL-3.0-only
+
+package ed25519
 
 import (
+	"io"
+	"math/rand"
+	"testing"
+	"testing/quick"
+	"time"
+
 	"filippo.io/edwards25519"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"io"
-	"math/rand"
-	"time"
-	"testing"
-	"testing/quick"
 )
 
 func bothWork(assertx *assert.Assertions, t require.TestingT, rng io.Reader) bool {
@@ -16,7 +20,6 @@ func bothWork(assertx *assert.Assertions, t require.TestingT, rng io.Reader) boo
 	unblinded, err := NewKeypair(rng)
 	require.NoError(t, err, "NewKeypair(1)")
 	assert.Equal(true, CheckPublicKey(unblinded.PublicKey()))
-
 
 	factor := make([]byte, BlindFactorSize)
 	_, err = rng.Read(factor[:])

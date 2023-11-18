@@ -1,6 +1,5 @@
-// blinded25519.go - blinded EdDSA signatures
-// License: AGPL version 3
-// Copyright: 2021 - Anonymous contributor
+// SPDX-FileCopyrightText: (c) 2021 - Anonymous contributor
+// SPDX-License-Identifier: AGPL-3.0-only
 
 // This module implements the blinded signature scheme as used in
 // Tor for OnionV3, see A.2. Tor's key derivation scheme:
@@ -27,7 +26,7 @@
 //            clamp(a)*clamp(factor)
 // ===  clamp(clamp(a)*clamp(factor))
 
-package eddsa
+package ed25519
 
 import (
 	"crypto/ed25519"
@@ -35,6 +34,7 @@ import (
 	"crypto/subtle"
 	"encoding"
 	"errors"
+
 	"filippo.io/edwards25519"
 )
 
@@ -58,7 +58,7 @@ func CheckPublicKey(pk *PublicKey) bool {
 		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 		0x00, 0x10}
 	order_sc, _ := new(edwards25519.Scalar).SetUniformBytes(order_64[:])
-	pkA_n , err := new(edwards25519.Point).SetBytes(pk.Bytes())
+	pkA_n, err := new(edwards25519.Point).SetBytes(pk.Bytes())
 	if nil != err {
 		panic("failed to set edwards25519.Point.SetBytes(), incorrect size?")
 	}
@@ -66,11 +66,11 @@ func CheckPublicKey(pk *PublicKey) bool {
 	identity_element := edwards25519.NewIdentityPoint().Bytes()
 	pk_is_1 := subtle.ConstantTimeCompare(identity_element, pk.Bytes())
 	pk_mult_L_is_1 := subtle.ConstantTimeCompare(identity_element, pkA_n.Bytes())
-	pk_is_G := subtle.ConstantTimeCompare(edwards25519.NewGeneratorPoint().Bytes(),pk.Bytes())
+	pk_is_G := subtle.ConstantTimeCompare(edwards25519.NewGeneratorPoint().Bytes(), pk.Bytes())
 
 	nulls := [32]byte{}
 	pk_is_0 := subtle.ConstantTimeCompare(nulls[:], pk.Bytes())
-	if (pk_is_0 << 3) | (pk_is_G << 2) | (pk_is_1 << 1) | pk_mult_L_is_1 == 1 {
+	if (pk_is_0<<3)|(pk_is_G<<2)|(pk_is_1<<1)|pk_mult_L_is_1 == 1 {
 		return true
 	}
 	return false
@@ -119,7 +119,7 @@ func (k *BlindedPrivateKey) UnmarshalBinary(data []byte) error {
 // static type check ensuring we implement the
 // encoding.BinaryMarshaler interface::
 var (
-	_ encoding.BinaryMarshaler = &BlindedPrivateKey{}
+	_ encoding.BinaryMarshaler   = &BlindedPrivateKey{}
 	_ encoding.BinaryUnmarshaler = &BlindedPrivateKey{}
 )
 

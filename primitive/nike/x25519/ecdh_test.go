@@ -1,5 +1,5 @@
-// ecdh_test.go - ECDH wrapper tests.
-// Copyright (C) 2017  Yawning Angel.
+// ecdh.go - Adapts ecdh module to our NIKE interface.
+// Copyright (C) 2022  David Stainton and Yawning Angel
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Affero General Public License as
@@ -14,18 +14,36 @@
 // You should have received a copy of the GNU Affero General Public License
 // along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-package ecdh
+package x25519
 
 import (
-	"crypto/rand"
-	"os"
 	"testing"
 
-	"github.com/katzenpost/katzenpost/core/utils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/crypto/curve25519"
+
+	"github.com/katzenpost/hpqc/rand"
+	"github.com/katzenpost/hpqc/utils"
 )
+
+func TestEcdhNike(t *testing.T) {
+	ecdhNike := Scheme(rand.Reader)
+
+	alicePublicKey, alicePrivateKey, err := ecdhNike.GenerateKeyPair()
+	require.NoError(t, err)
+
+	tmp := alicePrivateKey.(*PrivateKey).Public()
+	require.Equal(t, alicePublicKey.Bytes(), tmp.Bytes())
+
+	bobKeypair, err := NewKeypair(rand.Reader)
+	require.NoError(t, err)
+
+	aliceS := ecdhNike.DeriveSecret(alicePrivateKey, bobKeypair.Public())
+
+	bobS := Exp(alicePublicKey.Bytes(), bobKeypair.Bytes())
+	require.Equal(t, bobS, aliceS)
+}
 
 func TestPrivateKey(t *testing.T) {
 	t.Parallel()
@@ -49,9 +67,9 @@ func TestPrivateKey(t *testing.T) {
 	var pubKey PublicKey
 	assert.Error(pubKey.FromBytes(shortBuffer), "PublicKey.FromBytes(short)")
 
-	err = pubKey.FromBytes(privKey.PublicKey().Bytes())
+	err = pubKey.FromBytes(privKey.Public().Bytes())
 	assert.NoError(err, "PrivateKey.PublicKey().Bytes->FromBytes()")
-	assert.Equal(privKey.PublicKey(), &pubKey, "PrivateKey.PublicKey().Bytes->FromBytes()")
+	assert.Equal(privKey.Public(), &pubKey, "PrivateKey.PublicKey().Bytes->FromBytes()")
 }
 
 func TestECDHOps(t *testing.T) {
@@ -62,30 +80,15 @@ func TestECDHOps(t *testing.T) {
 	require.NoError(t, err, "NewKeygen() Alice failed")
 
 	var bobSk, bobPk, bobS, tmp [GroupElementLength]byte
-	_, err = rand.Read(bobSk[:])
+	_, err = rand.Reader.Read(bobSk[:])
 	require.NoError(t, err, "failed to generate bobSk")
 	curve25519.ScalarBaseMult(&bobPk, &bobSk)
 
 	curve25519.ScalarBaseMult(&tmp, &aliceKeypair.privBytes)
-	assert.Equal(aliceKeypair.PublicKey().Bytes(), tmp[:], "ExpG() mismatch against X25519 scalar base mult")
+	assert.Equal(aliceKeypair.Public().Bytes(), tmp[:], "ExpG() mismatch against X25519 scalar base mult")
 
 	aliceS := Exp(bobPk[:], aliceKeypair.privBytes[:])
-	copy(tmp[:], aliceKeypair.PublicKey().Bytes())
+	copy(tmp[:], aliceKeypair.Public().Bytes())
 	curve25519.ScalarMult(&bobS, &bobSk, &tmp)
 	assert.Equal(bobS[:], aliceS, "Exp() mismatch against X25519 scalar mult")
-}
-
-func TestPublicKeyToFromPEMFile(t *testing.T) {
-	t.Parallel()
-	assert := assert.New(t)
-	aliceKeypair, err := NewKeypair(rand.Reader)
-	assert.NoError(err)
-	f, err := os.CreateTemp("", "alice.pem")
-	assert.NoError(err)
-	err = aliceKeypair.PublicKey().ToPEMFile(f.Name())
-	assert.NoError(err)
-	pubKey := new(PublicKey)
-	err = pubKey.FromPEMFile(f.Name())
-	assert.NoError(err)
-	assert.Equal(pubKey.Bytes(), aliceKeypair.PublicKey().Bytes())
 }
