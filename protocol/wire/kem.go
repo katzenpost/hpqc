@@ -27,12 +27,13 @@ import (
 	"os"
 	"strings"
 
-	"github.com/katzenpost/nyquist/kem"
-	"github.com/katzenpost/nyquist/seec"
 	"golang.org/x/crypto/blake2b"
 
-	"github.com/katzenpost/katzenpost/core/crypto/kem/schemes"
-	cpem "github.com/katzenpost/katzenpost/core/crypto/pem"
+	"github.com/katzenpost/nyquist/kem"
+	"github.com/katzenpost/nyquist/seec"
+
+	"github.com/katzenpost/hpqc/primitive/kem/schemes"
+	cpem "github.com/katzenpost/hpqc/primitive/pem"
 )
 
 // PublicKeyHashSize indicates the hash size returned

@@ -22,11 +22,11 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/katzenpost/katzenpost/core/crypto/cert"
-	"github.com/katzenpost/katzenpost/core/crypto/nike/ecdh"
-	"github.com/katzenpost/katzenpost/core/crypto/rand"
-	"github.com/katzenpost/katzenpost/core/sphinx"
-	"github.com/katzenpost/katzenpost/core/sphinx/constants"
-	"github.com/katzenpost/katzenpost/core/sphinx/geo"
+	"github.com/katzenpost/hpqc/primitive/nike/ecdh"
+	"github.com/katzenpost/hpqc/rand"
+	"github.com/katzenpost/hpqc/protocol/sphinx"
+	"github.com/katzenpost/hpqc/protocol/sphinx/constants"
+	"github.com/katzenpost/hpqc/protocol/sphinx/geo"
 )
 
 func TestNoOp(t *testing.T) {

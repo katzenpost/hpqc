@@ -22,6 +22,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/cloudflare/circl/kem/kyber/kyber768"
+
 	"github.com/katzenpost/nyquist"
 	"github.com/katzenpost/nyquist/cipher"
 	"github.com/katzenpost/nyquist/hash"
@@ -29,12 +31,10 @@ import (
 	"github.com/katzenpost/nyquist/pattern"
 	"github.com/katzenpost/nyquist/seec"
 
-	"github.com/cloudflare/circl/kem/kyber/kyber768"
-
-	"github.com/katzenpost/katzenpost/core/crypto/kem/adapter"
-	kemhybrid "github.com/katzenpost/katzenpost/core/crypto/kem/hybrid"
-	"github.com/katzenpost/katzenpost/core/crypto/nike/ecdh"
-	"github.com/katzenpost/katzenpost/core/crypto/rand"
+	"github.com/katzenpost/hpqc/primitive/kem/adapter"
+	kemhybrid "github.com/katzenpost/hpqc/primitive/kem/hybrid"
+	ecdh "github.com/katzenpost/hpqc/primitive/nike/x25519"
+	"github.com/katzenpost/hpqc/rand"
 )
 
 func TestNyquistPqNoiseParams2(t *testing.T) {

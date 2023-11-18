@@ -8,8 +8,8 @@ import (
 
 	"github.com/katzenpost/nyquist/kem"
 
-	"github.com/katzenpost/katzenpost/core/crypto/kem/schemes"
-	"github.com/katzenpost/katzenpost/core/crypto/pem"
+	"github.com/katzenpost/hpqc/primitive/kem/schemes"
+	"github.com/katzenpost/hpqc/primitive/pem"
 )
 
 func TestToFromPEM(t *testing.T) {
