@@ -26,7 +26,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/katzenpost/hpqc/primitive/kem/schemes"
 	ecdh "github.com/katzenpost/hpqc/primitive/nike/x25519"
+	"github.com/katzenpost/hpqc/primitive/sign/ed25519"
 	"github.com/katzenpost/hpqc/protocol/sphinx/geo"
 	"github.com/katzenpost/hpqc/protocol/wire/commands"
 )
@@ -76,7 +78,7 @@ func TestSessionIntegration(t *testing.T) {
 		PublicKey:      authKEMKeyBobPub,
 	}
 
-	nike := ecdh.NewEcdhNike(rand.Reader)
+	nike := ecdh.Scheme(rand.Reader)
 	userForwardPayloadLength := 3000
 	withSURB := true
 	nrHops := 5
@@ -93,6 +95,8 @@ func TestSessionIntegration(t *testing.T) {
 		AdditionalData:    credsAlice.AdditionalData,
 		AuthenticationKey: authKEMKeyAlice,
 		RandomReader:      rand.Reader,
+		SignatureScheme:   ed25519.Scheme(),
+		KEMScheme:         schemes.ByName("x25519"),
 	}
 	sAlice, err := NewSession(cfgAlice, true)
 	require.NoError(err, "Integration: Alice NewSession()")
@@ -103,6 +107,8 @@ func TestSessionIntegration(t *testing.T) {
 		Authenticator:     &stubAuthenticator{creds: credsAlice},
 		AdditionalData:    credsBob.AdditionalData,
 		AuthenticationKey: authKEMKeyBob,
+		SignatureScheme:   ed25519.Scheme(),
+		KEMScheme:         schemes.ByName("x25519"),
 		RandomReader:      rand.Reader,
 	}
 	sBob, err := NewSession(cfgBob, false)
@@ -195,7 +201,7 @@ func TestAuthenticateMessageFromBytes(t *testing.T) {
 
 func TestNewSessionErrors(t *testing.T) {
 	t.Parallel()
-	nike := ecdh.NewEcdhNike(rand.Reader)
+	nike := ecdh.Scheme(rand.Reader)
 	userForwardPayloadLength := 3000
 	withSURB := true
 	nrHops := 5
@@ -220,6 +226,8 @@ func TestNewSessionErrors(t *testing.T) {
 		AdditionalData:    make([]byte, MaxAdditionalDataLength),
 		AuthenticationKey: authKEMKeyWrong,
 		RandomReader:      rand.Reader,
+		SignatureScheme:   ed25519.Scheme(),
+		KEMScheme:         schemes.ByName("x25519"),
 	}
 	_, err := NewSession(cfg, false)
 	require.NoError(t, err)
@@ -233,6 +241,8 @@ func TestNewSessionErrors(t *testing.T) {
 		AdditionalData:    make([]byte, MaxAdditionalDataLength),
 		AuthenticationKey: authKEMKeyWrong,
 		RandomReader:      rand.Reader,
+		SignatureScheme:   ed25519.Scheme(),
+		KEMScheme:         schemes.ByName("x25519"),
 	}
 	_, err = NewSession(cfg, false)
 	require.Error(t, err)
@@ -243,16 +253,20 @@ func TestNewSessionErrors(t *testing.T) {
 		AdditionalData:    make([]byte, MaxAdditionalDataLength+1),
 		AuthenticationKey: authKEMKeyWrong,
 		RandomReader:      rand.Reader,
+		SignatureScheme:   ed25519.Scheme(),
+		KEMScheme:         schemes.ByName("x25519"),
 	}
 	_, err = NewSession(cfg, false)
 	require.Error(t, err)
 
 	// test case if cfg.AuthenticationKey == nil
 	cfg = &SessionConfig{
-		Geometry:       geometry,
-		Authenticator:  &stubAuthenticator{creds: credsBob},
-		AdditionalData: make([]byte, MaxAdditionalDataLength),
-		RandomReader:   rand.Reader,
+		Geometry:        geometry,
+		Authenticator:   &stubAuthenticator{creds: credsBob},
+		AdditionalData:  make([]byte, MaxAdditionalDataLength),
+		RandomReader:    rand.Reader,
+		SignatureScheme: ed25519.Scheme(),
+		KEMScheme:       schemes.ByName("x25519"),
 	}
 	_, err = NewSession(cfg, false)
 	require.Error(t, err)
@@ -263,6 +277,8 @@ func TestNewSessionErrors(t *testing.T) {
 		Authenticator:     &stubAuthenticator{creds: credsBob},
 		AdditionalData:    make([]byte, MaxAdditionalDataLength),
 		AuthenticationKey: authKEMKeyWrong,
+		SignatureScheme:   ed25519.Scheme(),
+		KEMScheme:         schemes.ByName("x25519"),
 	}
 	_, err = NewSession(cfg, false)
 	require.Error(t, err)
@@ -270,7 +286,7 @@ func TestNewSessionErrors(t *testing.T) {
 
 func TestErrorInvalidStatePeerCreds(t *testing.T) {
 	t.Parallel()
-	nike := ecdh.NewEcdhNike(rand.Reader)
+	nike := ecdh.Scheme(rand.Reader)
 	userForwardPayloadLength := 3000
 	withSURB := true
 	nrHops := 5
@@ -295,6 +311,8 @@ func TestErrorInvalidStatePeerCreds(t *testing.T) {
 		AdditionalData:    make([]byte, MaxAdditionalDataLength),
 		AuthenticationKey: authKEMKeyWrong,
 		RandomReader:      rand.Reader,
+		SignatureScheme:   ed25519.Scheme(),
+		KEMScheme:         schemes.ByName("x25519"),
 	}
 	s, err := NewSession(cfg, false)
 	require.NoError(t, err)
@@ -305,7 +323,7 @@ func TestErrorInvalidStatePeerCreds(t *testing.T) {
 
 func TestErrorInvalidStateClockSkew(t *testing.T) {
 	t.Parallel()
-	nike := ecdh.NewEcdhNike(rand.Reader)
+	nike := ecdh.Scheme(rand.Reader)
 	userForwardPayloadLength := 3000
 	withSURB := true
 	nrHops := 5
@@ -330,6 +348,8 @@ func TestErrorInvalidStateClockSkew(t *testing.T) {
 		AdditionalData:    make([]byte, MaxAdditionalDataLength),
 		AuthenticationKey: authKEMKeyWrong,
 		RandomReader:      rand.Reader,
+		SignatureScheme:   ed25519.Scheme(),
+		KEMScheme:         schemes.ByName("x25519"),
 	}
 	s, err := NewSession(cfg, false)
 	require.NoError(t, err)

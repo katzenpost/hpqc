@@ -20,7 +20,6 @@ import (
 	"encoding/binary"
 	"errors"
 
-	"github.com/katzenpost/hpqc/protocol/cert"
 	"github.com/katzenpost/hpqc/primitive/sign"
 	"github.com/katzenpost/hpqc/protocol/sphinx/constants"
 	"github.com/katzenpost/hpqc/protocol/sphinx/geo"
@@ -185,12 +184,14 @@ const (
 
 var (
 	errInvalidCommand = errors.New("wire: invalid wire protocol command")
-
-	voteOverhead   = 8 + cert.Scheme.PublicKeySize()
-	revealOverhead = 8 + cert.Scheme.PublicKeySize()
-	certOverhead   = 8 + cert.Scheme.PublicKeySize()
-	sigOverhead    = 8 + cert.Scheme.PublicKeySize()
 )
+
+func pkiCmdOverhead(scheme sign.Scheme) int {
+	if scheme == nil {
+		panic("signature scheme cannot be nil")
+	}
+	return 8 + scheme.PublicKeySize()
+}
 
 type (
 	commandID   byte
@@ -206,20 +207,25 @@ type Command interface {
 // Commands encapsulates all of the wire protocol commands so that it can
 // pass around a sphinx geometry where needed.
 type Commands struct {
-	geo *geo.Geometry
+	geo    *geo.Geometry
+	scheme sign.Scheme
 }
 
 // NewPKICommands returns a Commands without a given sphinx geometry.
-func NewPKICommands() *Commands {
+func NewPKICommands(scheme sign.Scheme) *Commands {
 	return &Commands{
-		geo: nil,
+		geo:    nil,
+		scheme: scheme,
 	}
 }
 
 // NewCommands returns a Commands given a sphinx geometry.
+// However it sets the signature scheme to nil which means
+// this constructor should only be used by mix nodes and clients.
 func NewCommands(geo *geo.Geometry) *Commands {
 	return &Commands{
-		geo: geo,
+		geo:    geo,
+		scheme: nil,
 	}
 }
 
@@ -277,10 +283,12 @@ func getConsensusFromBytes(b []byte) (Command, error) {
 type GetVote struct {
 	Epoch     uint64
 	PublicKey sign.PublicKey
+	Scheme    sign.Scheme
 }
 
 // ToBytes serializes the GetVote and returns the resulting slice.
 func (v *GetVote) ToBytes() []byte {
+	voteOverhead := pkiCmdOverhead(v.Scheme)
 	out := make([]byte, cmdOverhead+8, cmdOverhead+voteOverhead)
 	out[0] = byte(getVote)
 	binary.BigEndian.PutUint32(out[2:6], uint32(voteOverhead))
@@ -289,14 +297,15 @@ func (v *GetVote) ToBytes() []byte {
 	return out
 }
 
-func getVoteFromBytes(b []byte) (Command, error) {
+func getVoteFromBytes(b []byte, scheme sign.Scheme) (Command, error) {
+	voteOverhead := pkiCmdOverhead(scheme)
 	if len(b) != voteOverhead {
 		return nil, errInvalidCommand
 	}
 	r := new(GetVote)
 	r.Epoch = binary.BigEndian.Uint64(b[0:8])
 	var err error
-	r.PublicKey, err = cert.Scheme.UnmarshalBinaryPublicKey(b[8 : cert.Scheme.PublicKeySize()+8])
+	r.PublicKey, err = scheme.UnmarshalBinaryPublicKey(b[8 : scheme.PublicKeySize()+8])
 	if err != nil {
 		return nil, err
 	}
@@ -392,21 +401,24 @@ type Reveal struct {
 	Epoch     uint64
 	PublicKey sign.PublicKey
 	Payload   []byte
+	Scheme    sign.Scheme
 }
 
 // ToBytes serializes the Reveal and returns the resulting byte slice.
 func (r *Reveal) ToBytes() []byte {
+	revealOverhead := pkiCmdOverhead(r.Scheme)
 	out := make([]byte, cmdOverhead+revealOverhead)
 	out[0] = byte(reveal)
 	// out[1] reserved
 	binary.BigEndian.PutUint32(out[2:6], uint32(revealOverhead+len(r.Payload)))
 	binary.BigEndian.PutUint64(out[6:14], r.Epoch)
-	copy(out[14:14+cert.Scheme.PublicKeySize()], r.PublicKey.Bytes())
+	copy(out[14:14+r.Scheme.PublicKeySize()], r.PublicKey.Bytes())
 	out = append(out, r.Payload...)
 	return out
 }
 
-func revealFromBytes(b []byte) (Command, error) {
+func revealFromBytes(b []byte, scheme sign.Scheme) (Command, error) {
+	revealOverhead := pkiCmdOverhead(scheme)
 	if len(b) < revealOverhead {
 		return nil, errors.New(" wtf: errInvalidCommand")
 	}
@@ -414,7 +426,7 @@ func revealFromBytes(b []byte) (Command, error) {
 	r := new(Reveal)
 	r.Epoch = binary.BigEndian.Uint64(b[0:8])
 	var err error
-	r.PublicKey, err = cert.Scheme.UnmarshalBinaryPublicKey(b[8 : 8+cert.Scheme.PublicKeySize()])
+	r.PublicKey, err = scheme.UnmarshalBinaryPublicKey(b[8 : 8+scheme.PublicKeySize()])
 	if err != nil {
 		return nil, err
 	}
@@ -452,16 +464,18 @@ type Vote struct {
 	Epoch     uint64
 	PublicKey sign.PublicKey
 	Payload   []byte
+	Scheme    sign.Scheme
 }
 
-func voteFromBytes(b []byte) (Command, error) {
+func voteFromBytes(b []byte, scheme sign.Scheme) (Command, error) {
+	voteOverhead := pkiCmdOverhead(scheme)
 	r := new(Vote)
 	if len(b) < voteOverhead {
 		return nil, errInvalidCommand
 	}
 	r.Epoch = binary.BigEndian.Uint64(b[0:8])
 	var err error
-	r.PublicKey, err = cert.Scheme.UnmarshalBinaryPublicKey(b[8 : 8+cert.Scheme.PublicKeySize()])
+	r.PublicKey, err = scheme.UnmarshalBinaryPublicKey(b[8 : 8+scheme.PublicKeySize()])
 	if err != nil {
 		return nil, err
 	}
@@ -472,6 +486,7 @@ func voteFromBytes(b []byte) (Command, error) {
 
 // ToBytes serializes the Vote and returns the resulting slice.
 func (c *Vote) ToBytes() []byte {
+	voteOverhead := pkiCmdOverhead(c.Scheme)
 	out := make([]byte, cmdOverhead+8, cmdOverhead+voteOverhead+len(c.Payload))
 	out[0] = byte(vote)
 	binary.BigEndian.PutUint32(out[2:6], uint32(voteOverhead+len(c.Payload)))
@@ -510,16 +525,18 @@ type Cert struct {
 	Epoch     uint64
 	PublicKey sign.PublicKey
 	Payload   []byte
+	Scheme    sign.Scheme
 }
 
-func certFromBytes(b []byte) (Command, error) {
+func certFromBytes(b []byte, scheme sign.Scheme) (Command, error) {
+	certOverhead := pkiCmdOverhead(scheme)
 	r := new(Cert)
 	if len(b) < certOverhead {
 		return nil, errInvalidCommand
 	}
 	r.Epoch = binary.BigEndian.Uint64(b[0:8])
 	var err error
-	r.PublicKey, err = cert.Scheme.UnmarshalBinaryPublicKey(b[8 : 8+cert.Scheme.PublicKeySize()])
+	r.PublicKey, err = scheme.UnmarshalBinaryPublicKey(b[8 : 8+scheme.PublicKeySize()])
 	if err != nil {
 		return nil, err
 	}
@@ -530,6 +547,7 @@ func certFromBytes(b []byte) (Command, error) {
 
 // ToBytes serializes the Cert and returns the resulting slice.
 func (c *Cert) ToBytes() []byte {
+	certOverhead := pkiCmdOverhead(c.Scheme)
 	out := make([]byte, cmdOverhead+8, cmdOverhead+certOverhead+len(c.Payload))
 	out[0] = byte(certificate)
 	binary.BigEndian.PutUint32(out[2:6], uint32(certOverhead+len(c.Payload)))
@@ -568,16 +586,18 @@ type Sig struct {
 	Epoch     uint64
 	PublicKey sign.PublicKey
 	Payload   []byte
+	Scheme    sign.Scheme
 }
 
-func sigFromBytes(b []byte) (Command, error) {
+func sigFromBytes(b []byte, scheme sign.Scheme) (Command, error) {
+	sigOverhead := pkiCmdOverhead(scheme)
 	r := new(Sig)
 	if len(b) < sigOverhead {
 		return nil, errInvalidCommand
 	}
 	r.Epoch = binary.BigEndian.Uint64(b[0:8])
 	var err error
-	r.PublicKey, err = cert.Scheme.UnmarshalBinaryPublicKey(b[8 : 8+cert.Scheme.PublicKeySize()])
+	r.PublicKey, err = scheme.UnmarshalBinaryPublicKey(b[8 : 8+scheme.PublicKeySize()])
 	if err != nil {
 		return nil, err
 	}
@@ -588,6 +608,7 @@ func sigFromBytes(b []byte) (Command, error) {
 
 // ToBytes serializes the Sig and returns the resulting slice.
 func (c *Sig) ToBytes() []byte {
+	sigOverhead := pkiCmdOverhead(c.Scheme)
 	out := make([]byte, cmdOverhead+8, cmdOverhead+sigOverhead+len(c.Payload))
 	out[0] = byte(sig)
 	binary.BigEndian.PutUint32(out[2:6], uint32(sigOverhead+len(c.Payload)))
@@ -864,21 +885,21 @@ func (c *Commands) FromBytes(b []byte) (Command, error) {
 	case postDescriptorStatus:
 		return postDescriptorStatusFromBytes(b)
 	case getVote:
-		return getVoteFromBytes(b)
+		return getVoteFromBytes(b, c.scheme)
 	case vote:
-		return voteFromBytes(b)
+		return voteFromBytes(b, c.scheme)
 	case voteStatus:
 		return voteStatusFromBytes(b)
 	case certificate:
-		return certFromBytes(b)
+		return certFromBytes(b, c.scheme)
 	case certStatus:
 		return certStatusFromBytes(b)
 	case reveal:
-		return revealFromBytes(b)
+		return revealFromBytes(b, c.scheme)
 	case revealStatus:
 		return revealStatusFromBytes(b)
 	case sig:
-		return sigFromBytes(b)
+		return sigFromBytes(b, c.scheme)
 	case sigStatus:
 		return sigStatusFromBytes(b)
 	default:

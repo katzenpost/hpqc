@@ -34,6 +34,8 @@ import (
 	"github.com/katzenpost/nyquist/pattern"
 	"github.com/katzenpost/nyquist/seec"
 
+	hpqckem "github.com/katzenpost/hpqc/primitive/kem"
+	"github.com/katzenpost/hpqc/primitive/sign"
 	"github.com/katzenpost/hpqc/protocol/sphinx/geo"
 	"github.com/katzenpost/hpqc/protocol/wire/commands"
 	"github.com/katzenpost/hpqc/rand"
@@ -567,7 +569,7 @@ func NewPKISession(cfg *SessionConfig, isInitiator bool) (*Session, error) {
 	s := &Session{
 		protocol: &nyquist.Protocol{
 			Pattern: pattern.PqXX,
-			KEM:     DefaultScheme.KEM,
+			KEM:     kem.FromHpqcKEM(cfg.KEMScheme),
 			Cipher:  cipher.ChaChaPoly,
 			Hash:    hash.BLAKE2b,
 		},
@@ -578,7 +580,7 @@ func NewPKISession(cfg *SessionConfig, isInitiator bool) (*Session, error) {
 		state:          stateInit,
 		rxKeyMutex:     new(sync.RWMutex),
 		txKeyMutex:     new(sync.RWMutex),
-		commands:       commands.NewPKICommands(),
+		commands:       commands.NewPKICommands(cfg.SignatureScheme),
 	}
 	s.authenticationKEMKey = cfg.AuthenticationKey.(*privateKey).privateKey
 
@@ -606,7 +608,7 @@ func NewSession(cfg *SessionConfig, isInitiator bool) (*Session, error) {
 	s := &Session{
 		protocol: &nyquist.Protocol{
 			Pattern: pattern.PqXX,
-			KEM:     DefaultScheme.KEM,
+			KEM:     kem.FromHpqcKEM(cfg.KEMScheme),
 			Cipher:  cipher.ChaChaPoly,
 			Hash:    hash.BLAKE2b,
 		},
@@ -645,4 +647,14 @@ type SessionConfig struct {
 	// Geometry is the geometry of the Sphinx cryptographic packets
 	// that we will use with our wire protocol.
 	Geometry *geo.Geometry
+
+	// KEMScheme is the specific IND-CCA2 KEM that we should use for our
+	// pqXX based protocol.
+	KEMScheme hpqckem.Scheme
+
+	// SignatureScheme is used to compute wire protocol command overheads
+	// for Vote, Reveal, Cert and Sig; which are only used by the Directy Authorities.
+	// Therefore this field can be nil if used by non-dirauth entities, mix servers and
+	// clients.
+	SignatureScheme sign.Scheme
 }

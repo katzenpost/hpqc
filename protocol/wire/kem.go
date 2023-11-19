@@ -32,19 +32,12 @@ import (
 	"github.com/katzenpost/nyquist/kem"
 	"github.com/katzenpost/nyquist/seec"
 
-	"github.com/katzenpost/hpqc/primitive/kem/schemes"
 	cpem "github.com/katzenpost/hpqc/util/pem"
 )
 
 // PublicKeyHashSize indicates the hash size returned
 // from the PublicKey's Sum256 method.
 const PublicKeyHashSize = 32
-
-var DefaultScheme = &scheme{
-	KEM: kem.FromKEM(
-		schemes.ByName("Kyber768-X25519"),
-	),
-}
 
 // PublicKey is an interface used to abstract away the
 // details of the KEM Public Key being used in the wire package.

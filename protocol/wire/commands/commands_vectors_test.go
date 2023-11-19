@@ -72,7 +72,7 @@ func NoTestBuildCommandVectors(t *testing.T) {
 		hint = 0x17
 	)
 
-	nike := ecdh.NewEcdhNike(rand.Reader)
+	nike := ecdh.Scheme(rand.Reader)
 	//forwardPayloadLength := len(payload) + (sphinx.SphinxPlaintextHeaderLength + 556)
 	nrHops := 5
 
@@ -160,7 +160,7 @@ func TestCommandVectors(t *testing.T) {
 	err = json.Unmarshal(serialized, &cmdsTest)
 	assert.NoError(err)
 
-	nike := ecdh.NewEcdhNike(rand.Reader)
+	nike := ecdh.Scheme(rand.Reader)
 
 	nrHops := 5
 

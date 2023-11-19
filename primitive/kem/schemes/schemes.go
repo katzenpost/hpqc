@@ -39,6 +39,7 @@ var allSchemes = [...]kem.Scheme{
 			},
 		),
 	*/
+
 	kemhybrid.New(
 		"sntrup4591761_X25519",
 		adapter.FromNIKE(ecdh.Scheme(rand.Reader)),
