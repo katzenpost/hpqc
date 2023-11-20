@@ -22,6 +22,11 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/katzenpost/circl/kem/hybrid"
+	"github.com/katzenpost/circl/kem/kyber/kyber1024"
+	"github.com/katzenpost/circl/kem/kyber/kyber512"
+	"github.com/katzenpost/circl/kem/kyber/kyber768"
+
 	"github.com/katzenpost/hpqc/primitive/kem"
 	"github.com/katzenpost/hpqc/primitive/kem/adapter"
 	ecdh "github.com/katzenpost/hpqc/primitive/nike/x25519"
@@ -44,7 +49,6 @@ func TestKEMSphinxSimple(t *testing.T) {
 	require.NotNil(t, sphinx)
 }
 
-/*
 func TestKEMSphinxGeometry(t *testing.T) {
 	t.Parallel()
 	require := require.New(t)
@@ -92,7 +96,6 @@ func TestKEMSphinxGeometry(t *testing.T) {
 	t.Logf("geometry packet length %d", g.PacketLength)
 	require.Equal(len(pkt), g.PacketLength)
 }
-*/
 
 func TestKEMForwardSphinx(t *testing.T) {
 	t.Parallel()
