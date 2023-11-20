@@ -41,7 +41,7 @@ func TestNyquistPqNoiseParams2(t *testing.T) {
 	protocol := &nyquist.Protocol{
 		Pattern: pattern.PqXX,
 		KEM: kem.FromHpqcKEM(
-			schemes.ByName("sntrup4591761_X25519"),
+			schemes.ByName("sntrup4591761-X25519"),
 		),
 		Cipher: cipher.ChaChaPoly,
 		Hash:   hash.BLAKE2s,
