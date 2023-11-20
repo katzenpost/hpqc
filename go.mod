@@ -24,6 +24,7 @@ require (
 require (
 	github.com/awnumar/memcall v0.1.2 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/katzenpost/circl v0.0.1-0.20231120061013-c230f9c84244 // indirect
 	github.com/mattn/go-pointer v0.0.1 // indirect
 	github.com/oasislabs/deoxysii v0.0.0-20190807103041-6159f99c2236 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
