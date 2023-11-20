@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/katzenpost/circl/kem/kyber/kyber768"
 	"github.com/katzenpost/hpqc/primitive/kem"
 	"github.com/katzenpost/hpqc/primitive/kem/adapter"
 	"github.com/katzenpost/hpqc/primitive/kem/combiner"
@@ -24,28 +25,29 @@ var allSchemes = [...]kem.Scheme{
 	//	adapter.FromNIKE(hybrid.CTIDH1024X25519),
 	//	kyber1024.Scheme(),
 	//),
-	/*
-		kemhybrid.New(
-			"Kyber768-X25519",
+
+	kemhybrid.New(
+		"Kyber768_X25519",
+		adapter.FromNIKE(ecdh.Scheme(rand.Reader)),
+		kyber768.Scheme(),
+	),
+
+	combiner.New(
+		"sntrup4591761_Kyber768_X25519",
+		[]kem.Scheme{
 			adapter.FromNIKE(ecdh.Scheme(rand.Reader)),
 			kyber768.Scheme(),
-		),
+			sntrup.Scheme(),
+		},
+	),
 
-		combiner.New(
-			"Kyber768-X25519_combiner",
-			[]kem.Scheme{
-				adapter.FromNIKE(ecdh.Scheme(rand.Reader)),
-				kyber768.Scheme(),
-			},
-		),
-	*/
 	kemhybrid.New(
 		"sntrup4591761_X25519",
 		adapter.FromNIKE(ecdh.Scheme(rand.Reader)),
 		sntrup.Scheme(),
 	),
 	combiner.New(
-		"sntrup4591761_X25519_combiner",
+		"sntrup4591761_X25519_combiner", // used for testing
 		[]kem.Scheme{
 			adapter.FromNIKE(x25519.Scheme(rand.Reader)),
 			sntrup.Scheme(),
