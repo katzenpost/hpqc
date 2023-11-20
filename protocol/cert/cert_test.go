@@ -32,7 +32,7 @@ func TestExpiredCertificate(t *testing.T) {
 	t.Parallel()
 	assert := assert.New(t)
 
-	scheme := Scheme
+	scheme := eddsa.Scheme()
 	_, ephemeralPubKey := scheme.NewKeypair()
 
 	signingPrivKey, signingPubKey := scheme.NewKeypair()
@@ -53,7 +53,7 @@ func TestCertificate(t *testing.T) {
 	t.Parallel()
 	assert := assert.New(t)
 
-	scheme := Scheme
+	scheme := eddsa.Scheme()
 	_, ephemeralPubKey := scheme.NewKeypair()
 
 	signingPrivKey, signingPubKey := scheme.NewKeypair()
@@ -73,7 +73,8 @@ func TestCertificate(t *testing.T) {
 func TestBadCertificate(t *testing.T) {
 	t.Parallel()
 
-	signingPrivKey, signingPubKey := Scheme.NewKeypair()
+	scheme := eddsa.Scheme()
+	signingPrivKey, signingPubKey := scheme.NewKeypair()
 
 	current, _, _ := epochtime.Now()
 	validBeforeEpoch := current + 2
@@ -87,7 +88,7 @@ func TestBadCertificate(t *testing.T) {
 
 	// modify the signed data so that the Verify will fail.
 	// XOR ensures modification:
-	certificate[1000] ^= 235
+	certificate[len(certificate)-60] ^= 235
 
 	mesg, err := Verify(signingPubKey, certificate)
 	require.Error(t, err)
@@ -99,8 +100,9 @@ func TestWrongCertificate(t *testing.T) {
 	t.Parallel()
 	assert := assert.New(t)
 
-	_, ephemeralPubKey := Scheme.NewKeypair()
-	signingPrivKey, signingPubKey := Scheme.NewKeypair()
+	scheme := eddsa.Scheme()
+	_, ephemeralPubKey := scheme.NewKeypair()
+	signingPrivKey, signingPubKey := scheme.NewKeypair()
 
 	current, _, _ := epochtime.Now()
 	certificate, err := Sign(signingPrivKey, signingPubKey, ephemeralPubKey.Bytes(), current+1)
@@ -114,6 +116,8 @@ func TestWrongCertificate(t *testing.T) {
 func TestMultiSignatureCertificate(t *testing.T) {
 	t.Parallel()
 	assert := assert.New(t)
+
+	Scheme := eddsa.Scheme()
 
 	signingPrivKey1, signingPubKey1 := Scheme.NewKeypair()
 	signingPrivKey2, signingPubKey2 := Scheme.NewKeypair()
@@ -149,6 +153,7 @@ func TestVerifyAll(t *testing.T) {
 	t.Parallel()
 	assert := assert.New(t)
 
+	Scheme := eddsa.Scheme()
 	_, ephemeralPubKey := Scheme.NewKeypair()
 
 	signingPrivKey1, signingPubKey1 := Scheme.NewKeypair()
@@ -176,6 +181,7 @@ func TestVerifyThreshold(t *testing.T) {
 	t.Parallel()
 	assert := assert.New(t)
 
+	Scheme := eddsa.Scheme()
 	_, ephemeralPubKey := Scheme.NewKeypair()
 
 	signingPrivKey1, signingPubKey1 := Scheme.NewKeypair()
@@ -221,6 +227,7 @@ func TestAddSignature(t *testing.T) {
 	t.Parallel()
 	assert := assert.New(t)
 
+	Scheme := eddsa.Scheme()
 	_, ephemeralPubKey := Scheme.NewKeypair()
 
 	signingPrivKey1, signingPubKey1 := Scheme.NewKeypair()
