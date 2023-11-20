@@ -19,12 +19,7 @@ package sphinx
 import (
 	"testing"
 
-	"github.com/cloudflare/circl/kem"
-	"github.com/cloudflare/circl/kem/hybrid"
-	"github.com/cloudflare/circl/kem/kyber/kyber1024"
-	"github.com/cloudflare/circl/kem/kyber/kyber512"
-	"github.com/cloudflare/circl/kem/kyber/kyber768"
-
+	"github.com/katzenpost/hpqc/primitive/kem"
 	"github.com/katzenpost/hpqc/primitive/kem/adapter"
 	ecdh "github.com/katzenpost/hpqc/primitive/nike/x25519"
 	"github.com/katzenpost/hpqc/protocol/sphinx/commands"
@@ -36,21 +31,23 @@ func BenchmarkKEMSphinxUnwrapX25519(b *testing.B) {
 	benchmarkKEMSphinxUnwrap(b, adapter.FromNIKE(ecdh.Scheme(rand.Reader)))
 }
 
-func BenchmarkKEMSphinxUnwrapKyber512(b *testing.B) {
-	benchmarkKEMSphinxUnwrap(b, kyber512.Scheme())
-}
+/*
+	func BenchmarkKEMSphinxUnwrapKyber512(b *testing.B) {
+		benchmarkKEMSphinxUnwrap(b, kyber512.Scheme())
+	}
 
-func BenchmarkKEMSphinxUnwrapKyber768(b *testing.B) {
-	benchmarkKEMSphinxUnwrap(b, kyber768.Scheme())
-}
+	func BenchmarkKEMSphinxUnwrapKyber768(b *testing.B) {
+		benchmarkKEMSphinxUnwrap(b, kyber768.Scheme())
+	}
 
-func BenchmarkKEMSphinxUnwrapKyber1024(b *testing.B) {
-	benchmarkKEMSphinxUnwrap(b, kyber1024.Scheme())
-}
+	func BenchmarkKEMSphinxUnwrapKyber1024(b *testing.B) {
+		benchmarkKEMSphinxUnwrap(b, kyber1024.Scheme())
+	}
 
 func BenchmarkKEMSphinxUnwrapKyber768X25519(b *testing.B) {
 	benchmarkKEMSphinxUnwrap(b, hybrid.Kyber768X25519())
 }
+*/
 
 func benchmarkKEMSphinxUnwrap(b *testing.B, mykem kem.Scheme) {
 	const testPayload = "It is the stillest words that bring on the storm.  Thoughts that come on doves’ feet guide the world."

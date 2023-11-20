@@ -20,9 +20,10 @@ import (
 	"crypto/rand"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	ecdh "github.com/katzenpost/hpqc/primitive/nike/x25519"
 	"github.com/katzenpost/hpqc/protocol/sphinx/geo"
-	"github.com/stretchr/testify/require"
 )
 
 func TestEcdhSphinxGeometry(t *testing.T) {
@@ -30,12 +31,12 @@ func TestEcdhSphinxGeometry(t *testing.T) {
 	require := require.New(t)
 
 	withSURB := false
-	g := geo.GeometryFromUserForwardPayloadLength(ecdh.NewEcdhNike(rand.Reader), 512, withSURB, 5)
+	g := geo.GeometryFromUserForwardPayloadLength(ecdh.Scheme(rand.Reader), 512, withSURB, 5)
 	t.Logf("NIKE Sphinx X25519 5 hops: HeaderLength = %d", g.HeaderLength)
-	g = geo.GeometryFromUserForwardPayloadLength(ecdh.NewEcdhNike(rand.Reader), 512, withSURB, 10)
+	g = geo.GeometryFromUserForwardPayloadLength(ecdh.Scheme(rand.Reader), 512, withSURB, 10)
 	t.Logf("NIKE Sphinx X25519 10 hops: HeaderLength = %d", g.HeaderLength)
 
-	mynike := ecdh.NewEcdhNike(rand.Reader)
+	mynike := ecdh.Scheme(rand.Reader)
 	withSURB = true
 	payloadLen := 50000
 	g = geo.GeometryFromUserForwardPayloadLength(mynike, payloadLen, withSURB, 5)
@@ -59,7 +60,7 @@ func TestEcdhForwardSphinx(t *testing.T) {
 	t.Parallel()
 	const testPayload = "It is the stillest words that bring on the storm.  Thoughts that come on doves’ feet guide the world."
 
-	mynike := ecdh.NewEcdhNike(rand.Reader)
+	mynike := ecdh.Scheme(rand.Reader)
 	nrHops := 20
 	g := geo.GeometryFromUserForwardPayloadLength(mynike, len(testPayload), false, nrHops)
 	sphinx := NewSphinx(g)
@@ -70,7 +71,7 @@ func TestEcdhSURB(t *testing.T) {
 	t.Parallel()
 	const testPayload = "The smallest minority on earth is the individual.  Those who deny individual rights cannot claim to be defenders of minorities."
 
-	mynike := ecdh.NewEcdhNike(rand.Reader)
+	mynike := ecdh.Scheme(rand.Reader)
 	nrHops := 20
 	g := geo.GeometryFromUserForwardPayloadLength(mynike, len(testPayload), false, nrHops)
 	sphinx := NewSphinx(g)
@@ -79,7 +80,7 @@ func TestEcdhSURB(t *testing.T) {
 
 func TestSphinxProductionSimili(t *testing.T) {
 	nrHops := 5
-	mynike := ecdh.NewEcdhNike(rand.Reader)
+	mynike := ecdh.Scheme(rand.Reader)
 
 	r := require.New(t)
 	_, fwdPath := newNikePathVector(r, mynike, nrHops, true)
@@ -110,7 +111,7 @@ func TestSphinxProductionSimili(t *testing.T) {
 
 func TestSphinxOneHop(t *testing.T) {
 	nrHops := 1
-	mynike := ecdh.NewEcdhNike(rand.Reader)
+	mynike := ecdh.Scheme(rand.Reader)
 
 	r := require.New(t)
 	_, fwdPath := newNikePathVector(r, mynike, nrHops, true)

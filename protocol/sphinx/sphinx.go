@@ -23,16 +23,15 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/cloudflare/circl/kem"
-	kemschemes "github.com/cloudflare/circl/kem/schemes"
-
+	"github.com/katzenpost/hpqc/primitive/kem"
+	kemschemes "github.com/katzenpost/hpqc/primitive/kem/schemes"
 	"github.com/katzenpost/hpqc/primitive/nike"
 	"github.com/katzenpost/hpqc/primitive/nike/schemes"
-	"github.com/katzenpost/hpqc/rand"
 	"github.com/katzenpost/hpqc/protocol/sphinx/commands"
 	"github.com/katzenpost/hpqc/protocol/sphinx/constants"
 	"github.com/katzenpost/hpqc/protocol/sphinx/geo"
 	"github.com/katzenpost/hpqc/protocol/sphinx/internal/crypto"
+	"github.com/katzenpost/hpqc/rand"
 	"github.com/katzenpost/hpqc/util"
 )
 

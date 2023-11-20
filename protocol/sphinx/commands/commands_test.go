@@ -22,9 +22,9 @@ import (
 
 	"github.com/katzenpost/hpqc/primitive/nike"
 	ecdh "github.com/katzenpost/hpqc/primitive/nike/x25519"
-	"github.com/katzenpost/hpqc/rand"
 	"github.com/katzenpost/hpqc/protocol/sphinx/constants"
 	"github.com/katzenpost/hpqc/protocol/sphinx/geo"
+	"github.com/katzenpost/hpqc/rand"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -65,7 +65,7 @@ func TestCommands(t *testing.T) {
 	assert := assert.New(t)
 	require := require.New(t)
 
-	nike := nike.Scheme(ecdh.NewEcdhNike(rand.Reader))
+	nike := nike.Scheme(ecdh.Scheme(rand.Reader))
 	payloadLen := 2000
 	nrHops := 5
 	g := geo.GeometryFromUserForwardPayloadLength(nike, payloadLen, true, nrHops)

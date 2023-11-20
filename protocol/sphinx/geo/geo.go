@@ -10,9 +10,8 @@ import (
 	"github.com/fxamacker/cbor/v2"
 	"golang.org/x/crypto/blake2b"
 
-	"github.com/cloudflare/circl/kem"
-	kemschemes "github.com/cloudflare/circl/kem/schemes"
-
+	"github.com/katzenpost/hpqc/primitive/kem"
+	kemschemes "github.com/katzenpost/hpqc/primitive/kem/schemes"
 	"github.com/katzenpost/hpqc/primitive/nike"
 	"github.com/katzenpost/hpqc/primitive/nike/schemes"
 	"github.com/katzenpost/hpqc/protocol/sphinx/constants"

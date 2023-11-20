@@ -19,7 +19,7 @@ package sphinx
 import (
 	"io"
 
-	"github.com/cloudflare/circl/kem"
+	"github.com/katzenpost/hpqc/primitive/kem"
 	"github.com/katzenpost/hpqc/primitive/nike"
 	"github.com/katzenpost/hpqc/protocol/sphinx/commands"
 )
