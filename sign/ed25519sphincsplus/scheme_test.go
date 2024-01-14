@@ -1,7 +1,4 @@
-//go:build sphincsplus
-// +build sphincsplus
-
-// SPDX-FileCopyrightText: (c) 2022-2023 David Stainton
+// SPDX-FileCopyrightText: (c) 2023, 2024 David Stainton
 // SPDX-License-Identifier: AGPL-3.0-only
 
 package ed25519sphincsplus
@@ -28,10 +25,10 @@ func TestEddsaSphincsplusSchemeTextUnmarshaler(t *testing.T) {
 	message := []byte("hello world")
 	privKey, pubKey := Scheme.NewKeypair()
 
-	pubKeyText, err := pubKey.MarshalBinary()
+	pubKeyText, err := pubKey.MarshalText()
 	require.NoError(t, err)
 
-	pubKey2, err := Scheme.UnmarshalBinaryPublicKey(pubKeyText)
+	pubKey2, err := Scheme.UnmarshalTextPublicKey(pubKeyText)
 	require.NoError(t, err)
 
 	signature := privKey.Sign(message)

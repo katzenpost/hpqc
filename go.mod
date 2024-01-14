@@ -10,7 +10,7 @@ require (
 	github.com/katzenpost/circl v0.0.1-0.20240114190552-a60da6747ebd
 	github.com/katzenpost/ctidh_cgo v0.0.0-20230523083445-e789a8b77082
 	github.com/katzenpost/sntrup4591761 v0.0.0-20231024131303-8755eb1986b8
-	github.com/katzenpost/sphincsplus v0.0.1
+	github.com/katzenpost/sphincsplus v0.0.2-0.20240114192234-1dc77b544e31
 	github.com/stretchr/testify v1.8.4
 	golang.org/x/crypto v0.18.0
 )

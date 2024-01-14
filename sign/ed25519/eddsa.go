@@ -16,8 +16,8 @@ import (
 	"filippo.io/edwards25519"
 
 	"github.com/katzenpost/hpqc/nike/x25519"
-	"github.com/katzenpost/hpqc/sign"
 	"github.com/katzenpost/hpqc/rand"
+	"github.com/katzenpost/hpqc/sign"
 	"github.com/katzenpost/hpqc/util"
 )
 
@@ -39,10 +39,10 @@ var errInvalidKey = errors.New("eddsa: invalid key")
 // Scheme implements our sign.Scheme interface using the ed25519 wrapper.
 type scheme struct{}
 
-var sch sign.Scheme = &scheme{}
+var sch *scheme = &scheme{}
 
 // Scheme returns a sign Scheme interface.
-func Scheme() sign.Scheme { return sch }
+func Scheme() *scheme { return sch }
 
 // NewEmptyPublicKey returns an empty sign.PublicKey
 func (s *scheme) NewEmptyPublicKey() sign.PublicKey {
@@ -74,6 +74,15 @@ func (s *scheme) UnmarshalBinaryPrivateKey(b []byte) (sign.PrivateKey, error) {
 		return nil, err
 	}
 	return privKey, nil
+}
+
+func (s *scheme) UnmarshalTextPublicKey(text []byte) (sign.PublicKey, error) {
+	pubKey := new(PublicKey)
+	err := pubKey.UnmarshalText(text)
+	if err != nil {
+		return nil, err
+	}
+	return pubKey, nil
 }
 
 func (s *scheme) SignatureSize() int {
@@ -220,6 +229,18 @@ func (p *PublicKey) MarshalBinary() ([]byte, error) {
 
 func (p *PublicKey) UnmarshalBinary(data []byte) error {
 	return p.FromBytes(data)
+}
+
+func (p *PublicKey) MarshalText() (text []byte, err error) {
+	return []byte(base64.StdEncoding.EncodeToString(p.Bytes())), nil
+}
+
+func (p *PublicKey) UnmarshalText(text []byte) error {
+	raw, err := base64.StdEncoding.DecodeString(string(text))
+	if err != nil {
+		return err
+	}
+	return p.FromBytes(raw)
 }
 
 // NewKeypair generates a new PrivateKey sampled from the provided entropy

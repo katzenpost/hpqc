@@ -19,6 +19,8 @@ github.com/katzenpost/sntrup4591761 v0.0.0-20231024131303-8755eb1986b8 h1:TsKxH0
 github.com/katzenpost/sntrup4591761 v0.0.0-20231024131303-8755eb1986b8/go.mod h1:Hmcrwom7jcEmGdo0CsyuJNnldPeyS+M07FuCbo7I8fw=
 github.com/katzenpost/sphincsplus v0.0.1 h1:sjqLNYcT7s6zzK4rtczAcB2YunWIG0gLogXlcqV5wS8=
 github.com/katzenpost/sphincsplus v0.0.1/go.mod h1:oSEQjtj0GRF8Nzl3L3sMCbLk+m/xWwEh03rTKzVwgIc=
+github.com/katzenpost/sphincsplus v0.0.2-0.20240114192234-1dc77b544e31 h1:fKGa/too1Br31gmoYmV2kE61gydj47Ed5K/g/CE+3Bs=
+github.com/katzenpost/sphincsplus v0.0.2-0.20240114192234-1dc77b544e31/go.mod h1:VFrCPnmbxQLBi+qJfWHUqvpvTMZrYBMZEEy0AidY0nE=
 github.com/mattn/go-pointer v0.0.1 h1:n+XhsuGeVO6MEAp7xyEukFINEa+Quek5psIR/ylA6o0=
 github.com/mattn/go-pointer v0.0.1/go.mod h1:2zXcozF6qYGgmsG+SeTZz3oAbFLdD3OWqnUbNvJZAlc=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=

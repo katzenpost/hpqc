@@ -54,6 +54,8 @@ type PrivateKey interface {
 // PublicKey is an interface for types encapsulating
 // public key material.
 type PublicKey interface {
+	encoding.TextMarshaler
+	encoding.TextUnmarshaler
 	encoding.BinaryMarshaler
 	encoding.BinaryUnmarshaler
 
@@ -90,10 +92,4 @@ type Scheme interface {
 
 	// PrivateKeySize returns the size in bytes of the private key.
 	PrivateKeySize() int
-
-	// UnmarshalBinaryPublicKey loads a public key from byte slice.
-	UnmarshalBinaryPublicKey([]byte) (PublicKey, error)
-
-	// Unmarshals a PrivateKey from the provided buffer.
-	UnmarshalBinaryPrivateKey([]byte) (PrivateKey, error)
 }

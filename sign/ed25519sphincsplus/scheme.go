@@ -1,7 +1,4 @@
-//go:build sphincsplus
-// +build sphincsplus
-
-// SPDX-FileCopyrightText: (c) 2022-2023 David Stainton
+// SPDX-FileCopyrightText: (c) 2023, 2024 David Stainton
 // SPDX-License-Identifier: AGPL-3.0-only
 
 package ed25519sphincsplus
@@ -13,11 +10,11 @@ import (
 
 	"golang.org/x/crypto/blake2b"
 
+	sphincs "github.com/katzenpost/sphincsplus/ref"
+
 	"github.com/katzenpost/hpqc/sign"
 	"github.com/katzenpost/hpqc/sign/ed25519"
 	"github.com/katzenpost/hpqc/util/pem"
-
-	sphincs "github.com/katzenpost/sphincsplus/ref"
 )
 
 var (
