@@ -25,7 +25,7 @@ import (
 
 	"github.com/henrydcase/nobs/dh/csidh"
 
-	"github.com/katzenpost/hpqc/primitive/nike"
+	"github.com/katzenpost/hpqc/nike"
 	"github.com/katzenpost/hpqc/rand"
 )
 

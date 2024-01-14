@@ -5,13 +5,11 @@ import (
 	"strings"
 
 	"github.com/katzenpost/circl/kem/kyber/kyber768"
-	"github.com/katzenpost/hpqc/primitive/kem"
-	"github.com/katzenpost/hpqc/primitive/kem/adapter"
-	"github.com/katzenpost/hpqc/primitive/kem/combiner"
-	kemhybrid "github.com/katzenpost/hpqc/primitive/kem/hybrid"
-	"github.com/katzenpost/hpqc/primitive/kem/sntrup"
-	"github.com/katzenpost/hpqc/primitive/nike/x25519"
-	ecdh "github.com/katzenpost/hpqc/primitive/nike/x25519"
+
+	"github.com/katzenpost/hpqc/kem"
+	"github.com/katzenpost/hpqc/kem/adapter"
+	kemhybrid "github.com/katzenpost/hpqc/kem/hybrid"
+	ecdh "github.com/katzenpost/hpqc/nike/x25519"
 	"github.com/katzenpost/hpqc/rand"
 )
 
@@ -32,27 +30,29 @@ var allSchemes = [...]kem.Scheme{
 		kyber768.Scheme(),
 	),
 
-	combiner.New(
-		"sntrup4591761-Kyber768-X25519",
-		[]kem.Scheme{
-			adapter.FromNIKE(ecdh.Scheme(rand.Reader)),
-			kyber768.Scheme(),
-			sntrup.Scheme(),
-		},
-	),
+	/*
+		combiner.New(
+			"sntrup4591761-Kyber768-X25519",
+			[]kem.Scheme{
+				adapter.FromNIKE(ecdh.Scheme(rand.Reader)),
+				kyber768.Scheme(),
+				sntrup.Scheme(),
+			},
+		),
 
-	kemhybrid.New(
-		"sntrup4591761-X25519",
-		adapter.FromNIKE(ecdh.Scheme(rand.Reader)),
-		sntrup.Scheme(),
-	),
-	combiner.New(
-		"sntrup4591761-X25519-combiner", // used for testing
-		[]kem.Scheme{
-			adapter.FromNIKE(x25519.Scheme(rand.Reader)),
+		kemhybrid.New(
+			"sntrup4591761-X25519",
+			adapter.FromNIKE(ecdh.Scheme(rand.Reader)),
 			sntrup.Scheme(),
-		},
-	),
+		),
+		combiner.New(
+			"sntrup4591761-X25519-combiner", // used for testing
+			[]kem.Scheme{
+				adapter.FromNIKE(x25519.Scheme(rand.Reader)),
+				sntrup.Scheme(),
+			},
+		),
+	*/
 }
 
 var allSchemeNames map[string]kem.Scheme

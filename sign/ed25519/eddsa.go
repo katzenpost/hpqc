@@ -15,8 +15,8 @@ import (
 
 	"filippo.io/edwards25519"
 
-	"github.com/katzenpost/hpqc/primitive/nike/x25519"
-	"github.com/katzenpost/hpqc/primitive/sign"
+	"github.com/katzenpost/hpqc/nike/x25519"
+	"github.com/katzenpost/hpqc/sign"
 	"github.com/katzenpost/hpqc/rand"
 	"github.com/katzenpost/hpqc/util"
 )

@@ -13,8 +13,8 @@ import (
 
 	"golang.org/x/crypto/blake2b"
 
-	"github.com/katzenpost/hpqc/primitive/sign"
-	"github.com/katzenpost/hpqc/primitive/sign/ed25519"
+	"github.com/katzenpost/hpqc/sign"
+	"github.com/katzenpost/hpqc/sign/ed25519"
 	"github.com/katzenpost/hpqc/util/pem"
 
 	sphincs "github.com/katzenpost/sphincsplus/ref"

@@ -4,9 +4,9 @@
 package hybrid
 
 import (
-	"github.com/katzenpost/hpqc/primitive/nike"
-	"github.com/katzenpost/hpqc/primitive/nike/ctidh"
-	ecdh "github.com/katzenpost/hpqc/primitive/nike/x25519"
+	"github.com/katzenpost/hpqc/nike"
+	"github.com/katzenpost/hpqc/nike/ctidh"
+	ecdh "github.com/katzenpost/hpqc/nike/x25519"
 	"github.com/katzenpost/hpqc/rand"
 )
 

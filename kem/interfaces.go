@@ -63,7 +63,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 //
 // A register of schemes is available in the package
 //
-//	github.com/katzenpost/hpqc/primitive/kem/schemes
+//	github.com/katzenpost/hpqc/kem/schemes
 package kem
 
 import (

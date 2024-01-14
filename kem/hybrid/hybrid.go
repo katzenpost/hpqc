@@ -17,8 +17,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/katzenpost/hpqc/primitive/kem"
-	"github.com/katzenpost/hpqc/primitive/kem/util"
+	"github.com/katzenpost/hpqc/kem"
+	"github.com/katzenpost/hpqc/kem/util"
 )
 
 var (

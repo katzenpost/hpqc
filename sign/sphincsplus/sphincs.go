@@ -15,7 +15,7 @@ import (
 
 	sphincs "github.com/katzenpost/sphincsplus/ref"
 
-	"github.com/katzenpost/hpqc/primitive/sign"
+	"github.com/katzenpost/hpqc/sign"
 )
 
 var (

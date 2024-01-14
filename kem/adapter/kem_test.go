@@ -5,7 +5,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	ecdh "github.com/katzenpost/hpqc/primitive/nike/x25519"
+	ecdh "github.com/katzenpost/hpqc/nike/x25519"
 	"github.com/katzenpost/hpqc/rand"
 )
 

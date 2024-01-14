@@ -3,8 +3,8 @@
 package hybrid
 
 import (
-	"github.com/katzenpost/hpqc/primitive/nike"
-	ecdh "github.com/katzenpost/hpqc/primitive/nike/x25519"
+	"github.com/katzenpost/hpqc/nike"
+	ecdh "github.com/katzenpost/hpqc/nike/x25519"
 	"github.com/katzenpost/hpqc/rand"
 )
 
