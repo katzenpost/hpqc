@@ -4,7 +4,20 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/katzenpost/circl/kem/frodo/frodo640shake"
+	"github.com/katzenpost/circl/kem/kyber/kyber1024"
+	"github.com/katzenpost/circl/kem/kyber/kyber512"
 	"github.com/katzenpost/circl/kem/kyber/kyber768"
+	"github.com/katzenpost/circl/kem/mceliece/mceliece348864"
+	"github.com/katzenpost/circl/kem/mceliece/mceliece348864f"
+	"github.com/katzenpost/circl/kem/mceliece/mceliece460896"
+	"github.com/katzenpost/circl/kem/mceliece/mceliece460896f"
+	"github.com/katzenpost/circl/kem/mceliece/mceliece6688128"
+	"github.com/katzenpost/circl/kem/mceliece/mceliece6688128f"
+	"github.com/katzenpost/circl/kem/mceliece/mceliece6960119"
+	"github.com/katzenpost/circl/kem/mceliece/mceliece6960119f"
+	"github.com/katzenpost/circl/kem/mceliece/mceliece8192128"
+	"github.com/katzenpost/circl/kem/mceliece/mceliece8192128f"
 
 	"github.com/katzenpost/hpqc/kem"
 	"github.com/katzenpost/hpqc/kem/adapter"
@@ -14,6 +27,21 @@ import (
 )
 
 var allSchemes = [...]kem.Scheme{
+	kyber512.Scheme(),
+	kyber768.Scheme(),
+	kyber1024.Scheme(),
+	frodo640shake.Scheme(),
+	mceliece348864.Scheme(),
+	mceliece348864f.Scheme(),
+	mceliece460896.Scheme(),
+	mceliece460896f.Scheme(),
+	mceliece6688128.Scheme(),
+	mceliece6688128f.Scheme(),
+	mceliece6960119.Scheme(),
+	mceliece6960119f.Scheme(),
+	mceliece8192128.Scheme(),
+	mceliece8192128f.Scheme(),
+
 	adapter.FromNIKE(ecdh.Scheme(rand.Reader)),
 	// Must build with `ctidh` build tag (and other supporting env vars)
 	// for CTIDH usage:
