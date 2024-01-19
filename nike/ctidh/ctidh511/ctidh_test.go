@@ -1,6 +1,3 @@
-//go:build ctidh
-// +build ctidh
-
 // ctidh_test.go - Adapts ctidh module to our NIKE interface.
 // Copyright (C) 2022  David Stainton.
 //
@@ -24,16 +21,16 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	ctidh "github.com/katzenpost/ctidh_cgo"
+	ctidh "codeberg.org/dawuud/highctidh/src/ctidh511"
 )
 
-func TestCtidhNike(t *testing.T) {
-	ctidhNike := new(Ctidh1024Nike)
+func TestCTIDH511_NIKE(t *testing.T) {
+	ctidhNike := Scheme()
 
 	alicePublicKey, alicePrivateKey, err := ctidhNike.GenerateKeyPair()
 	require.NoError(t, err)
 
-	tmp := ctidh.DeriveCtidh1024PublicKey(alicePrivateKey.(*PrivateKey).privateKey)
+	tmp := ctidh.DerivePublicKey(alicePrivateKey.(*PrivateKey).privateKey)
 	require.Equal(t, alicePublicKey.Bytes(), tmp.Bytes())
 
 	bobPubKey, bobPrivKey, err := ctidhNike.GenerateKeyPair()
@@ -41,6 +38,6 @@ func TestCtidhNike(t *testing.T) {
 
 	aliceS := ctidhNike.DeriveSecret(alicePrivateKey, bobPubKey)
 
-	bobS := ctidh.DeriveSecretCtidh1024(bobPrivKey.(*PrivateKey).privateKey, alicePublicKey.(*PublicKey).publicKey)
+	bobS := ctidh.DeriveSecret(bobPrivKey.(*PrivateKey).privateKey, alicePublicKey.(*PublicKey).publicKey)
 	require.Equal(t, bobS, aliceS)
 }

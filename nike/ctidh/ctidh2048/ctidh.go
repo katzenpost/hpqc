@@ -1,6 +1,3 @@
-//go:build ctidh
-// +build ctidh
-
 // ctidh.go - Adapts ctidh module to our NIKE interface.
 // Copyright (C) 2022  David Stainton.
 //
@@ -23,41 +20,44 @@ import (
 	"encoding/base64"
 	"io"
 
-	ctidh "github.com/katzenpost/ctidh_cgo"
+	ctidh "codeberg.org/dawuud/highctidh/src/ctidh2048"
 
 	"github.com/katzenpost/hpqc/nike"
 )
 
 // CTIDH implements the Nike interface using our CTIDH module.
-type Ctidh1024Nike struct{}
+type scheme struct{}
 
-var CTIDH1024Scheme *Ctidh1024Nike
+var sch nike.Scheme = &scheme{}
+
+// Scheme returns a NIKE Scheme interface.
+func Scheme() nike.Scheme { return sch }
 
 var _ nike.PrivateKey = (*PrivateKey)(nil)
 var _ nike.PublicKey = (*PublicKey)(nil)
-var _ nike.Scheme = (*Ctidh1024Nike)(nil)
+var _ nike.Scheme = (*scheme)(nil)
 
-func (e *Ctidh1024Nike) Name() string {
+func (e *scheme) Name() string {
 	return "ctidh"
 }
 
 // PublicKeySize returns the size in bytes of the public key.
-func (e *Ctidh1024Nike) PublicKeySize() int {
-	return ctidh.Ctidh1024PublicKeySize
+func (e *scheme) PublicKeySize() int {
+	return ctidh.PublicKeySize
 }
 
 // PrivateKeySize returns the size in bytes of the private key.
-func (e *Ctidh1024Nike) PrivateKeySize() int {
-	return ctidh.Ctidh1024PrivateKeySize
+func (e *scheme) PrivateKeySize() int {
+	return ctidh.PrivateKeySize
 }
 
 // NewEmptyPublicKey returns an uninitialized
 // PublicKey which is suitable to be loaded
 // via some serialization format via FromBytes
 // or FromPEMFile methods.
-func (e *Ctidh1024Nike) NewEmptyPublicKey() nike.PublicKey {
+func (e *scheme) NewEmptyPublicKey() nike.PublicKey {
 	return &PublicKey{
-		publicKey: ctidh.NewEmptyCtidh1024PublicKey(),
+		publicKey: ctidh.NewEmptyPublicKey(),
 	}
 }
 
@@ -65,20 +65,20 @@ func (e *Ctidh1024Nike) NewEmptyPublicKey() nike.PublicKey {
 // PrivateKey which is suitable to be loaded
 // via some serialization format via FromBytes
 // or FromPEMFile methods.
-func (e *Ctidh1024Nike) NewEmptyPrivateKey() nike.PrivateKey {
+func (e *scheme) NewEmptyPrivateKey() nike.PrivateKey {
 	return &PrivateKey{
-		privateKey: ctidh.NewEmptyCtidh1024PrivateKey(),
+		privateKey: ctidh.NewEmptyPrivateKey(),
 	}
 }
 
-func (e *Ctidh1024Nike) GeneratePrivateKey(rng io.Reader) nike.PrivateKey {
+func (e *scheme) GeneratePrivateKey(rng io.Reader) nike.PrivateKey {
 	return &PrivateKey{
-		privateKey: ctidh.GenerateCtidh1024PrivateKey(rng),
+		privateKey: ctidh.GeneratePrivateKey(rng),
 	}
 }
 
-func (e *Ctidh1024Nike) GenerateKeyPairFromEntropy(rng io.Reader) (nike.PublicKey, nike.PrivateKey, error) {
-	privKey, pubKey := ctidh.GenerateCtidh1024KeyPairWithRNG(rng)
+func (e *scheme) GenerateKeyPairFromEntropy(rng io.Reader) (nike.PublicKey, nike.PrivateKey, error) {
+	privKey, pubKey := ctidh.GenerateKeyPairWithRNG(rng)
 	return &PublicKey{
 			publicKey: pubKey,
 		}, &PrivateKey{
@@ -87,8 +87,8 @@ func (e *Ctidh1024Nike) GenerateKeyPairFromEntropy(rng io.Reader) (nike.PublicKe
 }
 
 // GenerateKeyPair creates a new key pair.
-func (e *Ctidh1024Nike) GenerateKeyPair() (nike.PublicKey, nike.PrivateKey, error) {
-	privKey, pubKey := ctidh.GenerateCtidh1024KeyPair()
+func (e *scheme) GenerateKeyPair() (nike.PublicKey, nike.PrivateKey, error) {
+	privKey, pubKey := ctidh.GenerateKeyPair()
 	return &PublicKey{
 			publicKey: pubKey,
 		}, &PrivateKey{
@@ -98,19 +98,19 @@ func (e *Ctidh1024Nike) GenerateKeyPair() (nike.PublicKey, nike.PrivateKey, erro
 
 // DeriveSecret derives a shared secret given a private key
 // from one party and a public key from another.
-func (e *Ctidh1024Nike) DeriveSecret(privKey nike.PrivateKey, pubKey nike.PublicKey) []byte {
-	return ctidh.DeriveSecretCtidh1024(privKey.(*PrivateKey).privateKey, pubKey.(*PublicKey).publicKey)
+func (e *scheme) DeriveSecret(privKey nike.PrivateKey, pubKey nike.PublicKey) []byte {
+	return ctidh.DeriveSecret(privKey.(*PrivateKey).privateKey, pubKey.(*PublicKey).publicKey)
 }
 
 // DerivePublicKey derives a public key given a private key.
-func (e *Ctidh1024Nike) DerivePublicKey(privKey nike.PrivateKey) nike.PublicKey {
+func (e *scheme) DerivePublicKey(privKey nike.PrivateKey) nike.PublicKey {
 	return &PublicKey{
-		publicKey: ctidh.DeriveCtidh1024PublicKey(privKey.(*PrivateKey).privateKey),
+		publicKey: ctidh.DerivePublicKey(privKey.(*PrivateKey).privateKey),
 	}
 }
 
-func (e *Ctidh1024Nike) Blind(groupMember nike.PublicKey, blindingFactor nike.PrivateKey) nike.PublicKey {
-	blinded, err := ctidh.BlindCtidh1024(
+func (e *scheme) Blind(groupMember nike.PublicKey, blindingFactor nike.PrivateKey) nike.PublicKey {
+	blinded, err := ctidh.Blind(
 		blindingFactor.(*PrivateKey).privateKey,
 		groupMember.(*PublicKey).publicKey,
 	)
@@ -122,8 +122,8 @@ func (e *Ctidh1024Nike) Blind(groupMember nike.PublicKey, blindingFactor nike.Pr
 	}
 }
 
-func (e *Ctidh1024Nike) UnmarshalBinaryPublicKey(b []byte) (nike.PublicKey, error) {
-	pubkey := ctidh.NewEmptyCtidh1024PublicKey()
+func (e *scheme) UnmarshalBinaryPublicKey(b []byte) (nike.PublicKey, error) {
+	pubkey := ctidh.NewEmptyPublicKey()
 	err := pubkey.FromBytes(b)
 	if err != nil {
 		return nil, err
@@ -133,8 +133,8 @@ func (e *Ctidh1024Nike) UnmarshalBinaryPublicKey(b []byte) (nike.PublicKey, erro
 	}, nil
 }
 
-func (e *Ctidh1024Nike) UnmarshalBinaryPrivateKey(b []byte) (nike.PrivateKey, error) {
-	privkey := ctidh.NewEmptyCtidh1024PrivateKey()
+func (e *scheme) UnmarshalBinaryPrivateKey(b []byte) (nike.PrivateKey, error) {
+	privkey := ctidh.NewEmptyPrivateKey()
 	err := privkey.FromBytes(b)
 	if err != nil {
 		return nil, err
@@ -145,7 +145,7 @@ func (e *Ctidh1024Nike) UnmarshalBinaryPrivateKey(b []byte) (nike.PrivateKey, er
 }
 
 type PublicKey struct {
-	publicKey *ctidh.Ctidh1024PublicKey
+	publicKey *ctidh.PublicKey
 }
 
 func (p *PublicKey) Blind(blindingFactor nike.PrivateKey) error {
@@ -193,7 +193,7 @@ func (p *PublicKey) UnmarshalText(data []byte) error {
 }
 
 type PrivateKey struct {
-	privateKey *ctidh.Ctidh1024PrivateKey
+	privateKey *ctidh.PrivateKey
 }
 
 func (p *PrivateKey) Public() nike.PublicKey {
@@ -228,8 +228,4 @@ func (p *PrivateKey) UnmarshalBinary(data []byte) error {
 
 func (p *PrivateKey) UnmarshalText(data []byte) error {
 	return p.privateKey.UnmarshalText(data)
-}
-
-func init() {
-	CTIDH1024Scheme = &Ctidh1024Nike{}
 }

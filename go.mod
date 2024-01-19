@@ -16,6 +16,7 @@ require (
 )
 
 require (
+	codeberg.org/dawuud/highctidh v1.0.2024010702-0.20240119231727-003bd97f7b44 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/mattn/go-pointer v0.0.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
