@@ -4,19 +4,34 @@ import (
 	"strings"
 
 	"github.com/katzenpost/hpqc/nike"
+	"github.com/katzenpost/hpqc/nike/ctidh/ctidh1024"
+	"github.com/katzenpost/hpqc/nike/ctidh/ctidh2048"
+	"github.com/katzenpost/hpqc/nike/ctidh/ctidh511"
+	"github.com/katzenpost/hpqc/nike/ctidh/ctidh512"
 	"github.com/katzenpost/hpqc/nike/hybrid"
-	ecdh "github.com/katzenpost/hpqc/nike/x25519"
+	"github.com/katzenpost/hpqc/nike/x25519"
 	"github.com/katzenpost/hpqc/rand"
 )
 
-// NOTE(david): The CTIDH schemes won't work unless you build with
-// "ctidh" build tag.
 var allSchemes = [...]nike.Scheme{
-	ecdh.Scheme(rand.Reader),
-	hybrid.NOBS_CSIDH512X25519,
-	// Must build with `ctidh` build tag (and other supporting env vars)
-	// for CTIDH usage:
-	// hybrid.CTIDH1024X25519,
+
+	// classical NIKE schemes
+	x25519.Scheme(rand.Reader),
+
+	// post quantum NIKE schemes
+	ctidh511.Scheme(),
+	ctidh512.Scheme(),
+	ctidh1024.Scheme(),
+	ctidh2048.Scheme(),
+
+	// hybrid NIKE schemes
+
+	hybrid.CTIDH511X25519,
+	hybrid.CTIDH512X25519,
+	hybrid.CTIDH1024X25519,
+	hybrid.CTIDH2048X25519,
+
+	hybrid.NOBS_CSIDH512X25519, // XXX TODO: deprecate and remove.
 }
 
 var allSchemeNames map[string]nike.Scheme
