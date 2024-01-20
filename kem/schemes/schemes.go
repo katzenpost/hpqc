@@ -153,6 +153,19 @@ var allSchemes = [...]kem.Scheme{
 			adapter.FromNIKE(ctidh2048.Scheme()),
 		},
 	),
+
+	// another sledge hammer KEM just to show that we can if we want to
+	combiner.New(
+		"X25519-ctidh1024-sntrup4591761-mceliece8192128f-frodo640shake-kyber1024",
+		[]kem.Scheme{
+			adapter.FromNIKE(x25519.Scheme(rand.Reader)),
+			adapter.FromNIKE(ctidh1024.Scheme()),
+			sntrup.Scheme(),
+			mceliece8192128f.Scheme(),
+			frodo640shake.Scheme(),
+			kyber1024.Scheme(),
+		},
+	),
 }
 
 var allSchemeNames map[string]kem.Scheme
