@@ -54,6 +54,14 @@ var allSchemes = [...]kem.Scheme{
 	mceliece8192128.Scheme(),
 	mceliece8192128f.Scheme(),
 
+	// post quantum KEM schemes
+	// ...but converted using an
+	// ad hoc hash ElGamal construction
+	adapter.FromNIKE(ctidh511.Scheme()),
+	adapter.FromNIKE(ctidh512.Scheme()),
+	adapter.FromNIKE(ctidh1024.Scheme()),
+	adapter.FromNIKE(ctidh2048.Scheme()),
+
 	// hybrid KEM schemes
 
 	combiner.New(
