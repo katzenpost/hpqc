@@ -21,12 +21,24 @@ import (
 
 	"github.com/katzenpost/hpqc/kem"
 	"github.com/katzenpost/hpqc/kem/adapter"
-	kemhybrid "github.com/katzenpost/hpqc/kem/hybrid"
-	ecdh "github.com/katzenpost/hpqc/nike/x25519"
+	"github.com/katzenpost/hpqc/kem/combiner"
+	"github.com/katzenpost/hpqc/kem/sntrup"
+	"github.com/katzenpost/hpqc/nike/ctidh/ctidh1024"
+	"github.com/katzenpost/hpqc/nike/ctidh/ctidh2048"
+	"github.com/katzenpost/hpqc/nike/ctidh/ctidh511"
+	"github.com/katzenpost/hpqc/nike/ctidh/ctidh512"
+	"github.com/katzenpost/hpqc/nike/x25519"
 	"github.com/katzenpost/hpqc/rand"
 )
 
 var allSchemes = [...]kem.Scheme{
+
+	// classical KEM schemes
+
+	adapter.FromNIKE(x25519.Scheme(rand.Reader)),
+
+	// post quantum KEM schemes
+
 	kyber512.Scheme(),
 	kyber768.Scheme(),
 	kyber1024.Scheme(),
@@ -42,45 +54,105 @@ var allSchemes = [...]kem.Scheme{
 	mceliece8192128.Scheme(),
 	mceliece8192128f.Scheme(),
 
-	adapter.FromNIKE(ecdh.Scheme(rand.Reader)),
-	// Must build with `ctidh` build tag (and other supporting env vars)
-	// for CTIDH usage:
-	// adapter.FromNIKE(hybrid.CTIDH1024X25519),
-	//kemhybrid.New(
-	//	"Kyber1024-CTIDH1024-X25519",
-	//	adapter.FromNIKE(hybrid.CTIDH1024X25519),
-	//	kyber1024.Scheme(),
-	//),
+	// hybrid KEM schemes
 
-	kemhybrid.New(
+	combiner.New(
 		"Kyber768-X25519",
-		adapter.FromNIKE(ecdh.Scheme(rand.Reader)),
-		kyber768.Scheme(),
+		[]kem.Scheme{
+			adapter.FromNIKE(x25519.Scheme(rand.Reader)),
+			kyber768.Scheme(),
+		},
 	),
 
-	/*
-		combiner.New(
-			"sntrup4591761-Kyber768-X25519",
-			[]kem.Scheme{
-				adapter.FromNIKE(ecdh.Scheme(rand.Reader)),
-				kyber768.Scheme(),
-				sntrup.Scheme(),
-			},
-		),
-
-		kemhybrid.New(
-			"sntrup4591761-X25519",
-			adapter.FromNIKE(ecdh.Scheme(rand.Reader)),
+	combiner.New(
+		"sntrup4591761-X25519",
+		[]kem.Scheme{
+			adapter.FromNIKE(x25519.Scheme(rand.Reader)),
 			sntrup.Scheme(),
-		),
-		combiner.New(
-			"sntrup4591761-X25519-combiner", // used for testing
-			[]kem.Scheme{
-				adapter.FromNIKE(x25519.Scheme(rand.Reader)),
-				sntrup.Scheme(),
-			},
-		),
-	*/
+		},
+	),
+
+	combiner.New(
+		"ctidh511-X25519",
+		[]kem.Scheme{
+			adapter.FromNIKE(x25519.Scheme(rand.Reader)),
+			adapter.FromNIKE(ctidh511.Scheme()),
+		},
+	),
+
+	combiner.New(
+		"ctidh512-X25519",
+		[]kem.Scheme{
+			adapter.FromNIKE(x25519.Scheme(rand.Reader)),
+			adapter.FromNIKE(ctidh512.Scheme()),
+		},
+	),
+
+	combiner.New(
+		"ctidh1024-X25519",
+		[]kem.Scheme{
+			adapter.FromNIKE(x25519.Scheme(rand.Reader)),
+			adapter.FromNIKE(ctidh1024.Scheme()),
+		},
+	),
+
+	combiner.New(
+		"ctidh2048-X25519",
+		[]kem.Scheme{
+			adapter.FromNIKE(x25519.Scheme(rand.Reader)),
+			adapter.FromNIKE(ctidh2048.Scheme()),
+		},
+	),
+
+	// hybrid KEM schemes with two post quantum KEMs
+
+	combiner.New(
+		"X25519-Kyber768-sntrup4591761",
+		[]kem.Scheme{
+			adapter.FromNIKE(x25519.Scheme(rand.Reader)),
+			kyber768.Scheme(),
+			sntrup.Scheme(),
+		},
+	),
+
+	combiner.New(
+		"X25519-kyber768-ctidh511",
+		[]kem.Scheme{
+			adapter.FromNIKE(x25519.Scheme(rand.Reader)),
+			kyber768.Scheme(),
+			adapter.FromNIKE(ctidh511.Scheme()),
+		},
+	),
+
+	combiner.New(
+		"X25519-kyber768-ctidh512",
+		[]kem.Scheme{
+			adapter.FromNIKE(x25519.Scheme(rand.Reader)),
+			kyber768.Scheme(),
+			adapter.FromNIKE(ctidh512.Scheme()),
+		},
+	),
+
+	combiner.New(
+		"X25519-kyber1024-ctidh1024",
+		[]kem.Scheme{
+			adapter.FromNIKE(x25519.Scheme(rand.Reader)),
+			kyber1024.Scheme(),
+			adapter.FromNIKE(ctidh1024.Scheme()),
+		},
+	),
+
+	// "the CTIDH hybrid sledge hammer"
+	combiner.New(
+		"X25519-ctidh511-ctidh512-ctidh1024-ctidh2048",
+		[]kem.Scheme{
+			adapter.FromNIKE(x25519.Scheme(rand.Reader)),
+			adapter.FromNIKE(ctidh511.Scheme()),
+			adapter.FromNIKE(ctidh512.Scheme()),
+			adapter.FromNIKE(ctidh1024.Scheme()),
+			adapter.FromNIKE(ctidh2048.Scheme()),
+		},
+	),
 }
 
 var allSchemeNames map[string]kem.Scheme
