@@ -20,7 +20,7 @@ import (
 	"encoding/base64"
 	"io"
 
-	ctidh "codeberg.org/dawuud/highctidh/src/ctidh512"
+	ctidh "codeberg.org/vula/highctidh/src/ctidh512"
 
 	"github.com/katzenpost/hpqc/nike"
 )

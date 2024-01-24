@@ -21,7 +21,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	ctidh "codeberg.org/dawuud/highctidh/src/ctidh1024"
+	ctidh "codeberg.org/vula/highctidh/src/ctidh1024"
 )
 
 func TestCTIDH1024_NIKE(t *testing.T) {
