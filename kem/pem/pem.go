@@ -33,7 +33,7 @@ func ToPublicPEMString(key kem.PublicKey) string {
 }
 
 func ToPublicPEMBytes(key kem.PublicKey) []byte {
-	keyType := strings.ToUpper(key.Scheme().Name())
+	keyType := fmt.Sprintf("%s PUBLIC KEY", strings.ToUpper(key.Scheme().Name()))
 	blob, err := key.MarshalBinary()
 	if err != nil {
 		panic(err)
@@ -68,45 +68,38 @@ func PublicKeyToFile(f string, key kem.PublicKey) error {
 	return out.Close()
 }
 
-func FromPublicPEMString(s string, key kem.PublicKey) error {
-	return FromPublicPEMPubBytes([]byte(s), key)
+func FromPublicPEMString(s string, scheme kem.Scheme) (kem.PublicKey, error) {
+	return FromPublicPEMPubBytes([]byte(s), scheme)
 }
 
-func FromPublicPEMPubBytes(b []byte, key kem.PublicKey) error {
-	keyType := strings.ToUpper(key.Scheme().Name())
-
+func FromPublicPEMPubBytes(b []byte, scheme kem.Scheme) (kem.PublicKey, error) {
+	keyType := fmt.Sprintf("%s PUBLIC KEY", strings.ToUpper(scheme.Name()))
 	blk, _ := pem.Decode(b)
 	if blk == nil {
-		return fmt.Errorf("failed to decode PEM data from %s PEM", keyType)
+		return nil, fmt.Errorf("failed to decode PEM data from %s PEM", keyType)
 	}
 	if strings.ToUpper(blk.Type) != keyType {
-		return fmt.Errorf("attempted to decode PEM file with wrong key type %v != %v", blk.Type, keyType)
+		return nil, fmt.Errorf("attempted to decode PEM file with wrong key type %v != %v", blk.Type, keyType)
 	}
-	var err error
-	key, err = key.Scheme().UnmarshalBinaryPublicKey(blk.Bytes)
-	return err
+	return scheme.UnmarshalBinaryPublicKey(blk.Bytes)
 }
 
-func FromPublicPEMFile(f string, key kem.PublicKey) error {
+func FromPublicPEMFile(f string, scheme kem.Scheme) (kem.PublicKey, error) {
 	buf, err := os.ReadFile(f)
 	if err != nil {
-		return fmt.Errorf("pem.FromFile error: %s", err)
+		return nil, fmt.Errorf("pem.FromFile error: %s", err)
 	}
-	err = FromPublicPEMPubBytes(buf, key)
-	if err != nil {
-		return fmt.Errorf("pem.FromFile failed to read from file %s, with buf len %d and err %s", f, len(buf), err)
-	}
-	return nil
+	return FromPublicPEMPubBytes(buf, scheme)
 }
 
-// private keys
+// private key
 
 func ToPrivatePEMString(key kem.PrivateKey) string {
 	return string(ToPrivatePEMBytes(key))
 }
 
 func ToPrivatePEMBytes(key kem.PrivateKey) []byte {
-	keyType := strings.ToUpper(key.Scheme().Name())
+	keyType := fmt.Sprintf("%s PRIVATE KEY", strings.ToUpper(key.Scheme().Name()))
 	blob, err := key.MarshalBinary()
 	if err != nil {
 		panic(err)
@@ -141,33 +134,26 @@ func PrivateKeyToFile(f string, key kem.PrivateKey) error {
 	return out.Close()
 }
 
-func FromPrivatePEMString(s string, key kem.PrivateKey) error {
-	return FromPrivatePEMPubBytes([]byte(s), key)
+func FromPrivatePEMString(s string, scheme kem.Scheme) (kem.PrivateKey, error) {
+	return FromPrivatePEMPubBytes([]byte(s), scheme)
 }
 
-func FromPrivatePEMPubBytes(b []byte, key kem.PrivateKey) error {
-	keyType := strings.ToUpper(key.Scheme().Name())
-
+func FromPrivatePEMPubBytes(b []byte, scheme kem.Scheme) (kem.PrivateKey, error) {
+	keyType := fmt.Sprintf("%s PRIVATE KEY", strings.ToUpper(scheme.Name()))
 	blk, _ := pem.Decode(b)
 	if blk == nil {
-		return fmt.Errorf("failed to decode PEM data from %s PEM", keyType)
+		return nil, fmt.Errorf("failed to decode PEM data from %s PEM", keyType)
 	}
 	if strings.ToUpper(blk.Type) != keyType {
-		return fmt.Errorf("attempted to decode PEM file with wrong key type %v != %v", blk.Type, keyType)
+		return nil, fmt.Errorf("attempted to decode PEM file with wrong key type %v != %v", blk.Type, keyType)
 	}
-	var err error
-	key, err = key.Scheme().UnmarshalBinaryPrivateKey(blk.Bytes)
-	return err
+	return scheme.UnmarshalBinaryPrivateKey(blk.Bytes)
 }
 
-func FromPrivatePEMFile(f string, key kem.PrivateKey) error {
+func FromPrivatePEMFile(f string, scheme kem.Scheme) (kem.PrivateKey, error) {
 	buf, err := os.ReadFile(f)
 	if err != nil {
-		return fmt.Errorf("pem.FromFile error: %s", err)
+		return nil, fmt.Errorf("pem.FromFile error: %s", err)
 	}
-	err = FromPrivatePEMPubBytes(buf, key)
-	if err != nil {
-		return fmt.Errorf("pem.FromFile failed to read from file %s, with buf len %d and err %s", f, len(buf), err)
-	}
-	return nil
+	return FromPrivatePEMPubBytes(buf, scheme)
 }

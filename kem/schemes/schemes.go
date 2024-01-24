@@ -22,6 +22,7 @@ import (
 	"github.com/katzenpost/hpqc/kem"
 	"github.com/katzenpost/hpqc/kem/adapter"
 	"github.com/katzenpost/hpqc/kem/combiner"
+	"github.com/katzenpost/hpqc/kem/hybrid"
 	"github.com/katzenpost/hpqc/kem/sntrup"
 	"github.com/katzenpost/hpqc/nike/ctidh/ctidh1024"
 	"github.com/katzenpost/hpqc/nike/ctidh/ctidh2048"
@@ -64,14 +65,21 @@ var allSchemes = [...]kem.Scheme{
 
 	// hybrid KEM schemes
 
-	combiner.New(
+	hybrid.New(
 		"Kyber768-X25519",
-		[]kem.Scheme{
-			adapter.FromNIKE(x25519.Scheme(rand.Reader)),
-			kyber768.Scheme(),
-		},
+		adapter.FromNIKE(x25519.Scheme(rand.Reader)),
+		kyber768.Scheme(),
 	),
 
+	/*
+		combiner.New(
+			"Kyber768-X25519",
+			[]kem.Scheme{
+				adapter.FromNIKE(x25519.Scheme(rand.Reader)),
+				kyber768.Scheme(),
+			},
+		),
+	*/
 	combiner.New(
 		"sntrup4591761-X25519",
 		[]kem.Scheme{
