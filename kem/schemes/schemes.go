@@ -1,7 +1,6 @@
 package schemes
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/katzenpost/circl/kem/frodo/frodo640shake"
@@ -196,9 +195,6 @@ func init() {
 // ByName returns the NIKE scheme by string name.
 func ByName(name string) kem.Scheme {
 	ret := allSchemeNames[strings.ToLower(name)]
-	if ret == nil {
-		panic(fmt.Sprintf("no such name as %s\n", name))
-	}
 	return ret
 }
 
