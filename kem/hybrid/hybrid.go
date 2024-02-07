@@ -18,6 +18,7 @@ import (
 	"fmt"
 
 	"github.com/katzenpost/hpqc/kem"
+	"github.com/katzenpost/hpqc/kem/pem"
 	"github.com/katzenpost/hpqc/kem/util"
 )
 
@@ -96,6 +97,27 @@ func (sk *PrivateKey) MarshalBinary() ([]byte, error) {
 		return nil, err
 	}
 	return append(first, second...), nil
+}
+
+func (sk *PublicKey) MarshalText() (text []byte, err error) {
+	return pem.ToPublicPEMBytes(sk), nil
+}
+
+func (sk *PublicKey) UnmarshalText(text []byte) error {
+	blob, err := pem.FromPublicPEMToBytes(text, sk.Scheme())
+	if err != nil {
+		return err
+	}
+	pubkey, err := sk.Scheme().UnmarshalBinaryPublicKey(blob)
+	if err != nil {
+		return err
+	}
+	var ok bool
+	sk, ok = pubkey.(*PublicKey)
+	if !ok {
+		return errors.New("type assertion failed")
+	}
+	return nil
 }
 
 func (sk *PrivateKey) Equal(other kem.PrivateKey) bool {

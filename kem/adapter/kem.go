@@ -2,11 +2,13 @@ package adapter
 
 import (
 	"crypto/hmac"
+	"errors"
 	"fmt"
 
 	"golang.org/x/crypto/blake2b"
 
 	"github.com/katzenpost/hpqc/kem"
+	"github.com/katzenpost/hpqc/kem/pem"
 	"github.com/katzenpost/hpqc/nike"
 	"github.com/katzenpost/hpqc/rand"
 )
@@ -24,6 +26,27 @@ type PublicKey struct {
 
 func (p *PublicKey) Scheme() kem.Scheme {
 	return p.scheme
+}
+
+func (p *PublicKey) MarshalText() (text []byte, err error) {
+	return pem.ToPublicPEMBytes(p), nil
+}
+
+func (p *PublicKey) UnmarshalText(text []byte) error {
+	blob, err := pem.FromPublicPEMToBytes(text, p.Scheme())
+	if err != nil {
+		return err
+	}
+	pubkey, err := p.Scheme().UnmarshalBinaryPublicKey(blob)
+	if err != nil {
+		return err
+	}
+	var ok bool
+	p, ok = pubkey.(*PublicKey)
+	if !ok {
+		return errors.New("type assertion failed")
+	}
+	return nil
 }
 
 func (p *PublicKey) MarshalBinary() ([]byte, error) {

@@ -73,20 +73,27 @@ import (
 
 // A KEM public key
 type PublicKey interface {
+	encoding.TextMarshaler
+	encoding.TextUnmarshaler
+	encoding.BinaryMarshaler
+
 	// Returns the scheme for this public key
 	Scheme() Scheme
 
-	encoding.BinaryMarshaler
 	Equal(PublicKey) bool
 }
 
 // A KEM private key
 type PrivateKey interface {
+	encoding.BinaryMarshaler
+
 	// Returns the scheme for this private key
 	Scheme() Scheme
 
-	encoding.BinaryMarshaler
+	// Equal returns true if the two keys are equal.
 	Equal(PrivateKey) bool
+
+	// Public returns the public key related to this private key.
 	Public() PublicKey
 }
 

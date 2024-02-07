@@ -70,6 +70,18 @@ func FromPublicPEMBytes(b []byte, scheme kem.Scheme) (kem.PublicKey, error) {
 	return scheme.UnmarshalBinaryPublicKey(blk.Bytes)
 }
 
+func FromPublicPEMToBytes(b []byte, scheme kem.Scheme) ([]byte, error) {
+	keyType := fmt.Sprintf("%s PUBLIC KEY", strings.ToUpper(scheme.Name()))
+	blk, _ := pem.Decode(b)
+	if blk == nil {
+		return nil, fmt.Errorf("failed to decode PEM data from %s PEM", keyType)
+	}
+	if strings.ToUpper(blk.Type) != keyType {
+		return nil, fmt.Errorf("attempted to decode PEM file with wrong key type %v != %v", blk.Type, keyType)
+	}
+	return blk.Bytes, nil
+}
+
 func FromPublicPEMFile(f string, scheme kem.Scheme) (kem.PublicKey, error) {
 	buf, err := os.ReadFile(f)
 	if err != nil {

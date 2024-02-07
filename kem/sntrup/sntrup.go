@@ -6,6 +6,7 @@ package sntrup
 
 import (
 	"crypto/hmac"
+	"errors"
 	"hash"
 	"io"
 
@@ -13,6 +14,7 @@ import (
 	"golang.org/x/crypto/hkdf"
 
 	"github.com/katzenpost/hpqc/kem"
+	"github.com/katzenpost/hpqc/kem/pem"
 
 	sntrup "github.com/katzenpost/sntrup4591761"
 
@@ -247,15 +249,36 @@ func (pk *PublicKey) MarshalBinary() (data []byte, err error) {
 	return pk.key[:], nil
 }
 
-func (sk *PublicKey) Equal(other kem.PublicKey) bool {
+func (pk *PublicKey) MarshalText() (text []byte, err error) {
+	return pem.ToPublicPEMBytes(pk), nil
+}
+
+func (pk *PublicKey) UnmarshalText(text []byte) error {
+	blob, err := pem.FromPublicPEMToBytes(text, pk.Scheme())
+	if err != nil {
+		return err
+	}
+	pubkey, err := pk.Scheme().UnmarshalBinaryPublicKey(blob)
+	if err != nil {
+		return err
+	}
+	var ok bool
+	pk, ok = pubkey.(*PublicKey)
+	if !ok {
+		return errors.New("type assertion failed")
+	}
+	return nil
+}
+
+func (pk *PublicKey) Equal(other kem.PublicKey) bool {
 	oth, ok := other.(*PublicKey)
 	if !ok {
 		return false
 	}
-	if sk.key == nil || oth.key == nil {
+	if pk.key == nil || oth.key == nil {
 		panic("keys cannot be nil")
 	}
-	return hmac.Equal(sk.key[:], oth.key[:])
+	return hmac.Equal(pk.key[:], oth.key[:])
 }
 
 // private key methods
