@@ -1,19 +1,5 @@
-// pem.go - PEM file write barrier.
-//
-// Copyright (C) 2022  David Stainton.
-//
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Affero General Public License as
-// published by the Free Software Foundation, either version 3 of the
-// License, or (at your option) any later version.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU Affero General Public License for more details.
-//
-// You should have received a copy of the GNU Affero General Public License
-// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+// SPDX-FileCopyrightText: Copyright (c) 2023-2024 David Stainton
+// SPDX-License-Identifier: AGPL-3.0-only
 
 package pem
 
@@ -69,10 +55,10 @@ func PublicKeyToFile(f string, key kem.PublicKey) error {
 }
 
 func FromPublicPEMString(s string, scheme kem.Scheme) (kem.PublicKey, error) {
-	return FromPublicPEMPubBytes([]byte(s), scheme)
+	return FromPublicPEMBytes([]byte(s), scheme)
 }
 
-func FromPublicPEMPubBytes(b []byte, scheme kem.Scheme) (kem.PublicKey, error) {
+func FromPublicPEMBytes(b []byte, scheme kem.Scheme) (kem.PublicKey, error) {
 	keyType := fmt.Sprintf("%s PUBLIC KEY", strings.ToUpper(scheme.Name()))
 	blk, _ := pem.Decode(b)
 	if blk == nil {
@@ -89,7 +75,7 @@ func FromPublicPEMFile(f string, scheme kem.Scheme) (kem.PublicKey, error) {
 	if err != nil {
 		return nil, fmt.Errorf("pem.FromFile error: %s", err)
 	}
-	return FromPublicPEMPubBytes(buf, scheme)
+	return FromPublicPEMBytes(buf, scheme)
 }
 
 // private key
@@ -135,10 +121,10 @@ func PrivateKeyToFile(f string, key kem.PrivateKey) error {
 }
 
 func FromPrivatePEMString(s string, scheme kem.Scheme) (kem.PrivateKey, error) {
-	return FromPrivatePEMPubBytes([]byte(s), scheme)
+	return FromPrivatePEMBytes([]byte(s), scheme)
 }
 
-func FromPrivatePEMPubBytes(b []byte, scheme kem.Scheme) (kem.PrivateKey, error) {
+func FromPrivatePEMBytes(b []byte, scheme kem.Scheme) (kem.PrivateKey, error) {
 	keyType := fmt.Sprintf("%s PRIVATE KEY", strings.ToUpper(scheme.Name()))
 	blk, _ := pem.Decode(b)
 	if blk == nil {
@@ -155,5 +141,5 @@ func FromPrivatePEMFile(f string, scheme kem.Scheme) (kem.PrivateKey, error) {
 	if err != nil {
 		return nil, fmt.Errorf("pem.FromFile error: %s", err)
 	}
-	return FromPrivatePEMPubBytes(buf, scheme)
+	return FromPrivatePEMBytes(buf, scheme)
 }
