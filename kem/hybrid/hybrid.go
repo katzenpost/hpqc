@@ -103,28 +103,6 @@ func (sk *PublicKey) MarshalText() (text []byte, err error) {
 	return pem.ToPublicPEMBytes(sk), nil
 }
 
-func (sk *PublicKey) UnmarshalBinary(blob []byte) error {
-	key, err := sk.Scheme().UnmarshalBinaryPublicKey(blob)
-	if err != nil {
-		return err
-	}
-	pubkey, ok := key.(*PublicKey)
-	if !ok {
-		return errors.New("public key failed type assertion")
-	}
-	sk.first = pubkey.first
-	sk.second = pubkey.second
-	return nil
-}
-
-func (sk *PublicKey) UnmarshalText(text []byte) error {
-	blob, err := pem.FromPublicPEMToBytes(text, sk.Scheme())
-	if err != nil {
-		return err
-	}
-	return sk.UnmarshalBinary(blob)
-}
-
 func (sk *PrivateKey) Equal(other kem.PrivateKey) bool {
 	oth, ok := other.(*PrivateKey)
 	if !ok {
@@ -274,4 +252,12 @@ func (sch *Scheme) UnmarshalBinaryPrivateKey(buf []byte) (kem.PrivateKey, error)
 		return nil, err
 	}
 	return &PrivateKey{sch, sk1, sk2}, nil
+}
+
+func (a *Scheme) UnmarshalTextPublicKey(text []byte) (kem.PublicKey, error) {
+	return pem.FromPublicPEMBytes(text, a)
+}
+
+func (a *Scheme) UnmarshalTextPrivateKey(text []byte) (kem.PrivateKey, error) {
+	return pem.FromPrivatePEMBytes(text, a)
 }

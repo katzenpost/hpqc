@@ -6,7 +6,6 @@ package sntrup
 
 import (
 	"crypto/hmac"
-	"errors"
 	"hash"
 	"io"
 
@@ -202,6 +201,14 @@ func (s *scheme) UnmarshalBinaryPrivateKey(buf []byte) (kem.PrivateKey, error) {
 	}, nil
 }
 
+func (s *scheme) UnmarshalTextPublicKey(text []byte) (kem.PublicKey, error) {
+	return pem.FromPublicPEMBytes(text, s)
+}
+
+func (s *scheme) UnmarshalTextPrivateKey(text []byte) (kem.PrivateKey, error) {
+	return pem.FromPrivatePEMBytes(text, s)
+}
+
 // public key methods
 
 func (pk *PublicKey) Scheme() kem.Scheme {
@@ -251,23 +258,6 @@ func (pk *PublicKey) MarshalBinary() (data []byte, err error) {
 
 func (pk *PublicKey) MarshalText() (text []byte, err error) {
 	return pem.ToPublicPEMBytes(pk), nil
-}
-
-func (pk *PublicKey) UnmarshalText(text []byte) error {
-	blob, err := pem.FromPublicPEMToBytes(text, pk.Scheme())
-	if err != nil {
-		return err
-	}
-	key, err := pk.Scheme().UnmarshalBinaryPublicKey(blob)
-	if err != nil {
-		return err
-	}
-	pubkey, ok := key.(*PublicKey)
-	if !ok {
-		return errors.New("public key type assertion failure")
-	}
-	pk.key = pubkey.key
-	return nil
 }
 
 func (pk *PublicKey) Equal(other kem.PublicKey) bool {

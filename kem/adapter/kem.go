@@ -7,7 +7,6 @@ package adapter
 
 import (
 	"crypto/hmac"
-	"errors"
 	"fmt"
 
 	"golang.org/x/crypto/blake2b"
@@ -35,23 +34,6 @@ func (p *PublicKey) Scheme() kem.Scheme {
 
 func (p *PublicKey) MarshalText() (text []byte, err error) {
 	return pem.ToPublicPEMBytes(p), nil
-}
-
-func (p *PublicKey) UnmarshalText(text []byte) error {
-	blob, err := pem.FromPublicPEMToBytes(text, p.Scheme())
-	if err != nil {
-		return err
-	}
-	key, err := p.Scheme().UnmarshalBinaryPublicKey(blob)
-	if err != nil {
-		return err
-	}
-	pubKey, ok := key.(*PublicKey)
-	if !ok {
-		return errors.New("type assertion failed")
-	}
-	p.publicKey = pubKey.publicKey
-	return nil
 }
 
 func (p *PublicKey) MarshalBinary() ([]byte, error) {
@@ -212,6 +194,14 @@ func (a *Scheme) UnmarshalBinaryPrivateKey(b []byte) (kem.PrivateKey, error) {
 		privateKey: privkey,
 		scheme:     a,
 	}, nil
+}
+
+func (a *Scheme) UnmarshalTextPublicKey(text []byte) (kem.PublicKey, error) {
+	return pem.FromPublicPEMBytes(text, a)
+}
+
+func (a *Scheme) UnmarshalTextPrivateKey(text []byte) (kem.PrivateKey, error) {
+	return pem.FromPrivatePEMBytes(text, a)
 }
 
 // Size of encapsulated keys.

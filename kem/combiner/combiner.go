@@ -140,25 +140,6 @@ func (sk *PublicKey) MarshalText() (text []byte, err error) {
 	return pem.ToPublicPEMBytes(sk), nil
 }
 
-func (sk *PublicKey) UnmarshalText(text []byte) error {
-	blob, err := pem.FromPublicPEMToBytes(text, sk.Scheme())
-	if err != nil {
-		return err
-	}
-	key, err := sk.Scheme().UnmarshalBinaryPublicKey(blob)
-	if err != nil {
-		return err
-	}
-	pubkey, ok := key.(*PublicKey)
-	if !ok {
-		return errors.New("public key type assertion failed")
-	}
-	for i := 0; i < len(sk.keys); i++ {
-		sk.keys[i] = pubkey.keys[i]
-	}
-	return nil
-}
-
 // Scheme methods
 
 // New creates a new hybrid KEM given the slices of KEM schemes.
@@ -417,4 +398,12 @@ func (sch *Scheme) UnmarshalBinaryPrivateKey(buf []byte) (kem.PrivateKey, error)
 		scheme: sch,
 		keys:   privateKeys,
 	}, nil
+}
+
+func (sch *Scheme) UnmarshalTextPublicKey(text []byte) (kem.PublicKey, error) {
+	return pem.FromPublicPEMBytes(text, sch)
+}
+
+func (sch *Scheme) UnmarshalTextPrivateKey(text []byte) (kem.PrivateKey, error) {
+	return pem.FromPrivatePEMBytes(text, sch)
 }
