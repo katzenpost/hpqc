@@ -16,16 +16,13 @@ func TestKEMTextUnmarshal(t *testing.T) {
 	todo := schemes.All()
 
 	testkem := func(s kem.Scheme) {
-		testpubkey2, _, err := s.GenerateKeyPair()
-		require.NoError(t, err)
-
 		pubkey, _, err := s.GenerateKeyPair()
 		require.NoError(t, err)
 
 		blob1, err := pubkey.MarshalText()
 		require.NoError(t, err)
 
-		err = testpubkey2.UnmarshalText(blob1)
+		testpubkey2, err := s.UnmarshalTextPublicKey(blob1)
 		require.NoError(t, err)
 
 		blob2, err := testpubkey2.MarshalText()
