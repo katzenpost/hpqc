@@ -15,6 +15,8 @@ github.com/katzenpost/chacha20 v0.0.0-20190910113340-7ce890d6a556 h1:9gHByAWH1Ly
 github.com/katzenpost/chacha20 v0.0.0-20190910113340-7ce890d6a556/go.mod h1:d9kxwmGOcutgP6bQwr2xaLInaW5yJsxsoPRyUIG0J/E=
 github.com/katzenpost/circl v0.0.1-0.20240114190552-a60da6747ebd h1:YJx4KfR+r340h8xVBMaEZ7Q1DkFSjrO6sSjMcEoH+Vk=
 github.com/katzenpost/circl v0.0.1-0.20240114190552-a60da6747ebd/go.mod h1:o+xQQBvrc5MO2FXUpb0HIYZ42PzrMHNPXTJvJLp901Y=
+github.com/katzenpost/circl v0.0.1-0.20240207222605-76395c8a6bd1 h1:+FlYV6KPzPJadpABlTJeGYqUujh9zRUVwBcSOZRJabU=
+github.com/katzenpost/circl v0.0.1-0.20240207222605-76395c8a6bd1/go.mod h1:Gmr3/SyKxO4LRasxQjcXWRZA5sMNcPGyeNgdnp4ak3M=
 github.com/katzenpost/ctidh_cgo v0.0.0-20230523083445-e789a8b77082 h1:vyyEEz2aPzi+X3suZn5MzyAdSi2sEo/ockaGloSfPyk=
 github.com/katzenpost/ctidh_cgo v0.0.0-20230523083445-e789a8b77082/go.mod h1:xqyj8Y3rR3PfAPoDvhriOtNLPr2VXjlFj1LqGR5xA88=
 github.com/katzenpost/sntrup4591761 v0.0.0-20231024131303-8755eb1986b8 h1:TsKxH0x2RUwf5rBw67k15bqVM3oVbexA9oaTZQLIy3Y=

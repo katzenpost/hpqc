@@ -37,15 +37,15 @@ func (p *PublicKey) UnmarshalText(text []byte) error {
 	if err != nil {
 		return err
 	}
-	pubkey, err := p.Scheme().UnmarshalBinaryPublicKey(blob)
+	key, err := p.Scheme().UnmarshalBinaryPublicKey(blob)
 	if err != nil {
 		return err
 	}
-	var ok bool
-	p, ok = pubkey.(*PublicKey)
+	pubKey, ok := key.(*PublicKey)
 	if !ok {
 		return errors.New("type assertion failed")
 	}
+	p.publicKey = pubKey.publicKey
 	return nil
 }
 
