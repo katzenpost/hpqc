@@ -23,6 +23,8 @@ github.com/katzenpost/circl v0.0.1-0.20240208011206-18895641f848 h1:t5Fdj9EWRgYA
 github.com/katzenpost/circl v0.0.1-0.20240208011206-18895641f848/go.mod h1:Gmr3/SyKxO4LRasxQjcXWRZA5sMNcPGyeNgdnp4ak3M=
 github.com/katzenpost/circl v1.3.8-0.20240208011206-18895641f848 h1:qKke8pRXpv+Sd6ce25nPObBlXBJNGzkothEwZ0zTKlI=
 github.com/katzenpost/circl v1.3.8-0.20240208011206-18895641f848/go.mod h1:Gmr3/SyKxO4LRasxQjcXWRZA5sMNcPGyeNgdnp4ak3M=
+github.com/katzenpost/circl v1.3.8-0.20240208050109-5fb03bb61607 h1:y5b/0ChgEj8HuAzoRwgHA9gF+5BMaRuiGjGy0kFYcIk=
+github.com/katzenpost/circl v1.3.8-0.20240208050109-5fb03bb61607/go.mod h1:Uv5vNSenUKpvNK2zT7llPz9RAM0NC5KiqdkCjHOdh8U=
 github.com/katzenpost/ctidh_cgo v0.0.0-20230523083445-e789a8b77082 h1:vyyEEz2aPzi+X3suZn5MzyAdSi2sEo/ockaGloSfPyk=
 github.com/katzenpost/ctidh_cgo v0.0.0-20230523083445-e789a8b77082/go.mod h1:xqyj8Y3rR3PfAPoDvhriOtNLPr2VXjlFj1LqGR5xA88=
 github.com/katzenpost/sntrup4591761 v0.0.0-20231024131303-8755eb1986b8 h1:TsKxH0x2RUwf5rBw67k15bqVM3oVbexA9oaTZQLIy3Y=
