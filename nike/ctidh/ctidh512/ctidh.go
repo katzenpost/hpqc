@@ -38,7 +38,7 @@ var _ nike.PublicKey = (*PublicKey)(nil)
 var _ nike.Scheme = (*scheme)(nil)
 
 func (e *scheme) Name() string {
-	return "ctidh"
+	return "ctidh512"
 }
 
 // PublicKeySize returns the size in bytes of the public key.
