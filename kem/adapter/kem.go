@@ -1,3 +1,8 @@
+// SPDX-FileCopyrightText: Copyright (C) 2022-2024 David Stainton
+// SPDX-License-Identifier: AGPL-3.0-only
+
+// Package adapter provides an adhoc hashed ElGamal construction
+// that essentially acts like an adapter, adapting a NIKE to KEM.
 package adapter
 
 import (
