@@ -180,8 +180,8 @@ func (sch *Scheme) Name() string { return sch.name }
 // PublicKeySize returns the KEM's public key size in bytes.
 func (sch *Scheme) PublicKeySize() int {
 	sum := 0
-	for _, s := range sch.schemes {
-		sum += s.PublicKeySize()
+	for i := 0; i < len(sch.schemes); i++ {
+		sum += sch.schemes[i].PublicKeySize()
 	}
 	return sum
 }
@@ -379,7 +379,7 @@ func (sch *Scheme) UnmarshalBinaryPublicKey(buf []byte) (kem.PublicKey, error) {
 		return nil, err
 	}
 	publicKeys[0] = pk1
-	for i := 0; i < len(sch.schemes); i++ {
+	for i := 1; i < len(sch.schemes); i++ {
 		pk, err := sch.schemes[i].UnmarshalBinaryPublicKey(buf[offset : offset+sch.schemes[i].PublicKeySize()])
 		if err != nil {
 			return nil, err
