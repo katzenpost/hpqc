@@ -24,12 +24,17 @@ const (
 )
 
 // tell the type checker that we obey these interfaces
-var _ kem.Scheme = (*Scheme)(nil)
+var _ kem.Scheme = (*scheme)(nil)
 var _ kem.PublicKey = (*PublicKey)(nil)
 var _ kem.PrivateKey = (*PrivateKey)(nil)
 
+var sch kem.Scheme = &scheme{}
+
+// Scheme returns a KEM interface.
+func Scheme() kem.Scheme { return sch }
+
 type PublicKey struct {
-	scheme   *Scheme
+	scheme   *scheme
 	encapKey []byte
 }
 
@@ -53,7 +58,7 @@ func (p *PublicKey) Equal(pubkey kem.PublicKey) bool {
 }
 
 type PrivateKey struct {
-	scheme   *Scheme
+	scheme   *scheme
 	decapKey []byte
 	encapKey []byte
 }
@@ -80,15 +85,15 @@ func (p *PrivateKey) Public() kem.PublicKey {
 	}
 }
 
-type Scheme struct {
+type scheme struct {
 	name string
 }
 
-func (s *Scheme) Name() string {
+func (s *scheme) Name() string {
 	return s.name
 }
 
-func (a *Scheme) GenerateKeyPair() (kem.PublicKey, kem.PrivateKey, error) {
+func (a *scheme) GenerateKeyPair() (kem.PublicKey, kem.PrivateKey, error) {
 	encapKey, decapKey, err := mlkem768.GenerateKey()
 	if err != nil {
 		return nil, nil, err
@@ -103,15 +108,15 @@ func (a *Scheme) GenerateKeyPair() (kem.PublicKey, kem.PrivateKey, error) {
 		}, nil
 }
 
-func (s *Scheme) Encapsulate(pk kem.PublicKey) (ct, ss []byte, err error) {
+func (s *scheme) Encapsulate(pk kem.PublicKey) (ct, ss []byte, err error) {
 	return mlkem768.Encapsulate(pk.(*PublicKey).encapKey)
 }
 
-func (s *Scheme) Decapsulate(myPrivkey kem.PrivateKey, ct []byte) ([]byte, error) {
+func (s *scheme) Decapsulate(myPrivkey kem.PrivateKey, ct []byte) ([]byte, error) {
 	return mlkem768.Decapsulate(myPrivkey.(*PrivateKey).decapKey, ct)
 }
 
-func (s *Scheme) UnmarshalBinaryPublicKey(b []byte) (kem.PublicKey, error) {
+func (s *scheme) UnmarshalBinaryPublicKey(b []byte) (kem.PublicKey, error) {
 	if len(b) != PublicKeySize {
 		return nil, errors.New("wrong key size")
 	}
@@ -121,7 +126,7 @@ func (s *Scheme) UnmarshalBinaryPublicKey(b []byte) (kem.PublicKey, error) {
 	}, nil
 }
 
-func (s *Scheme) UnmarshalBinaryPrivateKey(b []byte) (kem.PrivateKey, error) {
+func (s *scheme) UnmarshalBinaryPrivateKey(b []byte) (kem.PrivateKey, error) {
 	if len(b) != PrivateKeySize {
 		return nil, errors.New("wrong key size")
 	}
@@ -132,31 +137,31 @@ func (s *Scheme) UnmarshalBinaryPrivateKey(b []byte) (kem.PrivateKey, error) {
 	}, nil
 }
 
-func (s *Scheme) UnmarshalTextPublicKey(text []byte) (kem.PublicKey, error) {
+func (s *scheme) UnmarshalTextPublicKey(text []byte) (kem.PublicKey, error) {
 	return pem.FromPublicPEMBytes(text, s)
 }
 
-func (s *Scheme) UnmarshalTextPrivateKey(text []byte) (kem.PrivateKey, error) {
+func (s *scheme) UnmarshalTextPrivateKey(text []byte) (kem.PrivateKey, error) {
 	return pem.FromPrivatePEMBytes(text, s)
 }
 
-func (s *Scheme) CiphertextSize() int {
+func (s *scheme) CiphertextSize() int {
 	return CiphertextSize
 }
 
-func (s *Scheme) SharedKeySize() int {
+func (s *scheme) SharedKeySize() int {
 	return SharedKeySize
 }
 
-func (s *Scheme) PrivateKeySize() int {
+func (s *scheme) PrivateKeySize() int {
 	return PrivateKeySize
 }
 
-func (s *Scheme) PublicKeySize() int {
+func (s *scheme) PublicKeySize() int {
 	return PublicKeySize
 }
 
-func (s *Scheme) DeriveKeyPair(seed []byte) (kem.PublicKey, kem.PrivateKey) {
+func (s *scheme) DeriveKeyPair(seed []byte) (kem.PublicKey, kem.PrivateKey) {
 	if len(seed) != KeySeedSize {
 		panic(kem.ErrSeedSize)
 	}
@@ -173,15 +178,15 @@ func (s *Scheme) DeriveKeyPair(seed []byte) (kem.PublicKey, kem.PrivateKey) {
 		}
 }
 
-func (s *Scheme) SeedSize() int {
+func (s *scheme) SeedSize() int {
 	return KeySeedSize
 }
 
-func (s *Scheme) EncapsulateDeterministically(pk kem.PublicKey, seed []byte) (
+func (s *scheme) EncapsulateDeterministically(pk kem.PublicKey, seed []byte) (
 	ct, ss []byte, err error) {
 	return mlkem768.EncapsulateFromSeed(pk.(*PublicKey).encapKey, seed)
 }
 
-func (s *Scheme) EncapsulationSeedSize() int {
+func (s *scheme) EncapsulationSeedSize() int {
 	return EncapsulationSeedSize
 }
