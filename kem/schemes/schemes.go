@@ -24,6 +24,7 @@ import (
 	"github.com/katzenpost/hpqc/kem/hybrid"
 	"github.com/katzenpost/hpqc/kem/mlkem768"
 	"github.com/katzenpost/hpqc/kem/sntrup"
+	"github.com/katzenpost/hpqc/kem/xwing"
 	"github.com/katzenpost/hpqc/nike/ctidh/ctidh1024"
 	"github.com/katzenpost/hpqc/nike/ctidh/ctidh2048"
 	"github.com/katzenpost/hpqc/nike/ctidh/ctidh511"
@@ -66,6 +67,8 @@ var allSchemes = [...]kem.Scheme{
 	adapter.FromNIKE(ctidh2048.Scheme()),
 
 	// hybrid KEM schemes
+
+	xwing.Scheme(),
 
 	hybrid.New(
 		"Kyber768-X25519",
