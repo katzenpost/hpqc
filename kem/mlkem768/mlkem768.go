@@ -86,11 +86,10 @@ func (p *PrivateKey) Public() kem.PublicKey {
 }
 
 type scheme struct {
-	name string
 }
 
 func (s *scheme) Name() string {
-	return s.name
+	return "MLKEM768"
 }
 
 func (a *scheme) GenerateKeyPair() (kem.PublicKey, kem.PrivateKey, error) {

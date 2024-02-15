@@ -22,6 +22,7 @@ import (
 	"github.com/katzenpost/hpqc/kem/adapter"
 	"github.com/katzenpost/hpqc/kem/combiner"
 	"github.com/katzenpost/hpqc/kem/hybrid"
+	"github.com/katzenpost/hpqc/kem/mlkem768"
 	"github.com/katzenpost/hpqc/kem/sntrup"
 	"github.com/katzenpost/hpqc/nike/ctidh/ctidh1024"
 	"github.com/katzenpost/hpqc/nike/ctidh/ctidh2048"
@@ -38,6 +39,8 @@ var allSchemes = [...]kem.Scheme{
 	adapter.FromNIKE(x25519.Scheme(rand.Reader)),
 
 	// post quantum KEM schemes
+
+	mlkem768.Scheme(),
 
 	kyber512.Scheme(),
 	kyber768.Scheme(),
@@ -68,6 +71,12 @@ var allSchemes = [...]kem.Scheme{
 		"Kyber768-X25519",
 		adapter.FromNIKE(x25519.Scheme(rand.Reader)),
 		kyber768.Scheme(),
+	),
+
+	hybrid.New(
+		"MLKEM768-X25519",
+		adapter.FromNIKE(x25519.Scheme(rand.Reader)),
+		mlkem768.Scheme(),
 	),
 
 	/*

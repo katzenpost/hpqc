@@ -16,6 +16,8 @@ func TestKEMTextUnmarshal(t *testing.T) {
 	todo := schemes.All()
 
 	testkem := func(s kem.Scheme) {
+		// public key
+
 		pubkey, _, err := s.GenerateKeyPair()
 		require.NoError(t, err)
 
@@ -29,6 +31,31 @@ func TestKEMTextUnmarshal(t *testing.T) {
 		require.NoError(t, err)
 
 		require.Equal(t, blob1, blob2)
+
+		// XXX test private key marshaling/unmarshaling
+	}
+
+	for _, scheme := range todo {
+		t.Logf("testing KEM Scheme: %s", scheme.Name())
+		testkem(scheme)
+		t.Log("OK")
+	}
+}
+
+func TestKEMEncapDecap(t *testing.T) {
+	todo := schemes.All()
+
+	testkem := func(s kem.Scheme) {
+		pubkey1, privkey1, err := s.GenerateKeyPair()
+		require.NoError(t, err)
+
+		ct1, ss1, err := s.Encapsulate(pubkey1)
+		require.NoError(t, err)
+
+		ss2, err := s.Decapsulate(privkey1, ct1)
+		require.NoError(t, err)
+
+		require.Equal(t, ss1, ss2)
 	}
 
 	for _, scheme := range todo {
