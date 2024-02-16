@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: (c) 2024 David Stainton
 // SPDX-License-Identifier: AGPL-3.0-only
 
-package ed25519sphincsplus
+package hybrid
 
 import (
 	"crypto"
@@ -24,7 +24,7 @@ var _ sign.PublicKey = (*PublicKey)(nil)
 
 // New creates a new hybrid signature scheme given the two signature schemes,
 // assumign one of them is classical and the other post quantum.
-func New(name string, first sign.Scheme, second sign.Scheme) *Scheme {
+func New(name string, first sign.Scheme, second sign.Scheme) sign.Scheme {
 	return &Scheme{
 		name:   name,
 		first:  first,
