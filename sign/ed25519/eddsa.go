@@ -5,6 +5,7 @@
 package ed25519
 
 import (
+	"crypto"
 	"crypto/ed25519"
 	"crypto/hmac"
 	"encoding/base64"
@@ -31,6 +32,10 @@ const (
 	// SignatureSize is the size of a serialized Signature in bytes (64 bytes).
 	SignatureSize = ed25519.SignatureSize
 
+	// KeySeedSize is the seed size used by NewKeyFromSeed to generate
+	// a new key deterministically.
+	KeySeedSize = 32
+
 	keyType = "ed25519"
 )
 
@@ -44,18 +49,33 @@ var sch *scheme = &scheme{}
 // Scheme returns a sign Scheme interface.
 func Scheme() *scheme { return sch }
 
-// NewEmptyPublicKey returns an empty sign.PublicKey
-func (s *scheme) NewEmptyPublicKey() sign.PublicKey {
-	return new(PublicKey)
+func (s *scheme) Name() string {
+	return "ed25519"
 }
 
-func (s *scheme) NewKeypair() (sign.PrivateKey, sign.PublicKey) {
-	privKey, err := NewKeypair(rand.Reader)
+func (s *scheme) GenerateKey() (sign.PublicKey, sign.PrivateKey, error) {
+	privKey, _, err := NewKeypair(rand.Reader)
 	if err != nil {
 		panic(err)
 	}
 
-	return privKey, privKey.PublicKey()
+	return privKey.PublicKey(), privKey, nil
+}
+
+func (s *scheme) Sign(sk sign.PrivateKey, message []byte, opts *sign.SignatureOpts) []byte {
+	sig, err := sk.Sign(nil, message, nil)
+	if err != nil {
+		panic(err)
+	}
+	return sig
+}
+
+func (s *scheme) Verify(pk sign.PublicKey, message []byte, signature []byte, opts *sign.SignatureOpts) bool {
+	return ed25519.Verify(pk.(*PublicKey).pubKey, message, signature)
+}
+
+func (s *scheme) DeriveKey(seed []byte) (sign.PublicKey, sign.PrivateKey) {
+	return NewKeyFromSeed(seed)
 }
 
 func (s *scheme) UnmarshalBinaryPublicKey(b []byte) (sign.PublicKey, error) {
@@ -76,19 +96,6 @@ func (s *scheme) UnmarshalBinaryPrivateKey(b []byte) (sign.PrivateKey, error) {
 	return privKey, nil
 }
 
-func (s *scheme) UnmarshalTextPublicKey(text []byte) (sign.PublicKey, error) {
-	pubKey := new(PublicKey)
-	err := pubKey.UnmarshalText(text)
-	if err != nil {
-		return nil, err
-	}
-	return pubKey, nil
-}
-
-func (s *scheme) SignatureSize() int {
-	return SignatureSize
-}
-
 func (s *scheme) PublicKeySize() int {
 	return PublicKeySize
 }
@@ -97,13 +104,45 @@ func (s *scheme) PrivateKeySize() int {
 	return PrivateKeySize
 }
 
-func (s *scheme) Name() string {
-	return "ED25519"
+func (s *scheme) SignatureSize() int {
+	return SignatureSize
+}
+
+func (s *scheme) SeedSize() int {
+	return KeySeedSize
+}
+
+func (s *scheme) SupportsContext() bool {
+	return false
 }
 
 type PrivateKey struct {
+	scheme  *scheme
 	pubKey  PublicKey
 	privKey ed25519.PrivateKey
+}
+
+func (p *PrivateKey) Scheme() sign.Scheme {
+	return p.scheme
+}
+
+func (p *PrivateKey) Equal(key crypto.PrivateKey) bool {
+	return hmac.Equal(p.Bytes(), key.(*PrivateKey).Bytes())
+}
+
+func (p *PrivateKey) MarshalBinary() ([]byte, error) {
+	return p.Bytes(), nil
+}
+
+// signer interface methods
+
+func (p *PrivateKey) Public() crypto.PublicKey {
+	return p.PublicKey()
+}
+
+func (p *PrivateKey) Sign(rand io.Reader, digest []byte, opts crypto.SignerOpts) (signature []byte, err error) {
+	sig := p.SignMessage(digest)
+	return sig, nil
 }
 
 // InternalPtr returns a pointer to the internal (`golang.org/x/crypto/ed25519`)
@@ -116,7 +155,7 @@ func (p *PrivateKey) KeyType() string {
 	return "ED25519 PRIVATE KEY"
 }
 
-func (p *PrivateKey) Sign(message []byte) (signature []byte) {
+func (p *PrivateKey) SignMessage(message []byte) (signature []byte) {
 	return ed25519.Sign(p.privKey, message)
 }
 
@@ -155,8 +194,21 @@ func (p *PrivateKey) PublicKey() *PublicKey {
 
 // PublicKey is the EdDSA public key using ed25519.
 type PublicKey struct {
+	scheme    *scheme
 	pubKey    ed25519.PublicKey
 	b64String string
+}
+
+func (p *PublicKey) Scheme() sign.Scheme {
+	return p.scheme
+}
+
+func (p *PublicKey) Equal(pubKey crypto.PublicKey) bool {
+	return hmac.Equal(p.pubKey[:], pubKey.(*PublicKey).pubKey[:])
+}
+
+func (p *PublicKey) MarshalBinary() ([]byte, error) {
+	return p.Bytes(), nil
 }
 
 // ToECDH converts the PublicKey to the corresponding ecdh.PublicKey.
@@ -181,10 +233,6 @@ func (p *PublicKey) KeyType() string {
 
 func (p *PublicKey) Sum256() [32]byte {
 	return blake2b.Sum256(p.Bytes())
-}
-
-func (p *PublicKey) Equal(pubKey sign.PublicKey) bool {
-	return hmac.Equal(p.pubKey[:], pubKey.(*PublicKey).pubKey[:])
 }
 
 func (p *PublicKey) Verify(signature, message []byte) bool {
@@ -223,10 +271,6 @@ func (p *PublicKey) FromBytes(data []byte) error {
 	return nil
 }
 
-func (p *PublicKey) MarshalBinary() ([]byte, error) {
-	return p.Bytes(), nil
-}
-
 func (p *PublicKey) UnmarshalBinary(data []byte) error {
 	return p.FromBytes(data)
 }
@@ -245,15 +289,31 @@ func (p *PublicKey) UnmarshalText(text []byte) error {
 
 // NewKeypair generates a new PrivateKey sampled from the provided entropy
 // source.
-func NewKeypair(r io.Reader) (*PrivateKey, error) {
+func NewKeypair(r io.Reader) (*PrivateKey, *PublicKey, error) {
 	pubKey, privKey, err := ed25519.GenerateKey(r)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	k := new(PrivateKey)
+	k.scheme = Scheme()
 	k.privKey = privKey
 	k.pubKey.pubKey = pubKey
 	k.pubKey.rebuildB64String()
-	return k, nil
+	return k, k.PublicKey(), nil
+}
+
+func NewKeyFromSeed(seed []byte) (*PublicKey, *PrivateKey) {
+	if len(seed) != KeySeedSize {
+		panic("seed must be of length KeySeedSize")
+	}
+	xof, err := blake2b.NewXOF(blake2b.OutputLengthUnknown, seed)
+	if err != nil {
+		panic(err)
+	}
+	privkey, pubkey, err := NewKeypair(xof)
+	if err != nil {
+		panic(err)
+	}
+	return pubkey, privkey
 }
