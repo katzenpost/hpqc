@@ -50,7 +50,7 @@ var sch *scheme = &scheme{}
 func Scheme() *scheme { return sch }
 
 func (s *scheme) Name() string {
-	return "ed25519"
+	return "Ed25519"
 }
 
 func (s *scheme) GenerateKey() (sign.PublicKey, sign.PrivateKey, error) {
@@ -117,13 +117,12 @@ func (s *scheme) SupportsContext() bool {
 }
 
 type PrivateKey struct {
-	scheme  *scheme
 	pubKey  PublicKey
 	privKey ed25519.PrivateKey
 }
 
 func (p *PrivateKey) Scheme() sign.Scheme {
-	return p.scheme
+	return Scheme()
 }
 
 func (p *PrivateKey) Equal(key crypto.PrivateKey) bool {
@@ -194,13 +193,12 @@ func (p *PrivateKey) PublicKey() *PublicKey {
 
 // PublicKey is the EdDSA public key using ed25519.
 type PublicKey struct {
-	scheme    *scheme
 	pubKey    ed25519.PublicKey
 	b64String string
 }
 
 func (p *PublicKey) Scheme() sign.Scheme {
-	return p.scheme
+	return Scheme()
 }
 
 func (p *PublicKey) Equal(pubKey crypto.PublicKey) bool {
@@ -296,7 +294,6 @@ func NewKeypair(r io.Reader) (*PrivateKey, *PublicKey, error) {
 	}
 
 	k := new(PrivateKey)
-	k.scheme = Scheme()
 	k.privKey = privKey
 	k.pubKey.pubKey = pubKey
 	k.pubKey.rebuildB64String()

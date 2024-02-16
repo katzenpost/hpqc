@@ -6,6 +6,10 @@ package schemes
 import (
 	"strings"
 
+	"github.com/katzenpost/circl/sign/ed448"
+	"github.com/katzenpost/circl/sign/eddilithium2"
+	"github.com/katzenpost/circl/sign/eddilithium3"
+
 	"github.com/katzenpost/hpqc/sign"
 	"github.com/katzenpost/hpqc/sign/ed25519"
 	"github.com/katzenpost/hpqc/sign/hybrid"
@@ -13,9 +17,18 @@ import (
 )
 
 var allSchemes = [...]sign.Scheme{
+	// classical
 	ed25519.Scheme(),
+	ed448.Scheme(),
+
+	// post quantum
 	sphincsplus.Scheme(),
+	eddilithium2.Scheme(),
+	eddilithium3.Scheme(),
+
+	// hybrid
 	hybrid.New("Ed25519 Sphincs+", ed25519.Scheme(), sphincsplus.Scheme()),
+	hybrid.New("Ed448-Sphincs+", ed448.Scheme(), sphincsplus.Scheme()),
 }
 
 var allSchemeNames map[string]sign.Scheme
