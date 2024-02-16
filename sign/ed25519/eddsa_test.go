@@ -23,25 +23,25 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/katzenpost/hpqc/rand"
 	"github.com/katzenpost/hpqc/util"
 )
 
 func TestEddsaScheme(t *testing.T) {
 	t.Parallel()
 	message := []byte("hello world")
-	privKey, pubKey := Scheme().NewKeypair()
-	signature := privKey.Sign(message)
+	pubKey, privKey, err := Scheme().GenerateKey()
+	require.NoError(t, err)
+	signature := Scheme().Sign(privKey, message, nil)
 	require.Equal(t, len(signature), Scheme().SignatureSize())
-	ok := pubKey.Verify(signature, message)
+	ok := Scheme().Verify(pubKey, message, signature, nil)
 	require.True(t, ok)
-
 }
 
 func TestEddsaSchemeTextUnmarshaler(t *testing.T) {
 	t.Parallel()
 	message := []byte("hello world")
-	privKey, pubKey := Scheme().NewKeypair()
+	pubKey, privKey, err := Scheme().GenerateKey()
+	require.NoError(t, err)
 
 	pubKeyText, err := pubKey.MarshalBinary()
 	require.NoError(t, err)
@@ -49,55 +49,70 @@ func TestEddsaSchemeTextUnmarshaler(t *testing.T) {
 	pubKey2, err := Scheme().UnmarshalBinaryPublicKey(pubKeyText)
 	require.NoError(t, err)
 
-	signature := privKey.Sign(message)
-	ok := pubKey.Verify(signature, message)
+	signature := Scheme().Sign(privKey, message, nil)
+
+	ok := Scheme().Verify(pubKey, message, signature, nil)
 	require.True(t, ok)
 
-	ok = pubKey2.Verify(signature, message)
+	ok = Scheme().Verify(pubKey2, message, signature, nil)
 	require.True(t, ok)
 }
 
 func TestKeypair(t *testing.T) {
 	t.Parallel()
-	assert := assert.New(t)
 
 	var shortBuffer = []byte("Short Buffer")
 
-	privKey, err := NewKeypair(rand.Reader)
+	_, privKey, err := Scheme().GenerateKey()
 	require.NoError(t, err, "NewKeypair()")
 
 	var privKey2 PrivateKey
-	assert.Error(privKey2.FromBytes(shortBuffer), "PrivateKey.FromBytes(short)")
+	require.Error(t, privKey2.FromBytes(shortBuffer))
 
-	err = privKey2.FromBytes(privKey.Bytes())
-	assert.NoError(err, "PrivateKey.ToBytes()->FromBytes()")
-	assert.Equal(privKey, &privKey2, "PrivateKey.ToBytes()->FromBytes()")
+	privKeyBlob, err := privKey.MarshalBinary()
+	require.NoError(t, err)
+
+	err = privKey2.FromBytes(privKeyBlob)
+	require.NoError(t, err)
+
+	privKeyBlob2, err := privKey2.MarshalBinary()
+	require.NoError(t, err)
+
+	require.Equal(t, privKeyBlob2, privKeyBlob)
 
 	privKey2.Reset()
-	assert.True(util.CtIsZero(privKey2.privKey), "PrivateKey.Reset()")
+	require.True(t, util.CtIsZero(privKey2.privKey))
 
 	var pubKey PublicKey
-	assert.Error(pubKey.FromBytes(shortBuffer), "PublicKey.FromBytes(short)")
+	require.Error(t, pubKey.FromBytes(shortBuffer))
 
-	err = pubKey.FromBytes(privKey.PublicKey().Bytes())
-	assert.NoError(err, "PrivateKey.PublicKey().Bytes->FromBytes()")
-	assert.Equal(privKey.PublicKey(), &pubKey, "PrivateKey.PublicKey().Bytes->FromBytes()")
+	blob, err := privKey.(*PrivateKey).PublicKey().MarshalBinary()
+	require.NoError(t, err)
+
+	err = pubKey.FromBytes(blob)
+	require.NoError(t, err)
+	require.Equal(t, privKey.Public(), &pubKey)
 
 	pkArr := pubKey.ByteArray()
-	assert.Equal(privKey.PublicKey().Bytes(), pkArr[:], "PrivateKey.PublicKey().Bytes()->pubKey.ByteArray()")
+
+	blob, err = privKey.Public().(*PublicKey).MarshalBinary()
+	require.NoError(t, err)
+	require.Equal(t, blob, pkArr[:])
 }
 
 func TestEdDSAOps(t *testing.T) {
 	t.Parallel()
 	assert := assert.New(t)
 
-	privKey, err := NewKeypair(rand.Reader)
+	_, privKey, err := Scheme().GenerateKey()
 	require.NoError(t, err, "NewKeypair()")
-	pubKey := privKey.PublicKey()
+	pubKey := privKey.Public().(*PublicKey)
 
 	msg := []byte("The year was 2081, and everybody was finally equal.  They weren't only equal before God and the law.  They were equal every which way.  Nobody was smarter than anybody else.  Nobody was better looking than anybody else.  Nobody was stronger or quicker than anybody else.  All this equality was due to the 211th, 212th, and 213th Amendments to the Constitution, and to the unceasing vigilance of agents of the United States Handicapper General.")
 
-	sig := privKey.Sign(msg)
+	sig, err := privKey.Sign(nil, msg, nil)
+	require.NoError(t, err)
+
 	assert.Equal(SignatureSize, len(sig), "Sign() length")
 	assert.True(pubKey.Verify(sig, msg), "Verify(sig, msg)")
 	assert.False(pubKey.Verify(sig, msg[:16]), "Verify(sig, msg[:16])")
@@ -116,7 +131,8 @@ func TestCheckEdDSA(t *testing.T) {
 	rsk := new(PrivateKey)
 	assert.NoError(rsk.FromBytes(tsk[:]))
 	assert.Equal(tpk[:], rsk.PublicKey().Bytes())
-	actual_signed := rsk.Sign([]byte{})
+	actual_signed, err := rsk.Sign(nil, []byte{}, nil)
+	require.NoError(t, err)
 	assert.Equal(vector_signed[:], actual_signed)
 	verify_res := rsk.PublicKey().Verify(vector_signed[:], []byte{})
 	assert.Equal(true, verify_res)

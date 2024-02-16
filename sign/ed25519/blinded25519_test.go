@@ -17,7 +17,7 @@ import (
 
 func bothWork(assertx *assert.Assertions, t require.TestingT, rng io.Reader) bool {
 	assert := assertx
-	unblinded, err := NewKeypair(rng)
+	unblinded, _, err := NewKeypair(rng)
 	require.NoError(t, err, "NewKeypair(1)")
 	assert.Equal(true, CheckPublicKey(unblinded.PublicKey()))
 
@@ -58,7 +58,7 @@ func bothWork(assertx *assert.Assertions, t require.TestingT, rng io.Reader) boo
 	// Check that using the same factor to blind two different keys
 	// results in distinct secret + public keys (ie we don't always just return
 	// the same secret/public pair)
-	unblinded_x, err := NewKeypair(rng)
+	unblinded_x, _, err := NewKeypair(rng)
 	require.NoError(t, err, "NewKeypair(2)")
 	assert.NotEqual(unblinded_x.Bytes(), unblinded.Bytes())
 	f1_blind_public_x := unblinded_x.PublicKey().Blind(factor)
