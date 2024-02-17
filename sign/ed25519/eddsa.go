@@ -121,6 +121,12 @@ type PrivateKey struct {
 	privKey ed25519.PrivateKey
 }
 
+func NewEmptyPrivateKey() *PrivateKey {
+	return &PrivateKey{
+		privKey: make([]byte, PrivateKeySize),
+	}
+}
+
 func (p *PrivateKey) Scheme() sign.Scheme {
 	return Scheme()
 }
