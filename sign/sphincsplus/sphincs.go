@@ -14,6 +14,7 @@ import (
 	sphincs "github.com/katzenpost/sphincsplus/ref"
 
 	"github.com/katzenpost/hpqc/sign"
+	"github.com/katzenpost/hpqc/sign/pem"
 )
 
 const (
@@ -172,6 +173,10 @@ func (p *publicKey) Equal(key crypto.PublicKey) bool {
 
 func (p *publicKey) MarshalBinary() ([]byte, error) {
 	return p.Bytes(), nil
+}
+
+func (p *publicKey) MarshalText() (text []byte, err error) {
+	return pem.ToPublicPEMBytes(p), nil
 }
 
 // end of sign.PublicKey interface

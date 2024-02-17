@@ -9,6 +9,7 @@ import (
 	"io"
 
 	"github.com/katzenpost/hpqc/sign"
+	"github.com/katzenpost/hpqc/sign/pem"
 )
 
 // Scheme is for hybrid signature schemes.
@@ -234,4 +235,8 @@ func (p *PublicKey) MarshalBinary() ([]byte, error) {
 		return nil, err
 	}
 	return append(blob1, blob2...), nil
+}
+
+func (p *PublicKey) MarshalText() (text []byte, err error) {
+	return pem.ToPublicPEMBytes(p), nil
 }

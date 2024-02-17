@@ -76,22 +76,24 @@ type SignatureOpts struct {
 // A public key is used to verify a signature set by the corresponding private
 // key.
 type PublicKey interface {
+	encoding.BinaryMarshaler
+	encoding.TextMarshaler
+	crypto.PublicKey
+
 	// Returns the signature scheme for this public key.
 	Scheme() Scheme
 	Equal(crypto.PublicKey) bool
-	encoding.BinaryMarshaler
-	crypto.PublicKey
 }
 
 // A private key allows one to create signatures.
 type PrivateKey interface {
-	// Returns the signature scheme for this private key.
-	Scheme() Scheme
-	Equal(crypto.PrivateKey) bool
-	// For compatibility with Go standard library
 	crypto.Signer
 	crypto.PrivateKey
 	encoding.BinaryMarshaler
+
+	// Returns the signature scheme for this private key.
+	Scheme() Scheme
+	Equal(crypto.PrivateKey) bool
 }
 
 // A Scheme represents a specific instance of a signature scheme.
