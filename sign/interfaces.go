@@ -90,6 +90,7 @@ type PrivateKey interface {
 	crypto.Signer
 	crypto.PrivateKey
 	encoding.BinaryMarshaler
+	encoding.BinaryUnmarshaler
 
 	// Returns the signature scheme for this private key.
 	Scheme() Scheme

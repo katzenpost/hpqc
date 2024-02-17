@@ -139,6 +139,10 @@ func (p *PrivateKey) MarshalBinary() ([]byte, error) {
 	return p.Bytes(), nil
 }
 
+func (p *PrivateKey) UnmarshalBinary(b []byte) error {
+	return p.FromBytes(b)
+}
+
 // signer interface methods
 
 func (p *PrivateKey) Public() crypto.PublicKey {

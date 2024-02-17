@@ -142,6 +142,10 @@ func (p *privateKey) MarshalBinary() ([]byte, error) {
 	return p.Bytes(), nil
 }
 
+func (p *privateKey) UnmarshalBinary(b []byte) error {
+	return p.FromBytes(b)
+}
+
 // end of sign.PublicKey interface
 
 func (p *privateKey) Reset() {

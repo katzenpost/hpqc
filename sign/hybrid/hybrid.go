@@ -202,6 +202,14 @@ func (p *PrivateKey) MarshalBinary() ([]byte, error) {
 	return append(blob1, blob2...), nil
 }
 
+func (p *PrivateKey) UnmarshalBinary(b []byte) error {
+	err := p.first.UnmarshalBinary(b[:p.first.Scheme().PrivateKeySize()])
+	if err != nil {
+		return err
+	}
+	return p.second.UnmarshalBinary(b[p.first.Scheme().PrivateKeySize():])
+}
+
 // PublicKey is the public key in hybrid signature scheme.
 type PublicKey struct {
 	scheme *Scheme
