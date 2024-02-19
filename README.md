@@ -1,22 +1,34 @@
+
+
 # HPQC
 
+[![Go Reference](https://pkg.go.dev/badge/github.com/katzenpost/hpqc.svg)](https://pkg.go.dev/github.com/katzenpost/hpqc)
+[![Release](https://img.shields.io/github/release/osspkg/go-badges.svg?style=flat-square)](https://github.com/katzenpost/hpqc/releases/latest)
+[![Go Report Card](https://goreportcard.com/badge/github.com/katzenpost/hpqc)](https://goreportcard.com/report/github.com/katzenpost/hpqc)
+[![CI](https://github.com/osspkg/go-badges/actions/workflows/ci.yml/badge.svg)](https://github.com/katzenpost/hpqc/actions/workflows/ci.yml)
+
+
+
 ## hybrid post quantum cryptography
-
-we have but two simple goals at the moment:
-
-1. silo ALL of the katzenpost cryptography into this one library so that it's easier to audit,
-easier to reason about. This will help us standardize our approach to solving cryptographic problems
-across multiple protocols.
-2. Provide a very niche cryptography library that other golang software projects can use if they
-want hybrid constructions consisting of classical and post quantum cryptographic primitives.
-
 
 * hybrid KEMs
 * hybrid NIKEs
 * hybrid signature schemes
 
+
+
 # licensing
 
-this is agpl-3 licensed code however some modules written by other authors
-is included here and in those cases we've included their LICENSE file in the
-directory or in the top comment of the file.
+
+* HPQC is Free Libre Open Source Software under the AGPL-3.0 software license;
+a copy of the license is provided here --> https://github.com/katzenpost/hpqc/blob/main/LICENSE
+What is free software? Read up about it here --> https://www.gnu.org/philosophy/free-sw.html
+
+
+* There are precisely two files which were borrowed from cloudflare's `circl`
+cryptography library:
+
+1. https://github.com/katzenpost/hpqc/blob/main/kem/interfaces.go
+2. https://github.com/katzenpost/hpqc/blob/main/sign/interfaces.go
+
+Those two files have their licenses attached at the top in a code comment.
