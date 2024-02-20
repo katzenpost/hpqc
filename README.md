@@ -5,7 +5,7 @@
 [![Go Reference](https://pkg.go.dev/badge/github.com/katzenpost/hpqc.svg)](https://pkg.go.dev/github.com/katzenpost/hpqc)
 [![Release](https://img.shields.io/github/release/osspkg/go-badges.svg?style=flat-square)](https://github.com/katzenpost/hpqc/releases/latest)
 [![Go Report Card](https://goreportcard.com/badge/github.com/katzenpost/hpqc)](https://goreportcard.com/report/github.com/katzenpost/hpqc)
-[![CI](https://github.com/osspkg/go-badges/actions/workflows/ci.yml/badge.svg)](https://github.com/katzenpost/hpqc/actions/workflows/ci.yml)
+[![CI](https://github.com/katzenpost/hpqc/actions/workflows/go.yml/badge.svg)](https://github.com/katzenpost/hpqc/actions/workflows/go.yml)
 
 
 
