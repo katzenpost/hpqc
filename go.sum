@@ -17,6 +17,8 @@ github.com/katzenpost/mlkem768 v0.0.0-20240215072036-357d87e80f7f h1:ntWWIvDWInC
 github.com/katzenpost/mlkem768 v0.0.0-20240215072036-357d87e80f7f/go.mod h1:EXp1RSzk/CWdWk+LKhMp51rxDB8IEZbMyze8TsIE79w=
 github.com/katzenpost/mlkem768 v0.0.1 h1:5JqjyhLUAHhdtuBiOE7SEs9ZE7bxW+10mUwOP02hRkI=
 github.com/katzenpost/mlkem768 v0.0.1/go.mod h1:EXp1RSzk/CWdWk+LKhMp51rxDB8IEZbMyze8TsIE79w=
+github.com/katzenpost/mlkem768 v0.0.2 h1:d8EQLqUXHYAJDEZZ5gRO9JxX8eTgF0292AIwNpnK5xc=
+github.com/katzenpost/mlkem768 v0.0.2/go.mod h1:EXp1RSzk/CWdWk+LKhMp51rxDB8IEZbMyze8TsIE79w=
 github.com/katzenpost/sntrup4591761 v0.0.0-20231024131303-8755eb1986b8 h1:TsKxH0x2RUwf5rBw67k15bqVM3oVbexA9oaTZQLIy3Y=
 github.com/katzenpost/sntrup4591761 v0.0.0-20231024131303-8755eb1986b8/go.mod h1:Hmcrwom7jcEmGdo0CsyuJNnldPeyS+M07FuCbo7I8fw=
 github.com/katzenpost/sphincsplus v0.0.2-0.20240114192234-1dc77b544e31 h1:fKGa/too1Br31gmoYmV2kE61gydj47Ed5K/g/CE+3Bs=
