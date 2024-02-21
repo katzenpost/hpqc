@@ -21,16 +21,28 @@ primitive and a post quantum public key cryptographic primitive, namely:
 * hybrid NIKEs
 * hybrid signature schemes
 
-Are main contributions besides a generic NIKE interface and NIKE
-combiner is:
+This entire cryptography library is rendered in serviced to the
+above post quantum trifecta of cryptographic primitives.
+However, our main contributions are the following:
 
-1. an implementation of a secure KEM combiner that can combine an arbtrary
-number of KEMs.
-2. a "NIKE to KEM adapter" which is really an ad hoc hashed elgamal construction
+1. a set of generic NIKE interfaces for NIKE scheme, public key and private key types
+2. generic hybrid NIKE, combines any two NIKEs into one
+3. secure KEM combiner that can combine an arbtrary number of KEMs into one KEM
+4. a "NIKE to KEM adapter" which uses an ad hoc hashed elgamal construction
+5. cgo bindings for the Sphincs+ C reference source
+6. cgo bindings for the CTIDH C source
+7. generic hybrid signature scheme, combines any two signature schemes into one
+
+All that having been said, we get our cryptographic primitives mostly from other cryptography 
+projects such as circl, highctidh, katzenpost, various golang cryptography libraries on github etc.
 
 If you want a well known hybrid KEM that has a paper about it then maybe
 Xwing is the KEM you are looking for. Otherwise you can construct your own
 using our secure KEM combiner and or NIKE to KEM adapter.
+
+Our secure KEM combiner is based on the Split PRF KEM combiner from this paper:
+
+`Secure KEM Combiner` https://eprint.iacr.org/2018/024.pdf
 
 
 | NIKE: Non-Interactive Key Exchange |
