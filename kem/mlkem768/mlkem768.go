@@ -8,19 +8,18 @@ import (
 	"crypto/hmac"
 	"errors"
 
-	"github.com/katzenpost/mlkem768"
+	"filippo.io/mlkem768"
 
 	"github.com/katzenpost/hpqc/kem"
 	"github.com/katzenpost/hpqc/kem/pem"
 )
 
 const (
-	EncapsulationSeedSize = mlkem768.EncapsulationSeedSize
-	KeySeedSize           = mlkem768.KeySeedSize
-	SharedKeySize         = mlkem768.SharedKeySize
-	CiphertextSize        = mlkem768.CiphertextSize
-	PublicKeySize         = mlkem768.EncapsulationKeySize
-	PrivateKeySize        = mlkem768.DecapsulationKeySize
+	SeedSize       = 64
+	SharedKeySize  = mlkem768.SharedKeySize
+	CiphertextSize = mlkem768.CiphertextSize
+	PublicKeySize  = mlkem768.EncapsulationKeySize
+	PrivateKeySize = mlkem768.DecapsulationKeySize
 )
 
 // tell the type checker that we obey these interfaces
@@ -161,10 +160,10 @@ func (s *scheme) PublicKeySize() int {
 }
 
 func (s *scheme) DeriveKeyPair(seed []byte) (kem.PublicKey, kem.PrivateKey) {
-	if len(seed) != KeySeedSize {
+	if len(seed) != SeedSize {
 		panic(kem.ErrSeedSize)
 	}
-	encapKey, decapKey, err := mlkem768.GenerateKeyFromSeed(seed)
+	encapKey, decapKey, err := mlkem768.NewKeyFromSeed(seed)
 	if err != nil {
 		panic(err)
 	}
@@ -178,7 +177,7 @@ func (s *scheme) DeriveKeyPair(seed []byte) (kem.PublicKey, kem.PrivateKey) {
 }
 
 func (s *scheme) SeedSize() int {
-	return KeySeedSize
+	return SeedSize
 }
 
 func (s *scheme) EncapsulateDeterministically(pk kem.PublicKey, seed []byte) (
@@ -187,5 +186,5 @@ func (s *scheme) EncapsulateDeterministically(pk kem.PublicKey, seed []byte) (
 }
 
 func (s *scheme) EncapsulationSeedSize() int {
-	return EncapsulationSeedSize
+	return SeedSize
 }
