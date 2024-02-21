@@ -17,6 +17,7 @@ require (
 )
 
 require (
+	filippo.io/mlkem768 v0.0.0-20240221181710-5ce91625fdc1 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/mattn/go-pointer v0.0.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect

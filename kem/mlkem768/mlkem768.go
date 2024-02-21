@@ -182,7 +182,7 @@ func (s *scheme) SeedSize() int {
 
 func (s *scheme) EncapsulateDeterministically(pk kem.PublicKey, seed []byte) (
 	ct, ss []byte, err error) {
-	return mlkem768.EncapsulateFromSeed(pk.(*PublicKey).encapKey, seed)
+	panic("not implemented")
 }
 
 func (s *scheme) EncapsulationSeedSize() int {
