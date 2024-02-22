@@ -19,6 +19,10 @@ var (
 	ErrUninitialized = errors.New("public or private key not initialized")
 )
 
+var _ kem.PrivateKey = (*PrivateKey)(nil)
+var _ kem.PublicKey = (*PublicKey)(nil)
+var _ kem.Scheme = (*Scheme)(nil)
+
 // Public key of a combined KEMs.
 type PublicKey struct {
 	scheme *Scheme
@@ -198,15 +202,6 @@ func (sch *Scheme) CiphertextSize() int {
 	sum := 0
 	for _, s := range sch.schemes {
 		sum += s.CiphertextSize()
-	}
-	return sum
-}
-
-// EncapsulationSeedSize returns the KEM's encapsulation seed size in bytes.
-func (sch *Scheme) EncapsulationSeedSize() int {
-	sum := 0
-	for _, s := range sch.schemes {
-		sum += s.EncapsulationSeedSize()
 	}
 	return sum
 }

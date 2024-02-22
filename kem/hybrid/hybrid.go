@@ -25,6 +25,10 @@ var (
 	ErrUninitialized = errors.New("public or private key not initialized")
 )
 
+var _ kem.PrivateKey = (*PrivateKey)(nil)
+var _ kem.PublicKey = (*PublicKey)(nil)
+var _ kem.Scheme = (*Scheme)(nil)
+
 // Public key of a hybrid KEM.
 type PublicKey struct {
 	scheme *Scheme
@@ -74,10 +78,6 @@ func (sch *Scheme) SharedKeySize() int {
 
 func (sch *Scheme) CiphertextSize() int {
 	return sch.first.CiphertextSize() + sch.second.CiphertextSize()
-}
-
-func (sch *Scheme) EncapsulationSeedSize() int {
-	return sch.first.EncapsulationSeedSize() + sch.second.EncapsulationSeedSize()
 }
 
 func (sk *PrivateKey) Scheme() kem.Scheme { return sk.scheme }

@@ -14,13 +14,16 @@ import (
 	"github.com/katzenpost/hpqc/kem"
 	"github.com/katzenpost/hpqc/kem/pem"
 	"github.com/katzenpost/hpqc/nike"
-	"github.com/katzenpost/hpqc/rand"
 )
 
 const (
 	// SeedSize is the number of bytes needed to seed deterministic methods below.
 	SeedSize = 32
 )
+
+var _ kem.PrivateKey = (*PrivateKey)(nil)
+var _ kem.PublicKey = (*PublicKey)(nil)
+var _ kem.Scheme = (*Scheme)(nil)
 
 // PublicKey is an adapter for nike.PublicKey to kem.PublicKey.
 type PublicKey struct {
@@ -117,12 +120,20 @@ func (a *Scheme) GenerateKeyPair() (kem.PublicKey, kem.PrivateKey, error) {
 // Encapsulate generates a shared key ss for the public key and
 // encapsulates it into a ciphertext ct.
 func (a *Scheme) Encapsulate(pk kem.PublicKey) (ct, ss []byte, err error) {
-	seed := make([]byte, a.EncapsulationSeedSize())
-	_, err = rand.Reader.Read(seed)
-	if err != nil {
-		return
+	theirPubkey, ok := pk.(*PublicKey)
+	if !ok || theirPubkey.scheme != a {
+		return nil, nil, kem.ErrTypeMismatch
 	}
-	return a.EncapsulateDeterministically(pk, seed)
+	myPubkey, sk2, err := a.GenerateKeyPair()
+	if err != nil {
+		return nil, nil, err
+	}
+	// ss = DH(my_privkey, their_pubkey)
+	ss = a.nike.DeriveSecret(sk2.(*PrivateKey).privateKey, theirPubkey.publicKey)
+	// ss2 = H(ss || their_pubkey || my_pubkey)
+	ss2 := a.hash(ss, theirPubkey.publicKey.Bytes(), myPubkey.(*PublicKey).publicKey.Bytes())
+	ct, _ = myPubkey.MarshalBinary()
+	return ct, ss2, nil
 }
 
 func (a *Scheme) hash(ss []byte, pubkey1 []byte, pubkey2 []byte) []byte {
@@ -268,24 +279,6 @@ func (a *Scheme) SeedSize() int {
 // Implements ENCAPSULATE as described in NIKE to KEM adapter,
 // see docs/specs/kemsphinx.rst
 func (a *Scheme) EncapsulateDeterministically(pk kem.PublicKey, seed []byte) (
-	[]byte, []byte, error) {
-	if len(seed) != a.EncapsulationSeedSize() {
-		return nil, nil, kem.ErrSeedSize
-	}
-	theirPubkey, ok := pk.(*PublicKey)
-	if !ok || theirPubkey.scheme != a {
-		return nil, nil, kem.ErrTypeMismatch
-	}
-	myPubkey, sk2 := a.DeriveKeyPair(seed)
-	// ss = DH(my_privkey, their_pubkey)
-	ss := a.nike.DeriveSecret(sk2.(*PrivateKey).privateKey, theirPubkey.publicKey)
-	// ss2 = H(ss || their_pubkey || my_pubkey)
-	ss2 := a.hash(ss, theirPubkey.publicKey.Bytes(), myPubkey.(*PublicKey).publicKey.Bytes())
-	ct, _ := myPubkey.MarshalBinary()
-	return ct, ss2, nil
-}
-
-// Size of seed used in EncapsulateDeterministically().
-func (a *Scheme) EncapsulationSeedSize() int {
-	return SeedSize
+	ct, ss []byte, err error) {
+	panic("not implemented")
 }
