@@ -6,7 +6,6 @@
 package combiner
 
 import (
-	"crypto/rand"
 	"errors"
 	"fmt"
 
@@ -19,6 +18,10 @@ var (
 	// ErrUninitialized indicates a key wasn't initialized.
 	ErrUninitialized = errors.New("public or private key not initialized")
 )
+
+var _ kem.PrivateKey = (*PrivateKey)(nil)
+var _ kem.PublicKey = (*PublicKey)(nil)
+var _ kem.Scheme = (*Scheme)(nil)
 
 // Public key of a combined KEMs.
 type PublicKey struct {
@@ -203,15 +206,6 @@ func (sch *Scheme) CiphertextSize() int {
 	return sum
 }
 
-// EncapsulationSeedSize returns the KEM's encapsulation seed size in bytes.
-func (sch *Scheme) EncapsulationSeedSize() int {
-	sum := 0
-	for _, s := range sch.schemes {
-		sum += s.EncapsulationSeedSize()
-	}
-	return sum
-}
-
 // GenerateKeyPair generates a keypair.
 func (sch *Scheme) GenerateKeyPair() (kem.PublicKey, kem.PrivateKey, error) {
 	pubKeys := make([]kem.PublicKey, len(sch.schemes))
@@ -264,31 +258,7 @@ func (sch *Scheme) DeriveKeyPair(seed []byte) (kem.PublicKey, kem.PrivateKey) {
 
 // Encapsulate creates a shared secret and ciphertext given a public key.
 func (sch *Scheme) Encapsulate(pk kem.PublicKey) (ct, ss []byte, err error) {
-	seed := make([]byte, sch.EncapsulationSeedSize())
-	_, err = rand.Reader.Read(seed)
-	if err != nil {
-		return
-	}
-	return sch.EncapsulateDeterministically(pk, seed)
-}
-
-// EncapsulateDeterministically deterministircally encapsulates a share secret to the given public key and the given seed value.
-func (sch *Scheme) EncapsulateDeterministically(publicKey kem.PublicKey, seed []byte) (ct, ss []byte, err error) {
-	if len(seed) != sch.EncapsulationSeedSize() {
-		return nil, nil, kem.ErrSeedSize
-	}
-
-	seeds := make([][]byte, len(sch.schemes))
-	offset := sch.schemes[0].EncapsulationSeedSize()
-	seeds[0] = seed[:offset]
-
-	for i := 1; i < len(sch.schemes); i++ {
-		seedSize := sch.schemes[i].EncapsulationSeedSize()
-		seeds[i] = seed[offset : offset+seedSize]
-		offset += seedSize
-	}
-
-	pub, ok := publicKey.(*PublicKey)
+	pub, ok := pk.(*PublicKey)
 	if !ok {
 		return nil, nil, kem.ErrTypeMismatch
 	}
@@ -298,7 +268,7 @@ func (sch *Scheme) EncapsulateDeterministically(publicKey kem.PublicKey, seed []
 	ciphertextBlob := []byte{}
 
 	for i := 0; i < len(sch.schemes); i++ {
-		cct, ss, err := sch.schemes[i].EncapsulateDeterministically(pub.keys[i], seeds[i])
+		cct, ss, err := sch.schemes[i].Encapsulate(pub.keys[i])
 		if err != nil {
 			return nil, nil, err
 		}
@@ -310,6 +280,11 @@ func (sch *Scheme) EncapsulateDeterministically(publicKey kem.PublicKey, seed []
 	ss = util.SplitPRF(sharedSecrets, ciphertexts)
 
 	return ciphertextBlob, ss, nil
+}
+
+// EncapsulateDeterministically deterministircally encapsulates a share secret to the given public key and the given seed value.
+func (sch *Scheme) EncapsulateDeterministically(publicKey kem.PublicKey, seed []byte) (ct, ss []byte, err error) {
+	panic("not implemented")
 }
 
 // Decapsulate decrypts a given KEM ciphertext using the given private key.

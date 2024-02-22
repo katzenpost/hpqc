@@ -19,7 +19,6 @@ func TestSNTRUPKEM(t *testing.T) {
 	t.Logf("private key size %d", s.PrivateKeySize())
 	t.Logf("public key size %d", s.PublicKeySize())
 	t.Logf("seed size %d", s.SeedSize())
-	t.Logf("encapsulation seed size %d", s.EncapsulationSeedSize())
 
 	pubkey1, privkey1, err := s.GenerateKeyPair()
 	require.NoError(t, err)
@@ -59,8 +58,7 @@ func TestSNTRUPKEM(t *testing.T) {
 
 	seed := make([]byte, s.SeedSize())
 	pubkey4, privkey4 := s.DeriveKeyPair(seed)
-	encapseed := make([]byte, s.EncapsulationSeedSize())
-	ct3, ss3, err := s.EncapsulateDeterministically(pubkey4, encapseed)
+	ct3, ss3, err := s.Encapsulate(pubkey4)
 	require.NoError(t, err)
 	ss3b, err := s.Decapsulate(privkey4, ct3)
 	require.NoError(t, err)

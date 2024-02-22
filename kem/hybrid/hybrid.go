@@ -13,7 +13,6 @@
 package hybrid
 
 import (
-	"crypto/rand"
 	"errors"
 	"fmt"
 
@@ -25,6 +24,10 @@ import (
 var (
 	ErrUninitialized = errors.New("public or private key not initialized")
 )
+
+var _ kem.PrivateKey = (*PrivateKey)(nil)
+var _ kem.PublicKey = (*PublicKey)(nil)
+var _ kem.Scheme = (*Scheme)(nil)
 
 // Public key of a hybrid KEM.
 type PublicKey struct {
@@ -75,10 +78,6 @@ func (sch *Scheme) SharedKeySize() int {
 
 func (sch *Scheme) CiphertextSize() int {
 	return sch.first.CiphertextSize() + sch.second.CiphertextSize()
-}
-
-func (sch *Scheme) EncapsulationSeedSize() int {
-	return sch.first.EncapsulationSeedSize() + sch.second.EncapsulationSeedSize()
 }
 
 func (sk *PrivateKey) Scheme() kem.Scheme { return sk.scheme }
@@ -163,33 +162,17 @@ func (sch *Scheme) DeriveKeyPair(seed []byte) (kem.PublicKey, kem.PrivateKey) {
 }
 
 func (sch *Scheme) Encapsulate(pk kem.PublicKey) (ct, ss []byte, err error) {
-	seed := make([]byte, sch.EncapsulationSeedSize())
-	_, err = rand.Reader.Read(seed)
-	if err != nil {
-		return
-	}
-	return sch.EncapsulateDeterministically(pk, seed)
-}
-
-func (sch *Scheme) EncapsulateDeterministically(publicKey kem.PublicKey, seed []byte) (ct, ss []byte, err error) {
-	if len(seed) != sch.EncapsulationSeedSize() {
-		return nil, nil, kem.ErrSeedSize
-	}
-
-	first := seed[:sch.first.EncapsulationSeedSize()]
-	second := seed[sch.first.EncapsulationSeedSize():]
-
-	pub, ok := publicKey.(*PublicKey)
+	pub, ok := pk.(*PublicKey)
 	if !ok {
 		return nil, nil, kem.ErrTypeMismatch
 	}
 
-	ct1, ss1, err := sch.first.EncapsulateDeterministically(pub.first, first)
+	ct1, ss1, err := sch.first.Encapsulate(pub.first)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	ct2, ss2, err := sch.second.EncapsulateDeterministically(pub.second, second)
+	ct2, ss2, err := sch.second.Encapsulate(pub.second)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -197,6 +180,10 @@ func (sch *Scheme) EncapsulateDeterministically(publicKey kem.PublicKey, seed []
 	ss = util.PairSplitPRF(ss1, ss2, ct1, ct2)
 
 	return append(ct1, ct2...), ss, nil
+}
+
+func (sch *Scheme) EncapsulateDeterministically(publicKey kem.PublicKey, seed []byte) (ct, ss []byte, err error) {
+	panic("not implemented")
 }
 
 func (sch *Scheme) Decapsulate(sk kem.PrivateKey, ct []byte) ([]byte, error) {
