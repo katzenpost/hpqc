@@ -9,7 +9,7 @@ require (
 	github.com/go-faster/xor v1.0.0
 	github.com/henrydcase/nobs v0.0.0-20230313231516-25b66236df73
 	github.com/katzenpost/chacha20 v0.0.0-20190910113340-7ce890d6a556
-	github.com/katzenpost/circl v1.2.1-0.20240222043626-623a5358b5c9
+	github.com/katzenpost/circl v1.3.9-0.20240222183521-1cd9a34e9a0c
 	github.com/katzenpost/mlkem768 v0.0.2
 	github.com/katzenpost/sntrup4591761 v0.0.0-20231024131303-8755eb1986b8
 	github.com/katzenpost/sphincsplus v0.0.2-0.20240114192234-1dc77b544e31
