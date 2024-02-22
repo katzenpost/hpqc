@@ -9,19 +9,18 @@ import (
 	"crypto/hmac"
 	"errors"
 
-	"github.com/katzenpost/mlkem768/xwing"
+	"filippo.io/mlkem768/xwing"
 
 	"github.com/katzenpost/hpqc/kem"
 	"github.com/katzenpost/hpqc/kem/pem"
 )
 
 const (
-	EncapsulationSeedSize = xwing.EncapsulationSeedSize
-	KeySeedSize           = xwing.KeySeedSize
-	SharedKeySize         = xwing.SharedKeySize
-	CiphertextSize        = xwing.CiphertextSize
-	PublicKeySize         = xwing.EncapsulationKeySize
-	PrivateKeySize        = xwing.DecapsulationKeySize
+	KeySeedSize    = xwing.SeedSize
+	SharedKeySize  = xwing.SharedKeySize
+	CiphertextSize = xwing.CiphertextSize
+	PublicKeySize  = xwing.EncapsulationKeySize
+	PrivateKeySize = xwing.DecapsulationKeySize
 )
 
 // tell the type checker that we obey these interfaces
@@ -165,7 +164,7 @@ func (s *scheme) DeriveKeyPair(seed []byte) (kem.PublicKey, kem.PrivateKey) {
 	if len(seed) != KeySeedSize {
 		panic(kem.ErrSeedSize)
 	}
-	encapKey, decapKey, err := xwing.GenerateKeyFromSeed(seed)
+	encapKey, decapKey, err := xwing.NewKeyFromSeed(seed)
 	if err != nil {
 		panic(err)
 	}
@@ -184,9 +183,5 @@ func (s *scheme) SeedSize() int {
 
 func (s *scheme) EncapsulateDeterministically(pk kem.PublicKey, seed []byte) (
 	ct, ss []byte, err error) {
-	return xwing.EncapsulateFromSeed(pk.(*PublicKey).encapKey, seed)
-}
-
-func (s *scheme) EncapsulationSeedSize() int {
-	return EncapsulationSeedSize
+	panic("not implemented")
 }
