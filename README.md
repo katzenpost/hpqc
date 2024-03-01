@@ -2,9 +2,6 @@
 
 # HPQC
 
-HPQC is known as hpqc.
-
-
 [![Go Reference](https://pkg.go.dev/badge/github.com/katzenpost/hpqc.svg)](https://pkg.go.dev/github.com/katzenpost/hpqc)
 [![Release](https://img.shields.io/github/v/tag/katzenpost/hpqc)](https://github.com/katzenpost/hpqc/tags)
 [![Go Report Card](https://goreportcard.com/badge/github.com/katzenpost/hpqc)](https://goreportcard.com/report/github.com/katzenpost/hpqc)
@@ -14,16 +11,14 @@ HPQC is known as hpqc.
 
 ## hybrid post quantum cryptography
 
-Hybrid cryptographic constructions rely on a classical public key
-primitive and a post quantum public key cryptographic primitive, namely:
+hpqc is a golang cryptography library. hpqc is used by the Katzenpost Sphinx based mixnet.
+The theme of the library is hybrid post quantum constructions, namely:
 
 * hybrid KEMs
 * hybrid NIKEs
 * hybrid signature schemes
 
-This entire cryptography library is rendered in serviced to the
-above post quantum trifecta of cryptographic primitives.
-However, our main contributions are the following:
+This library makes some unique contributions in golang:
 
 1. a set of generic NIKE interfaces for NIKE scheme, public key and private key types
 2. generic hybrid NIKE, combines any two NIKEs into one
@@ -33,16 +28,53 @@ However, our main contributions are the following:
 6. cgo bindings for the CTIDH C source
 7. generic hybrid signature scheme, combines any two signature schemes into one
 
-All that having been said, we get our cryptographic primitives mostly from other cryptography 
-projects such as circl, highctidh, katzenpost, various golang cryptography libraries on github etc.
 
-If you want a well known hybrid KEM that has a paper about it then maybe
-Xwing is the KEM you are looking for. Otherwise you can construct your own
-using our secure KEM combiner and or NIKE to KEM adapter.
 
-Our secure KEM combiner is based on the Split PRF KEM combiner from this paper:
 
-`Secure KEM Combiner` https://eprint.iacr.org/2018/024.pdf
+## NIKE to KEM adapter
+
+Our ad hoc hashed elgamal construction for adapting any NIKE to a KEM is, in pseudo code:
+
+```
+func ENCAPSULATE(their_pubkey publickey) ([]byte, []byte) {
+    my_privkey, my_pubkey = GEN_KEYPAIR(RNG)
+    ss = DH(my_privkey, their_pubkey)
+    ss2 = PRF(ss || their_pubkey || my_pubkey)
+    return my_pubkey, ss2
+}
+
+func DECAPSULATE(my_privkey, their_pubkey) []byte {
+    s = DH(my_privkey, their_pubkey)
+    shared_key = PRF(ss || my_pubkey || their_pubkey)
+    return shared_key
+}
+```
+
+
+
+## KEM Combiner
+
+The KEM Combiners paper [KEMCOMB](https://eprint.iacr.org/2018/024.pdf) makes the
+observation that if a KEM combiner is not security preserving then the
+resulting hybrid KEM will not have IND-CCA2 security if one of the
+composing KEMs does not have IND-CCA2 security. Likewise the paper
+points out that when using a security preserving KEM combiner, if only
+one of the composing KEMs has IND-CCA2 security then the resulting
+hybrid KEM will have IND-CCA2 security.
+
+Our KEM combiner uses the split PRF design for an arbitrary number
+of kems, here shown with only three, in pseudo code:
+
+```
+func SplitPRF(ss1, ss2, ss3, cct1, cct2, cct3 []byte) []byte {
+    cct := cct1 || cct2 || cct3
+    return PRF(ss1 || cct) XOR PRF(ss2 || cct) XOR PRF(ss3 || cct)
+}
+```
+
+
+
+## cryptographic primitives
 
 
 | NIKE: Non-Interactive Key Exchange |
@@ -72,7 +104,8 @@ Our secure KEM combiner is based on the Split PRF KEM combiner from this paper:
 * ed25519_dilithium2/3
 
 
-# licensing
+
+## licensing
 
 hpqc is free libre open source software (FLOSS) under the AGPL-3.0 software license.
 This git repository provides a LICENSE file, here: https://github.com/katzenpost/hpqc/blob/main/LICENSE
