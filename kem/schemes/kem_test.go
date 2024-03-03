@@ -1,24 +1,29 @@
 // SPDX-FileCopyrightText: Copyright (C) 2024 David Stainton
 // SPDX-License-Identifier: AGPL-3.0-only
 
-package tests
+package schemes
 
 import (
+	"io/ioutil"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 
 	"github.com/katzenpost/hpqc/kem"
-	"github.com/katzenpost/hpqc/kem/schemes"
+	"github.com/katzenpost/hpqc/kem/pem"
 )
 
 func TestKEMTextUnmarshal(t *testing.T) {
-	todo := schemes.All()
+	todo := All()
+
+	dir, err := ioutil.TempDir("", "example")
+	require.NoError(t, err)
 
 	testkem := func(s kem.Scheme) {
-		// public key
 
-		pubkey, _, err := s.GenerateKeyPair()
+		pubkey, privkey, err := s.GenerateKeyPair()
 		require.NoError(t, err)
 
 		blob1, err := pubkey.MarshalText()
@@ -32,7 +37,25 @@ func TestKEMTextUnmarshal(t *testing.T) {
 
 		require.Equal(t, blob1, blob2)
 
-		// XXX test private key marshaling/unmarshaling
+		// test private key marshaling/unmarshaling
+		privfile := filepath.Join(dir, "privkey.pem")
+		err = pem.PrivateKeyToFile(privfile, privkey)
+		require.NoError(t, err)
+
+		privkey2, err := pem.FromPrivatePEMFile(privfile, s)
+		require.NoError(t, err)
+
+		blob1, err = privkey.MarshalBinary()
+		require.NoError(t, err)
+
+		blob2, err = privkey2.MarshalBinary()
+		require.NoError(t, err)
+
+		require.Equal(t, blob1, blob2)
+		require.True(t, privkey2.Equal(privkey))
+
+		err = os.Remove(privfile)
+		require.NoError(t, err)
 	}
 
 	for _, scheme := range todo {
@@ -43,7 +66,7 @@ func TestKEMTextUnmarshal(t *testing.T) {
 }
 
 func TestKEMEncapDecap(t *testing.T) {
-	todo := schemes.All()
+	todo := All()
 
 	testkem := func(s kem.Scheme) {
 		pubkey1, privkey1, err := s.GenerateKeyPair()
