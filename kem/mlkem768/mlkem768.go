@@ -19,7 +19,7 @@ const (
 	SharedKeySize  = mlkem768.SharedKeySize
 	CiphertextSize = mlkem768.CiphertextSize
 	PublicKeySize  = mlkem768.EncapsulationKeySize
-	PrivateKeySize = mlkem768.DecapsulationKeySize
+	PrivateKeySize = PublicKeySize + mlkem768.DecapsulationKeySize
 )
 
 // tell the type checker that we obey these interfaces
@@ -130,8 +130,8 @@ func (s *scheme) UnmarshalBinaryPrivateKey(b []byte) (kem.PrivateKey, error) {
 	}
 	return &PrivateKey{
 		scheme:   s,
-		encapKey: b,
-		decapKey: b,
+		decapKey: b[:mlkem768.DecapsulationKeySize],
+		encapKey: b[mlkem768.DecapsulationKeySize:],
 	}, nil
 }
 
@@ -177,14 +177,5 @@ func (s *scheme) DeriveKeyPair(seed []byte) (kem.PublicKey, kem.PrivateKey) {
 }
 
 func (s *scheme) SeedSize() int {
-	return SeedSize
-}
-
-func (s *scheme) EncapsulateDeterministically(pk kem.PublicKey, seed []byte) (
-	ct, ss []byte, err error) {
-	panic("not implemented")
-}
-
-func (s *scheme) EncapsulationSeedSize() int {
 	return SeedSize
 }

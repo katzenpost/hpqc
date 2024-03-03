@@ -20,7 +20,7 @@ const (
 	SharedKeySize  = xwing.SharedKeySize
 	CiphertextSize = xwing.CiphertextSize
 	PublicKeySize  = xwing.EncapsulationKeySize
-	PrivateKeySize = xwing.DecapsulationKeySize
+	PrivateKeySize = PublicKeySize + xwing.DecapsulationKeySize
 )
 
 // tell the type checker that we obey these interfaces
@@ -131,8 +131,8 @@ func (s *scheme) UnmarshalBinaryPrivateKey(b []byte) (kem.PrivateKey, error) {
 	}
 	return &PrivateKey{
 		scheme:   s,
-		encapKey: b,
-		decapKey: b,
+		decapKey: b[:xwing.DecapsulationKeySize],
+		encapKey: b[xwing.DecapsulationKeySize:],
 	}, nil
 }
 
@@ -179,9 +179,4 @@ func (s *scheme) DeriveKeyPair(seed []byte) (kem.PublicKey, kem.PrivateKey) {
 
 func (s *scheme) SeedSize() int {
 	return KeySeedSize
-}
-
-func (s *scheme) EncapsulateDeterministically(pk kem.PublicKey, seed []byte) (
-	ct, ss []byte, err error) {
-	panic("not implemented")
 }
