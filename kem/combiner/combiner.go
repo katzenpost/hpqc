@@ -31,8 +31,9 @@ type PublicKey struct {
 
 // Private key of a hybrid KEM.
 type PrivateKey struct {
-	scheme *Scheme
-	keys   []kem.PrivateKey
+	scheme    *Scheme
+	keys      []kem.PrivateKey
+	publicKey *PublicKey
 }
 
 // Scheme for a hybrid KEM.
@@ -57,16 +58,21 @@ func (sk *PrivateKey) MarshalBinary() ([]byte, error) {
 		}
 	}
 
-	blobs := []byte{}
+	privBlobs := []byte{}
 	for i := 0; i < len(sk.keys); i++ {
 		blob, err := sk.keys[i].MarshalBinary()
 		if err != nil {
 			return nil, err
 		}
-		blobs = append(blobs, blob...)
+		privBlobs = append(privBlobs, blob...)
 	}
 
-	return blobs, nil
+	pubkeyBlob, err := sk.publicKey.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+
+	return append(pubkeyBlob, privBlobs...), nil
 }
 
 // Equal performs a non-constant time key comparison.
@@ -171,12 +177,16 @@ func (sch *Scheme) PublicKeySize() int {
 }
 
 // PrivateKeySize returns the KEM's private key size in bytes.
-func (sch *Scheme) PrivateKeySize() int {
+func (sch *Scheme) rawPrivateKeySize() int {
 	sum := 0
 	for _, s := range sch.schemes {
 		sum += s.PrivateKeySize()
 	}
 	return sum
+}
+
+func (sch *Scheme) PrivateKeySize() int {
+	return sch.PublicKeySize() + sch.rawPrivateKeySize()
 }
 
 // SeedSize returns the KEM's seed size in bytes.
@@ -226,6 +236,10 @@ func (sch *Scheme) GenerateKeyPair() (kem.PublicKey, kem.PrivateKey, error) {
 		}, &PrivateKey{
 			scheme: sch,
 			keys:   privKeys,
+			publicKey: &PublicKey{
+				scheme: sch,
+				keys:   pubKeys,
+			},
 		}, nil
 }
 
@@ -355,12 +369,12 @@ func (sch *Scheme) UnmarshalBinaryPrivateKey(buf []byte) (kem.PrivateKey, error)
 		return nil, kem.ErrPubKeySize
 	}
 	privateKeys := make([]kem.PrivateKey, len(sch.schemes))
-	offset := sch.schemes[0].PrivateKeySize()
-	pk1, err := sch.schemes[0].UnmarshalBinaryPrivateKey(buf[:offset])
+	pubkey, err := sch.UnmarshalBinaryPublicKey(buf[:sch.PublicKeySize()])
 	if err != nil {
 		return nil, err
 	}
-	privateKeys[0] = pk1
+
+	offset := sch.PublicKeySize()
 	for i := 0; i < len(sch.schemes); i++ {
 		pk, err := sch.schemes[i].UnmarshalBinaryPrivateKey(buf[offset : offset+sch.schemes[i].PrivateKeySize()])
 		if err != nil {
@@ -370,8 +384,9 @@ func (sch *Scheme) UnmarshalBinaryPrivateKey(buf []byte) (kem.PrivateKey, error)
 		offset += sch.schemes[i].PrivateKeySize()
 	}
 	return &PrivateKey{
-		scheme: sch,
-		keys:   privateKeys,
+		scheme:    sch,
+		keys:      privateKeys,
+		publicKey: pubkey.(*PublicKey),
 	}, nil
 }
 
