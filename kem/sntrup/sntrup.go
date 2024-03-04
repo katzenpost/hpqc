@@ -278,7 +278,11 @@ func (sk *PrivateKey) Scheme() kem.Scheme {
 }
 
 func (sk *PrivateKey) Public() kem.PublicKey {
-	pk := new(PublicKey)
+	pubkey, _, err := Scheme().GenerateKeyPair()
+	if err != nil {
+		panic(err)
+	}
+	pk := pubkey.(*PublicKey)
 	copy(pk.key[:], sk.key[382:])
 	return pk
 }
