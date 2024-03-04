@@ -43,6 +43,7 @@ var allSchemes = [...]kem.Scheme{
 
 	mlkem768.Scheme(),
 
+	sntrup.Scheme(),
 	kyber512.Scheme(),
 	kyber768.Scheme(),
 	kyber1024.Scheme(),
@@ -91,6 +92,7 @@ var allSchemes = [...]kem.Scheme{
 			},
 		),
 	*/
+
 	combiner.New(
 		"sntrup4591761-X25519",
 		[]kem.Scheme{

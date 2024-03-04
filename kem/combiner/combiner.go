@@ -355,12 +355,7 @@ func (sch *Scheme) UnmarshalBinaryPrivateKey(buf []byte) (kem.PrivateKey, error)
 		return nil, kem.ErrPubKeySize
 	}
 	privateKeys := make([]kem.PrivateKey, len(sch.schemes))
-	offset := sch.schemes[0].PrivateKeySize()
-	pk1, err := sch.schemes[0].UnmarshalBinaryPrivateKey(buf[:offset])
-	if err != nil {
-		return nil, err
-	}
-	privateKeys[0] = pk1
+	offset := 0
 	for i := 0; i < len(sch.schemes); i++ {
 		pk, err := sch.schemes[i].UnmarshalBinaryPrivateKey(buf[offset : offset+sch.schemes[i].PrivateKeySize()])
 		if err != nil {
