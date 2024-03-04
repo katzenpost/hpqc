@@ -125,37 +125,37 @@ var allSchemes = [...]kem.Scheme{
 	// hybrid KEM schemes with two post quantum KEMs
 
 	combiner.New(
-		"X25519-Kyber768-sntrup4591761",
+		"X25519-mlkem768-sntrup4591761",
 		[]kem.Scheme{
 			adapter.FromNIKE(x25519.Scheme(rand.Reader)),
-			kyber768.Scheme(),
+			mlkem768.Scheme(),
 			sntrup.Scheme(),
 		},
 	),
 
 	combiner.New(
-		"X25519-kyber768-ctidh511",
+		"X25519-mlkem768-ctidh511",
 		[]kem.Scheme{
 			adapter.FromNIKE(x25519.Scheme(rand.Reader)),
-			kyber768.Scheme(),
+			mlkem768.Scheme(),
 			adapter.FromNIKE(ctidh511.Scheme()),
 		},
 	),
 
 	combiner.New(
-		"X25519-kyber768-ctidh512",
+		"X25519-mlkem768-ctidh512",
 		[]kem.Scheme{
 			adapter.FromNIKE(x25519.Scheme(rand.Reader)),
-			kyber768.Scheme(),
+			mlkem768.Scheme(),
 			adapter.FromNIKE(ctidh512.Scheme()),
 		},
 	),
 
 	combiner.New(
-		"X25519-kyber1024-ctidh1024",
+		"X25519-mlkem768-ctidh1024",
 		[]kem.Scheme{
 			adapter.FromNIKE(x25519.Scheme(rand.Reader)),
-			kyber1024.Scheme(),
+			mlkem768.Scheme(),
 			adapter.FromNIKE(ctidh1024.Scheme()),
 		},
 	),
