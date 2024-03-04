@@ -42,7 +42,6 @@ var allSchemes = [...]kem.Scheme{
 	// post quantum KEM schemes
 
 	mlkem768.Scheme(),
-
 	sntrup.Scheme(),
 	kyber512.Scheme(),
 	kyber768.Scheme(),
@@ -82,16 +81,6 @@ var allSchemes = [...]kem.Scheme{
 		adapter.FromNIKE(x25519.Scheme(rand.Reader)),
 		mlkem768.Scheme(),
 	),
-
-	/*
-		combiner.New(
-			"Kyber768-X25519",
-			[]kem.Scheme{
-				adapter.FromNIKE(x25519.Scheme(rand.Reader)),
-				kyber768.Scheme(),
-			},
-		),
-	*/
 
 	combiner.New(
 		"sntrup4591761-X25519",
@@ -168,31 +157,6 @@ var allSchemes = [...]kem.Scheme{
 			adapter.FromNIKE(x25519.Scheme(rand.Reader)),
 			kyber1024.Scheme(),
 			adapter.FromNIKE(ctidh1024.Scheme()),
-		},
-	),
-
-	// "the CTIDH hybrid sledge hammer"
-	combiner.New(
-		"X25519-ctidh511-ctidh512-ctidh1024-ctidh2048",
-		[]kem.Scheme{
-			adapter.FromNIKE(x25519.Scheme(rand.Reader)),
-			adapter.FromNIKE(ctidh511.Scheme()),
-			adapter.FromNIKE(ctidh512.Scheme()),
-			adapter.FromNIKE(ctidh1024.Scheme()),
-			adapter.FromNIKE(ctidh2048.Scheme()),
-		},
-	),
-
-	// another sledge hammer KEM just to show that we can if we want to
-	combiner.New(
-		"X25519-ctidh1024-sntrup4591761-mceliece8192128f-frodo640shake-kyber1024",
-		[]kem.Scheme{
-			adapter.FromNIKE(x25519.Scheme(rand.Reader)),
-			adapter.FromNIKE(ctidh1024.Scheme()),
-			sntrup.Scheme(),
-			mceliece8192128f.Scheme(),
-			frodo640shake.Scheme(),
-			kyber1024.Scheme(),
 		},
 	),
 }
