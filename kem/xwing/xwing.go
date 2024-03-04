@@ -173,6 +173,7 @@ func (s *scheme) DeriveKeyPair(seed []byte) (kem.PublicKey, kem.PrivateKey) {
 			encapKey: encapKey,
 		}, &PrivateKey{
 			scheme:   s,
+			encapKey: encapKey,
 			decapKey: decapKey,
 		}
 }
