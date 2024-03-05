@@ -6,15 +6,12 @@
 package xwing
 
 import (
-	"crypto/ecdh"
 	"crypto/hmac"
 	"errors"
 
-	filippomlkem768 "filippo.io/mlkem768"
 	"filippo.io/mlkem768/xwing"
 
 	"github.com/katzenpost/hpqc/kem"
-	"github.com/katzenpost/hpqc/kem/mlkem768"
 	"github.com/katzenpost/hpqc/kem/pem"
 )
 
@@ -23,7 +20,7 @@ const (
 	SharedKeySize  = xwing.SharedKeySize
 	CiphertextSize = xwing.CiphertextSize
 	PublicKeySize  = xwing.EncapsulationKeySize
-	PrivateKeySize = xwing.DecapsulationKeySize
+	PrivateKeySize = PublicKeySize + xwing.DecapsulationKeySize
 )
 
 // tell the type checker that we obey these interfaces
@@ -63,6 +60,7 @@ func (p *PublicKey) Equal(pubkey kem.PublicKey) bool {
 type PrivateKey struct {
 	scheme   *scheme
 	decapKey []byte
+	encapKey []byte
 }
 
 func (p *PrivateKey) Scheme() kem.Scheme {
@@ -70,7 +68,7 @@ func (p *PrivateKey) Scheme() kem.Scheme {
 }
 
 func (p *PrivateKey) MarshalBinary() ([]byte, error) {
-	return p.decapKey, nil
+	return append(p.decapKey, p.encapKey...), nil
 }
 
 func (p *PrivateKey) Equal(privkey kem.PrivateKey) bool {
@@ -81,27 +79,8 @@ func (p *PrivateKey) Equal(privkey kem.PrivateKey) bool {
 }
 
 func (p *PrivateKey) Public() kem.PublicKey {
-	skM := p.decapKey[:filippomlkem768.DecapsulationKeySize]
-	skX := p.decapKey[filippomlkem768.DecapsulationKeySize:]
-
-	mlkemPrivKey, err := mlkem768.Scheme().UnmarshalBinaryPrivateKey(skM)
-	if err != nil {
-		panic(err)
-	}
-	mlkemBlob, err := mlkemPrivKey.MarshalBinary()
-	if err != nil {
-		panic(err)
-	}
-
-	x25519Key, err := ecdh.X25519().NewPrivateKey(skX)
-	if err != nil {
-		panic(err)
-	}
-
-	pkX := x25519Key.PublicKey().Bytes()
-
 	return &PublicKey{
-		encapKey: append(mlkemBlob, pkX...),
+		encapKey: p.encapKey,
 		scheme:   p.scheme,
 	}
 }
@@ -123,6 +102,7 @@ func (a *scheme) GenerateKeyPair() (kem.PublicKey, kem.PrivateKey, error) {
 			encapKey: encapKey,
 		}, &PrivateKey{
 			scheme:   a,
+			encapKey: encapKey,
 			decapKey: decapKey,
 		}, nil
 }
@@ -151,7 +131,8 @@ func (s *scheme) UnmarshalBinaryPrivateKey(b []byte) (kem.PrivateKey, error) {
 	}
 	return &PrivateKey{
 		scheme:   s,
-		decapKey: b,
+		decapKey: b[:xwing.DecapsulationKeySize],
+		encapKey: b[xwing.DecapsulationKeySize:],
 	}, nil
 }
 
@@ -192,6 +173,7 @@ func (s *scheme) DeriveKeyPair(seed []byte) (kem.PublicKey, kem.PrivateKey) {
 			encapKey: encapKey,
 		}, &PrivateKey{
 			scheme:   s,
+			encapKey: encapKey,
 			decapKey: decapKey,
 		}
 }
