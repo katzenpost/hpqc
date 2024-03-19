@@ -85,6 +85,7 @@ func TestApi(t *testing.T) {
 			}
 
 			t.Logf("%s Signature size is %d\n", scheme.Name(), scheme.SignatureSize())
+			t.Logf("%s Public Key size is %d\n", scheme.Name(), scheme.PublicKeySize())
 
 			pk, sk, err := scheme.GenerateKey()
 			if err != nil {
