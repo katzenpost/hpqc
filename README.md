@@ -11,8 +11,8 @@
 
 ## hybrid post quantum cryptography
 
-hpqc is a golang cryptography library. hpqc is used by the Katzenpost Sphinx based mixnet.
-The theme of the library is hybrid post quantum constructions, namely:
+hpqc is a golang cryptography library. hpqc is used by the Katzenpost mixnet.
+The theme of the library is hybrid post quantum cryptographic constructions, namely:
 
 * hybrid KEMs
 * hybrid NIKEs
@@ -107,16 +107,13 @@ func SplitPRF(ss1, ss2, ss3, cct1, cct2, cct3 []byte) []byte {
 
 ## licensing
 
-hpqc is free libre open source software (FLOSS) under the AGPL-3.0 software license.
-This git repository provides a LICENSE file, here: https://github.com/katzenpost/hpqc/blob/main/LICENSE
+**HPQC (aka hpqc) is free libre open source software (FLOSS) under the AGPL-3.0 software license.**
 
-
-Read about free software philosophy --> https://www.gnu.org/philosophy/free-sw.html
-
-
-* There are precisely two files which were borrowed
-from cloudflare's `circl` cryptography library
-which provide the kem and signature interfaces:
+* [LICENSE file](https://github.com/katzenpost/hpqc/blob/main/LICENSE).
+* [About free software philosophy](https://www.gnu.org/philosophy/free-sw.html)
+* There are precisely two files which were borrowed from cloudflare's
+`circl` cryptography library which provide the kem and signature
+interfaces:
 
 1. https://github.com/katzenpost/hpqc/blob/main/kem/interfaces.go
 2. https://github.com/katzenpost/hpqc/blob/main/sign/interfaces.go
