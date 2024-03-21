@@ -54,7 +54,7 @@ func DECAPSULATE(my_privkey, their_pubkey) []byte {
 
 ## KEM Combiner
 
-The KEM Combiners paper [KEMCOMB](https://eprint.iacr.org/2018/024.pdf) makes the
+The [KEM Combiners paper](https://eprint.iacr.org/2018/024.pdf) makes the
 observation that if a KEM combiner is not security preserving then the
 resulting hybrid KEM will not have IND-CCA2 security if one of the
 composing KEMs does not have IND-CCA2 security. Likewise the paper
