@@ -1,8 +1,26 @@
 // SPDX-FileCopyrightText: © 2023 David Stainton
 // SPDX-License-Identifier: AGPL-3.0-only
 
-// Package combiner defines a KEM combiner type that can combine any number of KEMs.
-// The KEM combiner is described here: https://eprint.iacr.org/2018/024.pdf
+// Package combiner defines a security preserving KEM combiner.
+// The [KEM Combiners paper](https://eprint.iacr.org/2018/024.pdf) makes the
+// observation that if a KEM combiner is not security preserving then the
+// resulting hybrid KEM will not have IND-CCA2 security if one of the
+// composing KEMs does not have IND-CCA2 security. Likewise the paper
+// points out that when using a security preserving KEM combiner, if only
+// one of the composing KEMs has IND-CCA2 security then the resulting
+// hybrid KEM will have IND-CCA2 security.
+//
+// Our KEM combiner uses the split PRF design for an arbitrary number
+// of kems, here shown with only three, in pseudo code:
+//
+// ```
+//
+//	func SplitPRF(ss1, ss2, ss3, cct1, cct2, cct3 []byte) []byte {
+//	    cct := cct1 || cct2 || cct3
+//	    return PRF(ss1 || cct) XOR PRF(ss2 || cct) XOR PRF(ss3 || cct)
+//	}
+//
+// ```
 package combiner
 
 import (
