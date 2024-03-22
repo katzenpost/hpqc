@@ -111,11 +111,9 @@ func SplitPRF(ss1, ss2, ss3, cct1, cct2, cct3 []byte) []byte {
 
 * [LICENSE file](https://github.com/katzenpost/hpqc/blob/main/LICENSE).
 * [About free software philosophy](https://www.gnu.org/philosophy/free-sw.html)
-* There are precisely two files which were borrowed from cloudflare's
-`circl` cryptography library which provide the kem and signature
-interfaces:
+* There are precisely three files which were borrowed from cloudflare's
+`circl` cryptography library:
 
-1. https://github.com/katzenpost/hpqc/blob/main/kem/interfaces.go
-2. https://github.com/katzenpost/hpqc/blob/main/sign/interfaces.go
-
-Those two files have their licenses attached at the top in a code comment.
+1. https://github.com/katzenpost/hpqc/blob/main/kem/hybrid/hybrid.go
+2. https://github.com/katzenpost/hpqc/blob/main/kem/interfaces.go
+3. https://github.com/katzenpost/hpqc/blob/main/sign/interfaces.go
