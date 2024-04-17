@@ -9,6 +9,7 @@ import (
 	"io"
 
 	"github.com/cloudflare/circl/dh/x448"
+
 	"github.com/katzenpost/hpqc/nike"
 	"github.com/katzenpost/hpqc/util"
 )
@@ -40,7 +41,7 @@ type scheme struct {
 	rng io.Reader
 }
 
-// Scheme instantiates a new X25519 scheme given a CSPRNG.
+// Scheme instantiates a new X448 scheme given a CSPRNG.
 func Scheme(rng io.Reader) *scheme {
 	return &scheme{
 		rng: rng,
@@ -68,7 +69,7 @@ func (e *scheme) GenerateKeyPair() (nike.PublicKey, nike.PrivateKey, error) {
 }
 
 func (e *scheme) Name() string {
-	return "x25519"
+	return "x448"
 }
 
 // PublicKeySize returns the size in bytes of the public key.
@@ -279,7 +280,6 @@ func Exp(x, y *x448.Key) []byte {
 	if len(y) != GroupElementLength {
 		panic(errInvalidKey)
 	}
-	//sharedSecret, err := curve25519.X25519(y, x)
 	sharedSecret := new(x448.Key)
 	ok := x448.Shared(sharedSecret, x, y)
 	if !ok {
