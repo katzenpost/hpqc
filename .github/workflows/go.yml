@@ -19,3 +19,6 @@ jobs:
         run: go test ./...
       - name: Run tests (short + race)
         run: go test -short -race ./...
+      - name: KEM Benchmark tests
+      	run: cd kem/schemes && go test -v -bench=. -run Benchmark
+	
