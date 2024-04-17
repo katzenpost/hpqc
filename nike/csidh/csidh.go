@@ -213,6 +213,9 @@ func (p *PrivateKey) Reset() {
 }
 
 func (p *PrivateKey) Bytes() []byte {
+	if p.privateKey == nil {
+		panic("p.privateKey == nil")
+	}
 	s := make([]byte, csidh.PrivateKeySize)
 	p.privateKey.Export(s)
 	return s

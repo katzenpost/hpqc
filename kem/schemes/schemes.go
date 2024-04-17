@@ -83,6 +83,15 @@ var allSchemes = [...]kem.Scheme{
 	),
 
 	combiner.New(
+		"x25519-mceliece8192128f-ctidh512",
+		[]kem.Scheme{
+			adapter.FromNIKE(x25519.Scheme(rand.Reader)),
+			mceliece8192128f.Scheme(),
+			adapter.FromNIKE(ctidh512.Scheme()),
+		},
+	),
+
+	combiner.New(
 		"sntrup4591761-X25519",
 		[]kem.Scheme{
 			adapter.FromNIKE(x25519.Scheme(rand.Reader)),
