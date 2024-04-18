@@ -8,7 +8,7 @@ import (
 	"errors"
 	"io"
 
-	"github.com/cloudflare/circl/dh/x448"
+	"github.com/katzenpost/circl/dh/x448"
 
 	"github.com/katzenpost/hpqc/nike"
 	"github.com/katzenpost/hpqc/util"
