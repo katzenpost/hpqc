@@ -30,14 +30,16 @@ import (
 	"github.com/katzenpost/hpqc/nike/ctidh/ctidh511"
 	"github.com/katzenpost/hpqc/nike/ctidh/ctidh512"
 	"github.com/katzenpost/hpqc/nike/x25519"
+	"github.com/katzenpost/hpqc/nike/x448"
 	"github.com/katzenpost/hpqc/rand"
 )
 
 var allSchemes = [...]kem.Scheme{
 
-	// classical KEM schemes
+	// classical KEM schemes (converted from NIKE via hashed elgamal construction)
 
 	adapter.FromNIKE(x25519.Scheme(rand.Reader)),
+	adapter.FromNIKE(x448.Scheme(rand.Reader)),
 
 	// post quantum KEM schemes
 
@@ -59,8 +61,7 @@ var allSchemes = [...]kem.Scheme{
 	mceliece8192128f.Scheme(),
 
 	// post quantum KEM schemes
-	// ...but converted using an
-	// ad hoc hash ElGamal construction
+	// (converted from NIKE via hashed ElGamal construction)
 	adapter.FromNIKE(ctidh511.Scheme()),
 	adapter.FromNIKE(ctidh512.Scheme()),
 	adapter.FromNIKE(ctidh1024.Scheme()),
@@ -92,18 +93,19 @@ var allSchemes = [...]kem.Scheme{
 	),
 
 	combiner.New(
-		"sntrup4591761-X25519",
+		"x448-mceliece8192128f-ctidh512",
 		[]kem.Scheme{
-			adapter.FromNIKE(x25519.Scheme(rand.Reader)),
-			sntrup.Scheme(),
+			adapter.FromNIKE(x448.Scheme(rand.Reader)),
+			mceliece8192128f.Scheme(),
+			adapter.FromNIKE(ctidh512.Scheme()),
 		},
 	),
 
 	combiner.New(
-		"ctidh511-X25519",
+		"sntrup4591761-X25519",
 		[]kem.Scheme{
 			adapter.FromNIKE(x25519.Scheme(rand.Reader)),
-			adapter.FromNIKE(ctidh511.Scheme()),
+			sntrup.Scheme(),
 		},
 	),
 
@@ -139,15 +141,6 @@ var allSchemes = [...]kem.Scheme{
 			adapter.FromNIKE(x25519.Scheme(rand.Reader)),
 			mlkem768.Scheme(),
 			sntrup.Scheme(),
-		},
-	),
-
-	combiner.New(
-		"X25519-mlkem768-ctidh511",
-		[]kem.Scheme{
-			adapter.FromNIKE(x25519.Scheme(rand.Reader)),
-			mlkem768.Scheme(),
-			adapter.FromNIKE(ctidh511.Scheme()),
 		},
 	),
 
