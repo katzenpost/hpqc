@@ -20,6 +20,9 @@ require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/mattn/go-pointer v0.0.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
+	go.dedis.ch/fixbuf v1.0.3 // indirect
+	go.dedis.ch/kyber/v3 v3.1.0 // indirect
 	golang.org/x/sys v0.16.0 // indirect
+	gopkg.in/dedis/crypto.v0 v0.0.0-20170824083343-8f53a63e87fd // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
