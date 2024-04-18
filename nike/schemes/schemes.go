@@ -10,6 +10,7 @@ import (
 	"github.com/katzenpost/hpqc/nike/ctidh/ctidh512"
 	"github.com/katzenpost/hpqc/nike/hybrid"
 	"github.com/katzenpost/hpqc/nike/x25519"
+	"github.com/katzenpost/hpqc/nike/x448"
 	"github.com/katzenpost/hpqc/rand"
 )
 
@@ -17,6 +18,7 @@ var allSchemes = [...]nike.Scheme{
 
 	// classical NIKE schemes
 	x25519.Scheme(rand.Reader),
+	x448.Scheme(rand.Reader),
 
 	// post quantum NIKE schemes
 	ctidh511.Scheme(),
