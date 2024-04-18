@@ -12,6 +12,37 @@ import (
 	"github.com/katzenpost/hpqc/rand"
 )
 
+func TestNIKEUnmarshaling(t *testing.T) {
+	todo := All()
+
+	testNike := func(s nike.Scheme) {
+		pubkey1, privkey1, err := s.GenerateKeyPairFromEntropy(rand.Reader)
+		require.NoError(t, err)
+
+		pubkey1Blob, err := pubkey1.MarshalBinary()
+		require.NoError(t, err)
+
+		pubkey2, err := s.UnmarshalBinaryPublicKey(pubkey1Blob)
+		require.NoError(t, err)
+
+		require.Equal(t, pubkey1.Bytes(), pubkey2.Bytes())
+
+		privkey1blob, err := privkey1.MarshalBinary()
+		require.NoError(t, err)
+
+		privkey2, err := s.UnmarshalBinaryPrivateKey(privkey1blob)
+		require.NoError(t, err)
+
+		require.Equal(t, privkey1.Bytes(), privkey2.Bytes())
+	}
+
+	for _, scheme := range todo {
+		t.Logf("testing NIKE Scheme: %s", scheme.Name())
+		testNike(scheme)
+		t.Log("OK")
+	}
+}
+
 func TestNIKE(t *testing.T) {
 	todo := All()
 
@@ -33,5 +64,4 @@ func TestNIKE(t *testing.T) {
 		testNike(scheme)
 		t.Log("OK")
 	}
-
 }
