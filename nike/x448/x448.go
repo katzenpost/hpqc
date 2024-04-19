@@ -155,12 +155,8 @@ func NewKeypair(rng io.Reader) (nike.PrivateKey, error) {
 	if count != x448.Size {
 		return nil, errors.New("read wrong number of bytes from rng")
 	}
-	keybytes := [x448.Size]byte{}
-	key := x448.Key(keybytes)
-	pubkey := &key
-
+	pubkey := new(x448.Key)
 	x448.KeyGen(pubkey, privkey)
-
 	mypubkey := &PublicKey{
 		pubBytes: pubkey,
 	}
@@ -189,14 +185,11 @@ func (p *PrivateKey) FromBytes(data []byte) error {
 		return errInvalidKey
 	}
 
-	keybytes := [x448.Size]byte{}
-	key := x448.Key(keybytes)
-	p.privBytes = &key
+	p.privBytes = new(x448.Key)
 	copy(p.privBytes[:], data)
 
-	pubkey := x448.Key([x448.Size]byte{})
 	p.pubKey = &PublicKey{
-		pubBytes: &pubkey,
+		pubBytes: new(x448.Key),
 	}
 	expG(p.pubKey.pubBytes, p.privBytes)
 	p.pubKey.rebuildB64String()
@@ -257,9 +250,7 @@ func (p *PublicKey) FromBytes(data []byte) error {
 		return errInvalidKey
 	}
 
-	keybytes := [x448.Size]byte{}
-	key := x448.Key(keybytes)
-	p.pubBytes = &key
+	p.pubBytes = new(x448.Key)
 	copy(p.pubBytes[:], data)
 	p.rebuildB64String()
 

@@ -60,6 +60,7 @@ func TestKEMTextUnmarshal(t *testing.T) {
 
 	for _, scheme := range todo {
 		t.Logf("testing KEM Scheme: %s", scheme.Name())
+		t.Logf("PublicKeySize %d PrivateKeySize %d CiphertextSize %d", scheme.PublicKeySize(), scheme.PrivateKeySize(), scheme.CiphertextSize())
 		testkem(scheme)
 		t.Log("OK")
 	}
@@ -83,6 +84,7 @@ func TestKEMEncapDecap(t *testing.T) {
 
 	for _, scheme := range todo {
 		t.Logf("testing KEM Scheme: %s", scheme.Name())
+		t.Logf("PublicKeySize %d PrivateKeySize %d CiphertextSize %d", scheme.PublicKeySize(), scheme.PrivateKeySize(), scheme.CiphertextSize())
 		testkem(scheme)
 		t.Log("OK")
 	}
