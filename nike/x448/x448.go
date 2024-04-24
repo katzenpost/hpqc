@@ -223,8 +223,9 @@ type PublicKey struct {
 }
 
 func (p *PublicKey) Blind(blindingFactor nike.PrivateKey) error {
-	if len(blindingFactor.Bytes()) != GroupElementLength {
-		return ErrBlindDataSizeInvalid
+	_, ok := blindingFactor.(*PrivateKey)
+	if !ok {
+		return errors.New("blindingFactor nike.PrivateKey must be the same concrete type as x448.PublicKey")
 	}
 	pubBytes := Exp(p.pubBytes, blindingFactor.(*PrivateKey).privBytes)
 	copy(p.pubBytes[:], pubBytes)

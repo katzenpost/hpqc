@@ -16,16 +16,11 @@ import (
 )
 
 const (
-	// GroupElementLength is the length of a ECDH group element in bytes.
-	// XXX wrong size FIXME: fix the serialization so that key blobs are
-	// the same size as group element size. i think gob encoding adds extra bytes.
-	GroupElementLength = 56
+	// PublicKeySize is the size of a serialized compressed PublicKey in bytes.
+	PublicKeySize = 407
 
-	// PublicKeySize is the size of a serialized PublicKey in bytes.
-	PublicKeySize = GroupElementLength
-
-	// PrivateKeySize is the size of a serialized PrivateKey in bytes.
-	PrivateKeySize = GroupElementLength
+	// PrivateKeySize is the size of a serialized compressed PrivateKey in bytes.
+	PrivateKeySize = 40
 )
 
 var (
@@ -184,19 +179,20 @@ func (p *PrivateKey) Public() nike.PublicKey {
 }
 
 func (p *PrivateKey) Reset() {
-	// no op
+	p.privKey.Reset()
 }
 
 func (p *PrivateKey) Bytes() []byte {
-	blob, err := p.privKey.GobEncode()
-	if err != nil {
-		panic(err)
-	}
-	return blob
+	return p.privKey.BinaryEncode()
 }
 
 func (p *PrivateKey) FromBytes(data []byte) error {
-	return p.privKey.GobDecode(data)
+	if len(data) != PrivateKeySize {
+		return errInvalidKey
+	}
+
+	p.privKey = new(cyclic.Int)
+	return p.privKey.BinaryDecode(data)
 }
 
 func (p *PrivateKey) MarshalBinary() ([]byte, error) {
@@ -225,20 +221,20 @@ type PublicKey struct {
 }
 
 func (p *PublicKey) Blind(blindingFactor nike.PrivateKey) error {
-	// FIX ME
-	return nil
+	_, ok := blindingFactor.(*PrivateKey)
+	if !ok {
+		return errors.New("blindingFactor nike.PrivateKey must be the same concrete type as diffiehellman.PublicKey")
+	}
+	pubBytes := Exp(blindingFactor.(*PrivateKey).privKey, p.pubKey)
+	return p.FromBytes(pubBytes)
 }
 
 func (p *PublicKey) Reset() {
-	// no op
+	p.pubKey.Reset()
 }
 
 func (p *PublicKey) Bytes() []byte {
-	blob, err := p.pubKey.GobEncode()
-	if err != nil {
-		panic(err)
-	}
-	return blob
+	return p.pubKey.BinaryEncode()
 }
 
 func (p *PublicKey) rebuildB64String() {
@@ -246,7 +242,12 @@ func (p *PublicKey) rebuildB64String() {
 }
 
 func (p *PublicKey) FromBytes(data []byte) error {
-	err := p.pubKey.GobDecode(data)
+	if len(data) != PublicKeySize {
+		return errInvalidKey
+	}
+
+	p.pubKey = new(cyclic.Int)
+	err := p.pubKey.BinaryDecode(data)
 	if err != nil {
 		return err
 	}
