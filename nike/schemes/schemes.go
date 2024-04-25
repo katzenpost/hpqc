@@ -20,7 +20,7 @@ var allSchemes = [...]nike.Scheme{
 	// classical NIKE schemes
 	x25519.Scheme(rand.Reader),
 	x448.Scheme(rand.Reader),
-	diffiehellman.Scheme(rand.Reader),
+	diffiehellman.Scheme(),
 
 	// post quantum NIKE schemes
 	ctidh511.Scheme(),
