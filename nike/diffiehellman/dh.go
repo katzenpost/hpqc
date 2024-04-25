@@ -1,144 +1,75 @@
-// SPDX-FileCopyrightText: © 2024 David Stainton
-// SPDX-License-Identifier: AGPL-3.0-only
+////////////////////////////////////////////////////////////////////////////////////////////
+// Copyright © 2024 xx foundation                                                       //
+//                                                                                        //
+// Use of this source code is governed by a license that can be found in the LICENSE file //
+////////////////////////////////////////////////////////////////////////////////////////////
 
-package diffiehellman
+package dh
 
 import (
-	"encoding/base64"
 	"errors"
 	"io"
 
-	"gitlab.com/elixxir/crypto/cyclic"
-	dh "gitlab.com/elixxir/crypto/diffieHellman"
+	"gitlab.com/elixxir/crypto/nike"
+
 	"gitlab.com/xx_network/crypto/large"
 
-	"github.com/katzenpost/hpqc/nike"
+	"gitlab.com/elixxir/crypto/cyclic"
+	"gitlab.com/elixxir/crypto/diffieHellman"
 )
 
 const (
-	// PublicKeySize is the size of a serialized compressed PublicKey in bytes.
-	PublicKeySize = 407
-
-	// PrivateKeySize is the size of a serialized compressed PrivateKey in bytes.
-	PrivateKeySize = 40
+	bitSize        = 2048
+	groupSize      = bitSize / 8
+	privateKeySize = groupSize + 8
+	publicKeySize  = groupSize + 8
 )
 
-var (
-	// ErrBlindDataSizeInvalid indicates that the blinding data size was invalid.
-	ErrBlindDataSizeInvalid error = errors.New("x448: blinding data size invalid")
+var primeString = "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
+	"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
+	"EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245" +
+	"E485B576625E7EC6F44C42E9A637ED6B0BFF5CB6F406B7ED" +
+	"EE386BFB5A899FA5AE9F24117C4B1FE649286651ECE45B3D" +
+	"C2007CB8A163BF0598DA48361C55D39A69163FA8FD24CF5F" +
+	"83655D23DCA3AD961C62F356208552BB9ED529077096966D" +
+	"670C354E4ABC9804F1746C08CA18217C32905E462E36CE3B" +
+	"E39E772C180E86039B2783A2EC07A28FB5C55DF06F4C52C9" +
+	"DE2BCBF6955817183995497CEA956AE515D2261898FA0510" +
+	"15728E5A8AACAA68FFFFFFFFFFFFFFFF"
 
-	errInvalidKey = errors.New("x448: invalid key")
+type dhNIKE struct{}
 
-	group = cyclic.NewGroup(
-		large.NewIntFromString("E2EE983D031DC1DB6F1A7A67DF0E9A8E5561DB8E8D49413394C049B"+
-			"7A8ACCEDC298708F121951D9CF920EC5D146727AA4AE535B0922C688B55B3DD2AE"+
-			"DF6C01C94764DAB937935AA83BE36E67760713AB44A6337C20E7861575E745D31F"+
-			"8B9E9AD8412118C62A3E2E29DF46B0864D0C951C394A5CBBDC6ADC718DD2A3E041"+
-			"023DBB5AB23EBB4742DE9C1687B5B34FA48C3521632C4A530E8FFB1BC51DADDF45"+
-			"3B0B2717C2BC6669ED76B4BDD5C9FF558E88F26E5785302BEDBCA23EAC5ACE9209"+
-			"6EE8A60642FB61E8F3D24990B8CB12EE448EEF78E184C7242DD161C7738F32BF29"+
-			"A841698978825B4111B4BC3E1E198455095958333D776D8B2BEEED3A1A1A221A6E"+
-			"37E664A64B83981C46FFDDC1A45E3D5211AAF8BFBC072768C4F50D7D7803D2D4F2"+
-			"78DE8014A47323631D7E064DE81C0C6BFA43EF0E6998860F1390B5D3FEACAF1696"+
-			"015CB79C3F9C2D93D961120CD0E5F12CBB687EAB045241F96789C38E89D796138E"+
-			"6319BE62E35D87B1048CA28BE389B575E994DCA755471584A09EC723742DC35873"+
-			"847AEF49F66E43873", 16),
-		large.NewIntFromString("2", 16))
-)
+// DHNIKE is essentially a factory type that builds
+// various types related to the DiffieHellman NIKE interface implementation.
+var DHNIKE = &dhNIKE{}
 
 var _ nike.PrivateKey = (*PrivateKey)(nil)
 var _ nike.PublicKey = (*PublicKey)(nil)
-var _ nike.Scheme = (*scheme)(nil)
+var _ nike.Nike = (*dhNIKE)(nil)
 
-// EcdhNike implements the Nike interface using our ecdh module.
-type scheme struct {
-	rng io.Reader
+func (d *dhNIKE) PublicKeySize() int {
+	return publicKeySize
 }
 
-// Scheme instantiates a new X448 scheme given a CSPRNG.
-func Scheme(rng io.Reader) *scheme {
-	return &scheme{
-		rng: rng,
+func (d *dhNIKE) PrivateKeySize() int {
+	return privateKeySize
+}
+
+func (d *dhNIKE) NewEmptyPrivateKey() nike.PrivateKey {
+	return &PrivateKey{
+		privateKey: new(cyclic.Int),
 	}
-
 }
 
-func (e *scheme) GeneratePrivateKey(rng io.Reader) nike.PrivateKey {
-	privKey, err := NewKeypair(rng)
-	if err != nil {
-		panic(err)
+func (d *dhNIKE) NewEmptyPublicKey() nike.PublicKey {
+	return &PublicKey{
+		publicKey: new(cyclic.Int),
 	}
-	return privKey
 }
 
-func (e *scheme) GenerateKeyPairFromEntropy(rng io.Reader) (nike.PublicKey, nike.PrivateKey, error) {
-	privKey, err := NewKeypair(rng)
-	if err != nil {
-		return nil, nil, err
-	}
-	return privKey.Public(), privKey, nil
-}
-
-func (e *scheme) GenerateKeyPair() (nike.PublicKey, nike.PrivateKey, error) {
-	return e.GenerateKeyPairFromEntropy(e.rng)
-}
-
-func (e *scheme) Name() string {
-	return "mod_p_DH"
-}
-
-// PublicKeySize returns the size in bytes of the public key.
-func (e *scheme) PublicKeySize() int {
-	return PublicKeySize
-}
-
-// PrivateKeySize returns the size in bytes of the private key.
-func (e *scheme) PrivateKeySize() int {
-	return PublicKeySize
-}
-
-// NewEmptyPublicKey returns an uninitialized
-// PublicKey which is suitable to be loaded
-// via some serialization format via FromBytes
-// or FromPEMFile methods.
-func (e *scheme) NewEmptyPublicKey() nike.PublicKey {
-	return new(PublicKey)
-}
-
-// NewEmptyPrivateKey returns an uninitialized
-// PrivateKey which is suitable to be loaded
-// via some serialization format via FromBytes
-// or FromPEMFile methods.
-func (e *scheme) NewEmptyPrivateKey() nike.PrivateKey {
-	return new(PrivateKey)
-}
-
-// DeriveSecret derives a shared secret given a private key
-// from one party and a public key from another.
-func (e *scheme) DeriveSecret(privKey nike.PrivateKey, pubKey nike.PublicKey) []byte {
-	sharedSecret := Exp(privKey.(*PrivateKey).privKey, (pubKey.(*PublicKey)).pubKey)
-	return sharedSecret[:]
-}
-
-// DerivePublicKey derives a public key given a private key.
-func (e *scheme) DerivePublicKey(privKey nike.PrivateKey) nike.PublicKey {
-	return privKey.(*PrivateKey).Public()
-}
-
-func (e *scheme) Blind(groupMember nike.PublicKey, blindingFactor nike.PrivateKey) nike.PublicKey {
-	sharedSecret := Exp(groupMember.(*PublicKey).pubKey, blindingFactor.(*PrivateKey).privKey)
-	pubKey := new(PublicKey)
-	err := pubKey.FromBytes(sharedSecret)
-	if err != nil {
-		panic(err)
-	}
-
-	return pubKey
-}
-
-// UnmarshalBinaryPublicKey loads a public key from byte slice.
-func (e *scheme) UnmarshalBinaryPublicKey(b []byte) (nike.PublicKey, error) {
-	pubKey := new(PublicKey)
+// UnmarshalBinaryPublicKey unmarshals the public key bytes.
+func (d *dhNIKE) UnmarshalBinaryPublicKey(b []byte) (nike.PublicKey, error) {
+	pubKey := d.NewEmptyPublicKey()
 	err := pubKey.FromBytes(b)
 	if err != nil {
 		return nil, err
@@ -146,141 +77,110 @@ func (e *scheme) UnmarshalBinaryPublicKey(b []byte) (nike.PublicKey, error) {
 	return pubKey, nil
 }
 
-// UnmarshalBinaryPrivateKey loads a private key from byte slice.
-func (e *scheme) UnmarshalBinaryPrivateKey(b []byte) (nike.PrivateKey, error) {
-	privKey := new(PrivateKey)
+// UnmarshalBinaryPrivateKey unmarshals the public key bytes.
+func (d *dhNIKE) UnmarshalBinaryPrivateKey(b []byte) (nike.PrivateKey, error) {
+	privKey := d.NewEmptyPrivateKey()
 	err := privKey.FromBytes(b)
 	if err != nil {
 		return nil, err
 	}
-	return privKey, err
+	return privKey, nil
+}
+
+func (d *dhNIKE) group() *cyclic.Group {
+	p := large.NewInt(1)
+	p.SetString(primeString, 16)
+	g := large.NewInt(2)
+	return cyclic.NewGroup(p, g)
+}
+
+func (d *dhNIKE) NewKeypair(rng io.Reader) (nike.PrivateKey, nike.PublicKey) {
+	group := d.group()
+	privKey := diffieHellman.GeneratePrivateKey(privateKeySize, group, rng)
+	pubKey := diffieHellman.GeneratePublicKey(privKey, group)
+	return &PrivateKey{
+			privateKey: privKey,
+		}, &PublicKey{
+			publicKey: pubKey,
+		}
+}
+
+func (d *dhNIKE) DerivePublicKey(privKey nike.PrivateKey) nike.PublicKey {
+	return &PublicKey{
+		publicKey: diffieHellman.GeneratePublicKey(privKey.(*PrivateKey).privateKey, d.group()),
+	}
 }
 
 type PrivateKey struct {
-	pubKey  *PublicKey
-	privKey *cyclic.Int
+	privateKey *cyclic.Int
 }
 
-func NewKeypair(rng io.Reader) (nike.PrivateKey, error) {
-	privKey := dh.GeneratePrivateKey(dh.DefaultPrivateKeyLength, group, rng)
-	pubkey := dh.GeneratePublicKey(privKey, group)
-	mypubkey := &PublicKey{
-		pubKey: pubkey,
-	}
-	mypubkey.rebuildB64String()
-	return &PrivateKey{
-		pubKey:  mypubkey,
-		privKey: privKey,
-	}, nil
+func (p *PrivateKey) CyclicInt() *cyclic.Int {
+	return p.privateKey
 }
 
-func (p *PrivateKey) Public() nike.PublicKey {
-	return p.pubKey
+func (p *PrivateKey) DeriveSecret(pubKey nike.PublicKey) []byte {
+	c := diffieHellman.GenerateSessionKey(p.privateKey,
+		(pubKey.(*PublicKey)).publicKey,
+		DHNIKE.group())
+	return c.Bytes()
 }
 
 func (p *PrivateKey) Reset() {
-	p.privKey.Reset()
+	p.privateKey = nil
 }
 
 func (p *PrivateKey) Bytes() []byte {
-	return p.privKey.BinaryEncode()
+	if p.privateKey == nil {
+		return nil
+	}
+	return p.privateKey.BinaryEncode()
 }
 
 func (p *PrivateKey) FromBytes(data []byte) error {
-	if len(data) != PrivateKeySize {
-		return errInvalidKey
+	if len(data) != DHNIKE.PrivateKeySize() {
+		return errors.New("invalid key size")
 	}
-
-	p.privKey = new(cyclic.Int)
-	return p.privKey.BinaryDecode(data)
+	return p.privateKey.BinaryDecode(data)
 }
 
-func (p *PrivateKey) MarshalBinary() ([]byte, error) {
-	return p.Bytes(), nil
-}
-
-func (p *PrivateKey) MarshalText() ([]byte, error) {
-	return []byte(base64.StdEncoding.EncodeToString(p.Bytes())), nil
-}
-
-func (p *PrivateKey) UnmarshalBinary(data []byte) error {
-	return p.FromBytes(data)
-}
-
-func (p *PrivateKey) UnmarshalText(data []byte) error {
-	raw, err := base64.StdEncoding.DecodeString(string(data))
-	if err != nil {
-		return err
-	}
-	return p.FromBytes(raw)
+func (p *PrivateKey) Scheme() nike.Nike {
+	return DHNIKE
 }
 
 type PublicKey struct {
-	pubKey    *cyclic.Int
-	b64String string
+	publicKey *cyclic.Int
 }
 
-func (p *PublicKey) Blind(blindingFactor nike.PrivateKey) error {
-	_, ok := blindingFactor.(*PrivateKey)
-	if !ok {
-		return errors.New("blindingFactor nike.PrivateKey must be the same concrete type as diffiehellman.PublicKey")
-	}
-	pubBytes := Exp(blindingFactor.(*PrivateKey).privKey, p.pubKey)
-	return p.FromBytes(pubBytes)
+func (p *PublicKey) CyclicInt() *cyclic.Int {
+	return p.publicKey
 }
 
 func (p *PublicKey) Reset() {
-	p.pubKey.Reset()
+	p.publicKey = nil
 }
 
 func (p *PublicKey) Bytes() []byte {
-	return p.pubKey.BinaryEncode()
-}
-
-func (p *PublicKey) rebuildB64String() {
-	p.b64String = base64.StdEncoding.EncodeToString(p.Bytes())
+	if p.publicKey == nil {
+		return nil
+	}
+	return p.publicKey.BinaryEncode()
 }
 
 func (p *PublicKey) FromBytes(data []byte) error {
-	if len(data) != PublicKeySize {
-		return errInvalidKey
+	if len(data) != DHNIKE.PublicKeySize() {
+		return errors.New("invalid key size")
 	}
-
-	p.pubKey = new(cyclic.Int)
-	err := p.pubKey.BinaryDecode(data)
+	err := p.publicKey.BinaryDecode(data)
 	if err != nil {
-		return err
+		return nil
 	}
-	p.rebuildB64String()
+	if !diffieHellman.CheckPublicKey(DHNIKE.group(), p.publicKey) {
+		return errors.New("not a valid public key")
+	}
 	return nil
 }
 
-func (p *PublicKey) MarshalBinary() ([]byte, error) {
-	return p.Bytes(), nil
-}
-
-func (p *PublicKey) MarshalText() ([]byte, error) {
-	return []byte(base64.StdEncoding.EncodeToString(p.Bytes())), nil
-}
-
-func (p *PublicKey) UnmarshalBinary(data []byte) error {
-	return p.FromBytes(data)
-}
-
-func (p *PublicKey) UnmarshalText(data []byte) error {
-	raw, err := base64.StdEncoding.DecodeString(string(data))
-	if err != nil {
-		return err
-	}
-	return p.FromBytes(raw)
-}
-
-// Exp returns the group element, the result of x^y, over the ECDH group.
-func Exp(x, y *cyclic.Int) []byte {
-	ss := dh.GenerateSessionKey(x, y, group)
-	blob, err := ss.GobEncode()
-	if err != nil {
-		panic(err)
-	}
-	return blob
+func (p *PublicKey) Scheme() nike.Nike {
+	return DHNIKE
 }
