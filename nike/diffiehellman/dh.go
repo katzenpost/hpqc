@@ -23,6 +23,8 @@ const (
 	publicKeySize  = groupSize + 8
 )
 
+// MODP4096 is taken from RFC 3526
+// This prime is: 2^4096 - 2^4032 - 1 + 2^64 * { [2^3966 pi] + 240904 }
 const MODP4096 = "FFFFFFFFFFFFFFFFC90FDAA22168C234C4C6628B80DC1CD1" +
 	"29024E088A67CC74020BBEA63B139B22514A08798E3404DD" +
 	"EF9519B3CD3A431B302B0A6DF25F14374FE1356D6D51C245" +
@@ -58,7 +60,7 @@ var _ nike.PublicKey = (*PublicKey)(nil)
 var _ nike.Scheme = (*dhNIKE)(nil)
 
 func (d *dhNIKE) Name() string {
-	return "mod_p_DH4096"
+	return "MODP_DH4096_RFC3526"
 }
 
 func (d *dhNIKE) PublicKeySize() int {
