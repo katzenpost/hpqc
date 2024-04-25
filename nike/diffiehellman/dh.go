@@ -60,7 +60,7 @@ var _ nike.PublicKey = (*PublicKey)(nil)
 var _ nike.Scheme = (*dhNIKE)(nil)
 
 func (d *dhNIKE) Name() string {
-	return "MODP_DH4096_RFC3526"
+	return "ClassicDH_4096_RFC3526"
 }
 
 func (d *dhNIKE) PublicKeySize() int {
