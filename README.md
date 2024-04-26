@@ -79,7 +79,9 @@ func SplitPRF(ss1, ss2, ss3, cct1, cct2, cct3 []byte) []byte {
 
 | NIKE: Non-Interactive Key Exchange |
 |:---:|
+* Classical Diffiehellman
 * X25519
+* X448
 * CTIDH511, CTIDH512, CTIDH1024, CTIDH2048
 * X25519_CTIDH511, X25519_CTIDH512, X25519_CTIDH1024, X25519_CTIDH2048
 * NOBS_CSIDH-512
@@ -117,3 +119,8 @@ func SplitPRF(ss1, ss2, ss3, cct1, cct2, cct3 []byte) []byte {
 1. https://github.com/katzenpost/hpqc/blob/main/kem/hybrid/hybrid.go
 2. https://github.com/katzenpost/hpqc/blob/main/kem/interfaces.go
 3. https://github.com/katzenpost/hpqc/blob/main/sign/interfaces.go
+
+* Classical Diffiehellman implementation from Elixxir/XX Network and modified in place
+to conform to our NIKE scheme interfaces, [BSD 2-clause LICENSE file included](https://github.com/katzenpost/hpqc/blob/main/nike/diffiehellman/LICENSE)
+
+https://github.com/katzenpost/hpqc/blob/main/nike/diffiehellman/dh.go
