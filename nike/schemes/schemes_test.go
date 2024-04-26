@@ -22,6 +22,8 @@ func TestNIKEUnmarshaling(t *testing.T) {
 		pubkey1Blob, err := pubkey1.MarshalBinary()
 		require.NoError(t, err)
 
+		t.Logf("pubkey1Blob is len %d", len(pubkey1Blob))
+
 		pubkey2, err := s.UnmarshalBinaryPublicKey(pubkey1Blob)
 		require.NoError(t, err)
 
@@ -29,6 +31,8 @@ func TestNIKEUnmarshaling(t *testing.T) {
 
 		privkey1blob, err := privkey1.MarshalBinary()
 		require.NoError(t, err)
+
+		t.Logf("privkey1blob is len %d", len(privkey1blob))
 
 		privkey2, err := s.UnmarshalBinaryPrivateKey(privkey1blob)
 		require.NoError(t, err)
