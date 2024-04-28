@@ -29,6 +29,7 @@ import (
 	"github.com/katzenpost/hpqc/nike/ctidh/ctidh2048"
 	"github.com/katzenpost/hpqc/nike/ctidh/ctidh511"
 	"github.com/katzenpost/hpqc/nike/ctidh/ctidh512"
+	"github.com/katzenpost/hpqc/nike/diffiehellman"
 	"github.com/katzenpost/hpqc/nike/x25519"
 	"github.com/katzenpost/hpqc/nike/x448"
 	"github.com/katzenpost/hpqc/rand"
@@ -37,7 +38,7 @@ import (
 var allSchemes = [...]kem.Scheme{
 
 	// classical KEM schemes (converted from NIKE via hashed elgamal construction)
-
+	adapter.FromNIKE(diffiehellman.Scheme()),
 	adapter.FromNIKE(x25519.Scheme(rand.Reader)),
 	adapter.FromNIKE(x448.Scheme(rand.Reader)),
 
@@ -71,16 +72,28 @@ var allSchemes = [...]kem.Scheme{
 
 	xwing.Scheme(),
 
+	// XXX TODO: must soon deprecate use of "hybrid.New" in favour of "combiner.New".
+	// We'd also like to remove Kyber now that we have mlkem768.
 	hybrid.New(
 		"Kyber768-X25519",
 		adapter.FromNIKE(x25519.Scheme(rand.Reader)),
 		kyber768.Scheme(),
 	),
 
-	hybrid.New(
+	combiner.New(
 		"MLKEM768-X25519",
-		adapter.FromNIKE(x25519.Scheme(rand.Reader)),
-		mlkem768.Scheme(),
+		[]kem.Scheme{
+			adapter.FromNIKE(x25519.Scheme(rand.Reader)),
+			mlkem768.Scheme(),
+		},
+	),
+
+	combiner.New(
+		"DH4096_RFC3526-MLKEM768",
+		[]kem.Scheme{
+			adapter.FromNIKE(diffiehellman.Scheme()),
+			mlkem768.Scheme(),
+		},
 	),
 
 	combiner.New(
