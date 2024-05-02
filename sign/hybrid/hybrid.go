@@ -226,9 +226,17 @@ func (p *PublicKey) Equal(key crypto.PublicKey) bool {
 	if err != nil {
 		panic(err)
 	}
-	blob2, err := key.(*PublicKey).MarshalBinary()
-	if err != nil {
-		panic(err)
+	var blob2 []byte
+	switch v := key.(type) {
+	case []byte:
+		blob2 = v
+	case *PublicKey:
+		blob2, err = v.MarshalBinary()
+		if err != nil {
+			panic(err)
+		}
+	default:
+		panic("type assertion failed")
 	}
 	return hmac.Equal(blob1, blob2)
 }
