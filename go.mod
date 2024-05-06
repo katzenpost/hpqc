@@ -3,7 +3,7 @@ module github.com/katzenpost/hpqc
 go 1.21.3
 
 require (
-	codeberg.org/vula/highctidh v1.0.2024050100
+	codeberg.org/vula/highctidh v1.0.2024050500
 	filippo.io/edwards25519 v1.0.0
 	filippo.io/mlkem768 v0.0.0-20240221181710-5ce91625fdc1
 	github.com/go-faster/xor v1.0.0
@@ -13,6 +13,8 @@ require (
 	github.com/katzenpost/sntrup4591761 v0.0.0-20231024131303-8755eb1986b8
 	github.com/katzenpost/sphincsplus v0.0.2-0.20240114192234-1dc77b544e31
 	github.com/stretchr/testify v1.8.4
+	gitlab.com/elixxir/crypto v0.0.9
+	gitlab.com/xx_network/crypto v0.0.6
 	golang.org/x/crypto v0.18.0
 )
 
@@ -22,8 +24,6 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
-	gitlab.com/elixxir/crypto v0.0.9 // indirect
-	gitlab.com/xx_network/crypto v0.0.6 // indirect
 	golang.org/x/sys v0.16.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
