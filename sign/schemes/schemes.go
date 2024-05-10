@@ -16,17 +16,21 @@ import (
 	"github.com/katzenpost/hpqc/sign/sphincsplus"
 )
 
-var allSchemes = [...]sign.Scheme{
+var potentialSchemes = [...]sign.Scheme{
+	// post quantum
+	sphincsplus.Scheme(),
+
+	// hybrid post quantum
+	hybrid.New("Ed25519 Sphincs+", ed25519.Scheme(), sphincsplus.Scheme()),
+	hybrid.New("Ed448-Sphincs+", ed448.Scheme(), sphincsplus.Scheme()),
+}
+
+var allSchemes = []sign.Scheme{
 	// classical
 	ed25519.Scheme(),
 	ed448.Scheme(),
 
-	// post quantum
-	sphincsplus.Scheme(),
-
-	// hybrid
-	hybrid.New("Ed25519 Sphincs+", ed25519.Scheme(), sphincsplus.Scheme()),
-	hybrid.New("Ed448-Sphincs+", ed448.Scheme(), sphincsplus.Scheme()),
+	// hybrid post quantum
 	eddilithium2.Scheme(),
 	eddilithium3.Scheme(),
 }
@@ -35,6 +39,12 @@ var allSchemeNames map[string]sign.Scheme
 
 func init() {
 	allSchemeNames = make(map[string]sign.Scheme)
+
+	for _, scheme := range potentialSchemes {
+		if scheme != nil {
+			allSchemes = append(allSchemes, scheme)
+		}
+	}
 	for _, scheme := range allSchemes {
 		allSchemeNames[strings.ToLower(scheme.Name())] = scheme
 	}
@@ -46,7 +56,7 @@ func ByName(name string) sign.Scheme {
 	return ret
 }
 
-// All returns all NIKE schemes supported.
+// All returns all signature schemes supported.
 func All() []sign.Scheme {
 	a := allSchemes
 	return a[:]
