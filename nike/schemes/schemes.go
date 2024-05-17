@@ -15,12 +15,7 @@ import (
 	"github.com/katzenpost/hpqc/rand"
 )
 
-var allSchemes = [...]nike.Scheme{
-
-	// classical NIKE schemes
-	x25519.Scheme(rand.Reader),
-	x448.Scheme(rand.Reader),
-	diffiehellman.Scheme(),
+var potentialSchemes = [...]nike.Scheme{
 
 	// post quantum NIKE schemes
 	ctidh511.Scheme(),
@@ -29,19 +24,32 @@ var allSchemes = [...]nike.Scheme{
 	ctidh2048.Scheme(),
 
 	// hybrid NIKE schemes
-
 	hybrid.CTIDH511X25519,
 	hybrid.CTIDH512X25519,
 	hybrid.CTIDH1024X25519,
 	hybrid.CTIDH2048X25519,
+}
 
-	hybrid.NOBS_CSIDH512X25519, // XXX TODO: deprecate and remove.
+var allSchemes = []nike.Scheme{
+
+	// classical NIKE schemes
+	x25519.Scheme(rand.Reader),
+	x448.Scheme(rand.Reader),
+	diffiehellman.Scheme(),
+
+	// XXX TODO: deprecate and remove.
+	hybrid.NOBS_CSIDH512X25519,
 }
 
 var allSchemeNames map[string]nike.Scheme
 
 func init() {
 	allSchemeNames = make(map[string]nike.Scheme)
+	for _, scheme := range potentialSchemes {
+		if scheme != nil {
+			allSchemes = append(allSchemes, scheme)
+		}
+	}
 	for _, scheme := range allSchemes {
 		allSchemeNames[strings.ToLower(scheme.Name())] = scheme
 	}
