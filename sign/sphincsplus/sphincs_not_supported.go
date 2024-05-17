@@ -1,6 +1,6 @@
 //go:build (!darwin || !linux) && !amd64
 
-package p
+package sphincsplus
 
 import "github.com/katzenpost/hpqc/sign"
 
