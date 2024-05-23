@@ -1,10 +1,9 @@
-//go:build windows
-// +build windows
+//go:build (windows && arm64) || (darwin && arm64)
 
 // SPDX-FileCopyrightText: (c) 2024 David Stainton
 // SPDX-License-Identifier: AGPL-3.0-only
 
-package ctidh511
+package ctidh1024
 
 import "github.com/katzenpost/hpqc/nike"
 
