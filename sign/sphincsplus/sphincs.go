@@ -150,10 +150,6 @@ func (p *privateKey) UnmarshalBinary(b []byte) error {
 
 // end of sign.PublicKey interface
 
-func (p *privateKey) Reset() {
-	p.privateKey.Reset()
-}
-
 func (p *privateKey) Bytes() []byte {
 	return p.privateKey.Bytes()
 }
@@ -186,10 +182,6 @@ func (p *publicKey) MarshalText() (text []byte, err error) {
 }
 
 // end of sign.PublicKey interface
-
-func (p *publicKey) Reset() {
-	p.publicKey.Reset()
-}
 
 func (p *publicKey) Bytes() []byte {
 	return p.publicKey.Bytes()
