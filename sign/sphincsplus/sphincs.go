@@ -13,7 +13,7 @@ import (
 
 	"golang.org/x/crypto/blake2b"
 
-	sphincs "github.com/ioerror/sphincsplus/ref"
+	sphincs "github.com/ioerror/sphincsplus/sha2-avx2"
 
 	"github.com/katzenpost/hpqc/sign"
 	"github.com/katzenpost/hpqc/sign/pem"
