@@ -1,4 +1,4 @@
-//go:build !ppc64le && !arm32
+//go:build amd64 || arm64
 
 // csidh.go - Adapts csidh module to our NIKE interface.
 // Copyright (C) 2022  David Stainton.

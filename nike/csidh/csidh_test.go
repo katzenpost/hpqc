@@ -1,4 +1,4 @@
-//go:build !ppc64le && !arm32
+//go:build amd64 || arm64
 
 package csidh
 
