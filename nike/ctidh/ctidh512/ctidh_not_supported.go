@@ -1,4 +1,4 @@
-//go:build darwin && amd64
+//go:build darwin || windows
 
 // SPDX-FileCopyrightText: (c) 2024 David Stainton
 // SPDX-License-Identifier: AGPL-3.0-only

@@ -1,5 +1,4 @@
-//go:build (windows && arm64) || (darwin && arm64)
-// +build windows,arm64 darwin,arm64
+//go:build windows || darwin
 
 // SPDX-FileCopyrightText: (c) 2024 David Stainton
 // SPDX-License-Identifier: AGPL-3.0-only
