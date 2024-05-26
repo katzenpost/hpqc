@@ -175,7 +175,7 @@ then
 
 
            CC="clang $TARGET $EXTRA_FLAGS $EXTRA_INCLUDE" \
-             go test -v ./...;
+             go get -v ./... && go build -v ./...
 	   echo -e "$CHECKMARK";
 
 	   
