@@ -43,68 +43,6 @@ var potentialSchemes = [...]kem.Scheme{
 	adapter.FromNIKE(ctidh512.Scheme()),
 	adapter.FromNIKE(ctidh1024.Scheme()),
 	adapter.FromNIKE(ctidh2048.Scheme()),
-
-	// hybrid post quantum schemes
-
-	combiner.New(
-		"x25519-mceliece8192128f-ctidh512",
-		[]kem.Scheme{
-			adapter.FromNIKE(x25519.Scheme(rand.Reader)),
-			mceliece8192128f.Scheme(),
-			adapter.FromNIKE(ctidh512.Scheme()),
-		},
-	),
-
-	combiner.New(
-		"x448-mceliece8192128f-ctidh512",
-		[]kem.Scheme{
-			adapter.FromNIKE(x448.Scheme(rand.Reader)),
-			mceliece8192128f.Scheme(),
-			adapter.FromNIKE(ctidh512.Scheme()),
-		},
-	),
-
-	combiner.New(
-		"ctidh512-X25519",
-		[]kem.Scheme{
-			adapter.FromNIKE(x25519.Scheme(rand.Reader)),
-			adapter.FromNIKE(ctidh512.Scheme()),
-		},
-	),
-
-	combiner.New(
-		"ctidh1024-X25519",
-		[]kem.Scheme{
-			adapter.FromNIKE(x25519.Scheme(rand.Reader)),
-			adapter.FromNIKE(ctidh1024.Scheme()),
-		},
-	),
-
-	combiner.New(
-		"ctidh2048-X25519",
-		[]kem.Scheme{
-			adapter.FromNIKE(x25519.Scheme(rand.Reader)),
-			adapter.FromNIKE(ctidh2048.Scheme()),
-		},
-	),
-
-	combiner.New(
-		"X25519-mlkem768-ctidh512",
-		[]kem.Scheme{
-			adapter.FromNIKE(x25519.Scheme(rand.Reader)),
-			mlkem768.Scheme(),
-			adapter.FromNIKE(ctidh512.Scheme()),
-		},
-	),
-
-	combiner.New(
-		"X25519-mlkem768-ctidh1024",
-		[]kem.Scheme{
-			adapter.FromNIKE(x25519.Scheme(rand.Reader)),
-			mlkem768.Scheme(),
-			adapter.FromNIKE(ctidh1024.Scheme()),
-		},
-	),
 }
 
 var allSchemes = []kem.Scheme{
@@ -117,11 +55,15 @@ var allSchemes = []kem.Scheme{
 	// post quantum KEM schemes
 
 	mlkem768.Scheme(),
+
 	sntrup.Scheme(),
+
 	kyber512.Scheme(),
 	kyber768.Scheme(),
 	kyber1024.Scheme(),
+
 	frodo640shake.Scheme(),
+
 	mceliece348864.Scheme(),
 	mceliece348864f.Scheme(),
 	mceliece460896.Scheme(),

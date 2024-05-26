@@ -92,6 +92,9 @@ var _ kem.PrivateKey = (*PrivateKey)(nil)
 // FromNIKE creates a new KEM adapter Scheme
 // using the given NIKE Scheme.
 func FromNIKE(nike nike.Scheme) *Scheme {
+	if nike == nil {
+		return nil
+	}
 	return &Scheme{
 		nike: nike,
 	}
