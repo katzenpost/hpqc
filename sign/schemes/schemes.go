@@ -20,9 +20,9 @@ var potentialSchemes = [...]sign.Scheme{
 	// post quantum
 	sphincsplus.Scheme(),
 
-	// hybrid post quantum
-	hybrid.New("Ed25519 Sphincs+", ed25519.Scheme(), sphincsplus.Scheme()),
-	hybrid.New("Ed448-Sphincs+", ed448.Scheme(), sphincsplus.Scheme()),
+	// post quantum hybrids
+	hybrid.Ed25519Sphincs,
+	hybrid.Ed448Sphincs,
 }
 
 var allSchemes = []sign.Scheme{
