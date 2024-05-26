@@ -6,6 +6,7 @@ package diffiehellman
 import (
 	"encoding/base64"
 	"errors"
+	"fmt"
 	"io"
 
 	"gitlab.com/elixxir/crypto/cyclic"
@@ -184,7 +185,7 @@ func (p *PrivateKey) Bytes() []byte {
 
 func (p *PrivateKey) FromBytes(data []byte) error {
 	if len(data) != Scheme().PrivateKeySize() {
-		return errors.New("invalid key size")
+		return fmt.Errorf("invalid key size, expected %d but got %d", Scheme().PrivateKeySize(), len(data))
 	}
 	return p.privateKey.BinaryDecode(data)
 }
@@ -243,7 +244,7 @@ func (p *PublicKey) Bytes() []byte {
 
 func (p *PublicKey) FromBytes(data []byte) error {
 	if len(data) != Scheme().PublicKeySize() {
-		return errors.New("invalid key size")
+		return fmt.Errorf("invalid key size, expected %d but got %d", Scheme().PublicKeySize(), len(data))
 	}
 	err := p.publicKey.BinaryDecode(data)
 	if err != nil {
