@@ -168,22 +168,16 @@ then
            then
                export GOARCH=arm;
                export GOARM=$SUBARCH;
-               echo -n "$GOARCH/$GOARM $BITS bits:";
+               echo -n "$GOARCH/$GOARM";
            else
-               echo -n "$GOARCH $BITS bits:";
+               echo -n "$GOARCH";
            fi
 
-	   cd server/cmd/server;
+
            CC="clang $TARGET $EXTRA_FLAGS $EXTRA_INCLUDE" \
-             go build;
-	   cd ../../..;
+             go test -v ./...;
 	   echo -e "$CHECKMARK";
 
-	   cd authority/cmd/voting;
-           CC="clang $TARGET $EXTRA_FLAGS $EXTRA_INCLUDE" \
-             go build;
-	   cd ../../..;
-	   echo -e "$CHECKMARK";
 	   
         done
 
@@ -193,10 +187,9 @@ then
         echo "Running tests on $HOST_ARCH";
  
             export GOARCH=amd64;
-            echo "$GOARCH $BITS bits:";
+            echo "$GOARCH";
             CC="clang $TARGET $EXTRA_FLAGS $EXTRA_INCLUDE" \
-                go test -v ./...
-            echo -n "$GOARCH $BITS bits:";
+                go test -v ./...;
             echo -e "$CHECKMARK";
      fi
 
