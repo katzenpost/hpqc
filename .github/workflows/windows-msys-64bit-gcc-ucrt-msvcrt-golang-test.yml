@@ -45,6 +45,13 @@ jobs:
          ${{ matrix.CC }} -v
          go version
 
+      - name: Install golang dependencies
+        shell: bash
+        run: |
+          export HIGHCTIDH_PORTABLE=1
+          export CGO_ENABLED=1
+          go get -v ./...
+
       - name: Build golang
         shell: msys2 {0}
         run: |

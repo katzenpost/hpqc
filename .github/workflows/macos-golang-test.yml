@@ -1,0 +1,47 @@
+name: MacOS Golang build and test
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: ${{ matrix.OS }}
+    strategy:
+      matrix:
+        OS: ["macos-14"]
+        go-version: ["1.21.x", "1.22.0"]
+      fail-fast: false
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Go ${{ matrix.go-version }}
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go-version }}
+
+      - name: Display Go version
+        shell: bash
+        run: go version
+
+      - name: Install golang dependencies
+        shell: bash
+        run: |
+          export HIGHCTIDH_PORTABLE=1
+          export CGO_ENABLED=1
+          go get -v ./...
+
+      - name: Build golang
+        shell: bash
+        run: |
+          export HIGHCTIDH_PORTABLE=1
+          export CGO_ENABLED=1
+          go build -v ./...
+
+      - name: Golang test
+        shell: bash
+        run: |
+          export HIGHCTIDH_PORTABLE=1
+          export CGO_ENABLED=1
+          go test -v ./...
+
+
