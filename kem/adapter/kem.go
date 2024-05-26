@@ -91,7 +91,7 @@ var _ kem.PrivateKey = (*PrivateKey)(nil)
 
 // FromNIKE creates a new KEM adapter Scheme
 // using the given NIKE Scheme.
-func FromNIKE(nike nike.Scheme) *Scheme {
+func FromNIKE(nike nike.Scheme) kem.Scheme {
 	if nike == nil {
 		return nil
 	}
