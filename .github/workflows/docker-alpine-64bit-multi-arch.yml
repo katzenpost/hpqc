@@ -1,0 +1,48 @@
+name: Alpine multi-arch docker 64bit build and test (clang)
+on:
+  push:
+  pull_request:
+    branches: [ "main" ]
+jobs:
+  multiarch:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        CC: ["clang"]
+        PORTABLE: ["1"]
+        CONTAINER: ["alpine"]
+        DOCKER_ARCH_ARGS: ["--platform linux/arm64/v8 arm64v8/alpine",
+                      "--platform linux/amd64 amd64/alpine",
+                      "--platform linux/riscv64 riscv64/alpine:edge",
+                      "--platform linux/ppc64le ppc64le/alpine",
+                      "--platform linux/s390x s390x/alpine"]
+      fail-fast: false
+    steps:
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v3
+
+    - name: checkout
+      uses: actions/checkout@v4
+
+    - name: Install requirements
+      run : |
+        sudo apt install -y --no-install-recommends docker
+
+    - name: check kernel
+      run: |
+        mount | grep binfmt_misc
+        docker info
+        uname -a
+
+    - name: Run in Docker
+      run: |
+        docker run \
+          -v $(pwd):/${{ github.workspace }} \
+          -w ${{ github.workspace }} \
+          -e "CC=${{ matrix.CC }}" \
+          -e "HIGHCTIDH_PORTABLE=${{ matrix.PORTABLE }}" \
+          -e "CFLAGS=-fno-lto" \
+          --rm \
+          ${{ matrix.DOCKER_ARCH_ARGS}} \
+          /bin/sh \
+          -c "./misc/install-alpine-deps.sh && go get -v ./... && go build -v ./... && go test -v ./..."
