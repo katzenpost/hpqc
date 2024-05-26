@@ -1,4 +1,4 @@
-//go:build !ppc64le
+//go:build amd64 || arm64
 
 // csidh.go - Adapts csidh module to our NIKE interface.
 // Copyright (C) 2022  David Stainton.
@@ -30,7 +30,7 @@ import (
 )
 
 // CSIDHScheme is the nobs CSIDH-512 NIKE.
-var NOBS_CSIDH512Scheme *CsidhNike
+var NOBS_CSIDH512Scheme nike.Scheme
 
 var _ nike.PrivateKey = (*PrivateKey)(nil)
 var _ nike.PublicKey = (*PublicKey)(nil)
