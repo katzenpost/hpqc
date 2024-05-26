@@ -28,6 +28,10 @@ var potentialSchemes = [...]nike.Scheme{
 	hybrid.CTIDH512X25519,
 	hybrid.CTIDH1024X25519,
 	hybrid.CTIDH2048X25519,
+
+	// NOBS CSIDH doesn't work on arm32
+	// XXX TODO: deprecate and remove.
+	hybrid.NOBS_CSIDH512X25519,
 }
 
 var allSchemes = []nike.Scheme{
@@ -36,9 +40,6 @@ var allSchemes = []nike.Scheme{
 	x25519.Scheme(rand.Reader),
 	x448.Scheme(rand.Reader),
 	diffiehellman.Scheme(),
-
-	// XXX TODO: deprecate and remove.
-	hybrid.NOBS_CSIDH512X25519,
 }
 
 var allSchemeNames map[string]nike.Scheme
