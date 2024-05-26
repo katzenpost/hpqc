@@ -1,4 +1,4 @@
-//go:build (darwin && !amd64) || (linux && !amd64) || (!linux && !darwin) || windows
+//go:build windows
 
 package sphincsplus
 

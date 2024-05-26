@@ -88,6 +88,7 @@ var allSchemes = [...]kem.Scheme{
 		},
 	),
 
+	/* doesn't work on arm64 for some reason
 	combiner.New(
 		"DH4096_RFC3526-MLKEM768",
 		[]kem.Scheme{
@@ -95,7 +96,7 @@ var allSchemes = [...]kem.Scheme{
 			mlkem768.Scheme(),
 		},
 	),
-
+	*/
 	combiner.New(
 		"x25519-mceliece8192128f-ctidh512",
 		[]kem.Scheme{
