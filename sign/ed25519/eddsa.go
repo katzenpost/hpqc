@@ -19,6 +19,7 @@ import (
 	"github.com/katzenpost/hpqc/nike/x25519"
 	"github.com/katzenpost/hpqc/rand"
 	"github.com/katzenpost/hpqc/sign"
+	"github.com/katzenpost/hpqc/sign/pem"
 	"github.com/katzenpost/hpqc/util"
 )
 
@@ -284,15 +285,16 @@ func (p *PublicKey) UnmarshalBinary(data []byte) error {
 }
 
 func (p *PublicKey) MarshalText() (text []byte, err error) {
-	return []byte(base64.StdEncoding.EncodeToString(p.Bytes())), nil
+	return pem.ToPublicPEMBytes(p), nil
 }
 
 func (p *PublicKey) UnmarshalText(text []byte) error {
-	raw, err := base64.StdEncoding.DecodeString(string(text))
+	pubkey, err := pem.FromPublicPEMString(string(text), p.Scheme())
 	if err != nil {
 		return err
 	}
-	return p.FromBytes(raw)
+	p = pubkey.(*PublicKey)
+	return nil
 }
 
 // NewKeypair generates a new PrivateKey sampled from the provided entropy
