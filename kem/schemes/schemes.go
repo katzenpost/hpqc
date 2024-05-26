@@ -87,6 +87,7 @@ var allSchemes = []kem.Scheme{
 		kyber768.Scheme(),
 	),
 
+	// An alternative to Xwing using a generic and secure KEM combiner.
 	combiner.New(
 		"MLKEM768-X25519",
 		[]kem.Scheme{
@@ -104,34 +105,6 @@ var allSchemes = []kem.Scheme{
 		},
 	),
 	*/
-
-	combiner.New(
-		"x448-mceliece8192128f-mlkem768",
-		[]kem.Scheme{
-			adapter.FromNIKE(x448.Scheme(rand.Reader)),
-			mceliece8192128f.Scheme(),
-			mlkem768.Scheme(),
-		},
-	),
-
-	combiner.New(
-		"sntrup4591761-X25519",
-		[]kem.Scheme{
-			adapter.FromNIKE(x25519.Scheme(rand.Reader)),
-			sntrup.Scheme(),
-		},
-	),
-
-	// hybrid KEM schemes with two post quantum KEMs
-
-	combiner.New(
-		"X25519-mlkem768-sntrup4591761",
-		[]kem.Scheme{
-			adapter.FromNIKE(x25519.Scheme(rand.Reader)),
-			mlkem768.Scheme(),
-			sntrup.Scheme(),
-		},
-	),
 }
 
 var allSchemeNames map[string]kem.Scheme
