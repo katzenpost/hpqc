@@ -188,6 +188,9 @@ func (a *Scheme) Decapsulate(myPrivkey kem.PrivateKey, ct []byte) ([]byte, error
 
 // Unmarshals a PublicKey from the provided buffer.
 func (a *Scheme) UnmarshalBinaryPublicKey(b []byte) (kem.PublicKey, error) {
+	if len(b) != a.PublicKeySize() {
+		return nil, fmt.Errorf("UnmarshalBinaryPublicKey: wrong key size %d != %d", len(b), a.PublicKeySize())
+	}
 	pubkey, err := a.nike.UnmarshalBinaryPublicKey(b)
 	if err != nil {
 		return nil, err
@@ -200,6 +203,9 @@ func (a *Scheme) UnmarshalBinaryPublicKey(b []byte) (kem.PublicKey, error) {
 
 // Unmarshals a PrivateKey from the provided buffer.
 func (a *Scheme) UnmarshalBinaryPrivateKey(b []byte) (kem.PrivateKey, error) {
+	if len(b) != a.PrivateKeySize() {
+		return nil, fmt.Errorf("UnmarshalBinaryPrivateKey: wrong key size %d != %d", len(b), a.PrivateKeySize())
+	}
 	privkey, err := a.nike.UnmarshalBinaryPrivateKey(b)
 	if err != nil {
 		return nil, err
