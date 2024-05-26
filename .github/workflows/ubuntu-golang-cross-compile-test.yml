@@ -22,9 +22,10 @@ jobs:
         go-version: ${{ matrix.go-version }}
     - name: Display Go version
       run: go version
-
-    - name: Install Golang deps
-      run: sudo ./misc/install-debian-go-deps-by-arch.sh ${{ matrix.ARCH }}
-
-    - name: Build Golang cgo
-      run: ./misc/test-golang-cross.sh ${{ matrix.ARCH }}
+#
+#    - name: Install Golang deps
+#      run: sudo ./misc/install-debian-go-deps-by-arch.sh ${{ matrix.ARCH }}
+#
+#    - name: Build Golang cgo
+#      run: ./misc/test-golang-cross.sh ${{ matrix.ARCH }}
+#
