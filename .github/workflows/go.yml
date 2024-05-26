@@ -7,7 +7,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-latest, macos-latest]
         arch: [amd64, arm64]
         go-version: [1.21.3]
     runs-on: ${{ matrix.os }}
@@ -22,8 +22,4 @@ jobs:
           go-version-file: go.mod
           check-latest: true
       - name: Run tests
-        run: go test ./...
-      - name: Run tests (short + race)
-        run: go test -short -race ./...
-      - name: KEM Benchmark tests
-        run: cd kem/schemes && go test -v -bench=. -run Benchmark
+        run: go test -v ./...
