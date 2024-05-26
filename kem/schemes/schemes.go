@@ -144,7 +144,9 @@ func init() {
 		}
 	}
 	for _, scheme := range allSchemes {
-		allSchemeNames[strings.ToLower(scheme.Name())] = scheme
+		if scheme != nil {
+			allSchemeNames[strings.ToLower(scheme.Name())] = scheme
+		}
 	}
 }
 
