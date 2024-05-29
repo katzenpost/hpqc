@@ -48,14 +48,12 @@ jobs:
       - name: Install golang dependencies
         shell: bash
         run: |
-          export HIGHCTIDH_PORTABLE=1
           export CGO_ENABLED=1
           go get -v ./...
 
       - name: Build golang
         shell: msys2 {0}
         run: |
-          export HIGHCTIDH_PORTABLE=1
           export CGO_ENABLED=1
           export GOEXPERIMENT=cgocheck2
           export GODEBUG=cgocheck=1
@@ -64,7 +62,6 @@ jobs:
       - name: Golang test
         shell: msys2 {0}
         run: |
-          export HIGHCTIDH_PORTABLE=1
           export CGO_ENABLED=1
           export GOEXPERIMENT=cgocheck2
           export GODEBUG=cgocheck=1
