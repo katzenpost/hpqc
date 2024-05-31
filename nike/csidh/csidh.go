@@ -151,7 +151,11 @@ func (p *PublicKey) Blind(blindingFactor nike.PrivateKey) error {
 }
 
 func (p *PublicKey) Reset() {
-	p.publicKey = new(csidh.PublicKey)
+	zeros := make([]byte, csidh.PublicKeySize)
+	err := p.FromBytes(zeros)
+	if err != nil {
+		panic(err)
+	}
 }
 
 func (p *PublicKey) Bytes() []byte {
@@ -209,7 +213,11 @@ func (p *PrivateKey) Public() nike.PublicKey {
 }
 
 func (p *PrivateKey) Reset() {
-	p.privateKey = new(csidh.PrivateKey)
+	zeros := make([]byte, csidh.PrivateKeySize)
+	err := p.FromBytes(zeros)
+	if err != nil {
+		panic(err)
+	}
 }
 
 func (p *PrivateKey) Bytes() []byte {
