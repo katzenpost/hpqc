@@ -165,6 +165,7 @@ func (p *PublicKey) Bytes() []byte {
 }
 
 func (p *PublicKey) FromBytes(b []byte) error {
+	p.publicKey = new(csidh.PublicKey)
 	ok := p.publicKey.Import(b)
 	if !ok {
 		return errors.New("csidh public key import failure")
@@ -230,6 +231,7 @@ func (p *PrivateKey) Bytes() []byte {
 }
 
 func (p *PrivateKey) FromBytes(b []byte) error {
+	p.privateKey = new(csidh.PrivateKey)
 	ok := p.privateKey.Import(b)
 	if !ok {
 		return errors.New("csidh private key import failure")

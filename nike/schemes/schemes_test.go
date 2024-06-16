@@ -55,6 +55,26 @@ func TestNIKEUnmarshaling(t *testing.T) {
 	}
 }
 
+func TestRoundTripBytes(t *testing.T) {
+	todo := All()
+
+	testNike := func(s nike.Scheme) {
+		pubkey1, privkey1, err := s.GenerateKeyPairFromEntropy(rand.Reader)
+		require.NoError(t, err)
+		pubkey2, privkey2, err := s.GenerateKeyPairFromEntropy(rand.Reader)
+		require.NoError(t, err)
+		pubkey2.FromBytes(pubkey1.Bytes())
+		require.Equal(t, pubkey1.Bytes(), pubkey2.Bytes())
+		privkey2.FromBytes(privkey1.Bytes())
+		require.Equal(t, privkey1.Bytes(), privkey2.Bytes())
+	}
+
+	for _, scheme := range todo {
+		t.Logf("testing KEM Scheme: %s", scheme.Name())
+		testNike(scheme)
+		t.Log("OK")
+	}
+}
 func TestNIKE(t *testing.T) {
 	todo := All()
 
