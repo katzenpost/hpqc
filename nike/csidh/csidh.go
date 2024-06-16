@@ -89,6 +89,11 @@ func (e *CsidhNike) GenerateKeyPair() (nike.PublicKey, nike.PrivateKey, error) {
 
 func (e *CsidhNike) DeriveSecret(privKey nike.PrivateKey, pubKey nike.PublicKey) []byte {
 	sharedSecret := &[64]byte{}
+
+	if !csidh.Validate(pubKey.(*PublicKey).publicKey, rand.Reader) {
+		panic("bad pub key")
+	}
+
 	ok := csidh.DeriveSecret(sharedSecret, pubKey.(*PublicKey).publicKey, privKey.(*PrivateKey).privateKey, rand.Reader)
 	if !ok {
 		panic("csidh.DeriveSecret failed!")
@@ -165,6 +170,7 @@ func (p *PublicKey) Bytes() []byte {
 }
 
 func (p *PublicKey) FromBytes(b []byte) error {
+	p.publicKey = new(csidh.PublicKey)
 	ok := p.publicKey.Import(b)
 	if !ok {
 		return errors.New("csidh public key import failure")
