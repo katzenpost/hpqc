@@ -7,7 +7,7 @@ require (
 	filippo.io/edwards25519 v1.0.0
 	filippo.io/mlkem768 v0.0.0-20240221181710-5ce91625fdc1
 	github.com/go-faster/xor v1.0.0
-	github.com/henrydcase/nobs v0.0.0-20230313231516-25b66236df73
+	github.com/henrydcase/nobs v0.0.0-20210422124615-3a8ac85da11b
 	github.com/katzenpost/chacha20 v0.0.0-20190910113340-7ce890d6a556
 	github.com/katzenpost/circl v1.3.9-0.20240222183521-1cd9a34e9a0c
 	github.com/katzenpost/sntrup4591761 v0.0.0-20231024131303-8755eb1986b8

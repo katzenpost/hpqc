@@ -11,6 +11,8 @@ github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/go-faster/xor v1.0.0 h1:2o8vTOgErSGHP3/7XwA5ib1FTtUsNtwCoLLBjl31X38=
 github.com/go-faster/xor v1.0.0/go.mod h1:x5CaDY9UKErKzqfRfFZdfu+OSTfoZny3w5Ak7UxcipQ=
+github.com/henrydcase/nobs v0.0.0-20210422124615-3a8ac85da11b h1:pr3HoGXC9qTsyOeON9+TZhwD0mSdJwLlG0WgMaclWlQ=
+github.com/henrydcase/nobs v0.0.0-20210422124615-3a8ac85da11b/go.mod h1:+liTPsuK0xSOSyNKhVz4h7Khig8zW4NcvxdVbzS0Jyw=
 github.com/henrydcase/nobs v0.0.0-20230313231516-25b66236df73 h1:d3rq/Tz+RJ5h1xk6Lt3jbObJN3WhvZm7rV41OCIzUyI=
 github.com/henrydcase/nobs v0.0.0-20230313231516-25b66236df73/go.mod h1:ptK2MJqVLVEa/V/oK8n+MEyUDCSjSylW+jeNmCG1DJo=
 github.com/katzenpost/chacha20 v0.0.0-20190910113340-7ce890d6a556 h1:9gHByAWH1LydGefFGorN1ZBRZ/Oz9iozdzMvRTWpyRw=
@@ -41,6 +43,7 @@ gitlab.com/xx_network/crypto v0.0.6/go.mod h1:C69/+XTiqJvKkYzcyA47+LdxvAofl9AzR/
 golang.org/x/crypto v0.18.0 h1:PGVlW0xEltQnzFZ55hkuX5+KLyrMYhHld1YHO4AKcdc=
 golang.org/x/crypto v0.18.0/go.mod h1:R0j02AL6hcrfOiy9T4ZYp/rcWeMxM3L6QYxlOuEG1mg=
 golang.org/x/sys v0.0.0-20190902133755-9109b7679e13/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
+golang.org/x/sys v0.0.0-20191120155948-bd437916bb0e/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/sys v0.1.0/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
 golang.org/x/sys v0.16.0 h1:xWw16ngr6ZMtmxDyKyIgsE93KNKz5HKmMa3b8ALHidU=
 golang.org/x/sys v0.16.0/go.mod h1:/VUhepiaJMQUp4+oa/7Zr1D23ma6VTLIYjOOTFZPUcA=
