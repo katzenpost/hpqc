@@ -11,6 +11,7 @@ import (
 	"golang.org/x/crypto/curve25519"
 
 	"github.com/katzenpost/hpqc/nike"
+	"github.com/katzenpost/hpqc/rand"
 	"github.com/katzenpost/hpqc/util"
 )
 
@@ -54,16 +55,21 @@ type PrivateKey struct {
 }
 
 func (p *PrivateKey) Public() nike.PublicKey {
-	return &p.pubKey
+	return Scheme(rand.Reader).DerivePublicKey(p)
 }
 
 func (p *PrivateKey) Reset() {
-	p.pubKey.Reset()
-	util.ExplicitBzero(p.privBytes[:])
+	b := make([]byte, PrivateKeySize)
+	err := p.FromBytes(b)
+	if err != nil {
+		panic(err)
+	}
 }
 
 func (p *PrivateKey) Bytes() []byte {
-	return p.privBytes[:]
+	b := make([]byte, PublicKeySize)
+	copy(b, p.privBytes[:])
+	return b
 }
 
 func (p *PrivateKey) FromBytes(data []byte) error {
@@ -124,7 +130,9 @@ func (p *PublicKey) Reset() {
 }
 
 func (p *PublicKey) Bytes() []byte {
-	return p.pubBytes[:]
+	b := make([]byte, PublicKeySize)
+	copy(b, p.pubBytes[:])
+	return b
 }
 
 func (p *PublicKey) rebuildB64String() {
@@ -221,7 +229,9 @@ func (e *scheme) DeriveSecret(privKey nike.PrivateKey, pubKey nike.PublicKey) []
 
 // DerivePublicKey derives a public key given a private key.
 func (e *scheme) DerivePublicKey(privKey nike.PrivateKey) nike.PublicKey {
-	return privKey.(*PrivateKey).Public()
+	pubKey := e.NewEmptyPublicKey()
+	expG(&pubKey.(*PublicKey).pubBytes, &privKey.(*PrivateKey).privBytes)
+	return pubKey
 }
 
 func (e *scheme) Blind(groupMember nike.PublicKey, blindingFactor nike.PrivateKey) nike.PublicKey {

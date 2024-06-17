@@ -11,6 +11,7 @@ import (
 	"github.com/katzenpost/circl/dh/x448"
 
 	"github.com/katzenpost/hpqc/nike"
+	"github.com/katzenpost/hpqc/rand"
 	"github.com/katzenpost/hpqc/util"
 )
 
@@ -87,7 +88,9 @@ func (e *scheme) PrivateKeySize() int {
 // via some serialization format via FromBytes
 // or FromPEMFile methods.
 func (e *scheme) NewEmptyPublicKey() nike.PublicKey {
-	return new(PublicKey)
+	return &PublicKey{
+		pubBytes: new(x448.Key),
+	}
 }
 
 // NewEmptyPrivateKey returns an uninitialized
@@ -95,7 +98,9 @@ func (e *scheme) NewEmptyPublicKey() nike.PublicKey {
 // via some serialization format via FromBytes
 // or FromPEMFile methods.
 func (e *scheme) NewEmptyPrivateKey() nike.PrivateKey {
-	return new(PrivateKey)
+	return &PrivateKey{
+		privBytes: new(x448.Key),
+	}
 }
 
 // DeriveSecret derives a shared secret given a private key
@@ -168,7 +173,9 @@ func NewKeypair(rng io.Reader) (nike.PrivateKey, error) {
 }
 
 func (p *PrivateKey) Public() nike.PublicKey {
-	return p.pubKey
+	pubKey := Scheme(rand.Reader).NewEmptyPublicKey()
+	expG(pubKey.(*PublicKey).pubBytes, p.privBytes)
+	return pubKey
 }
 
 func (p *PrivateKey) Reset() {
@@ -177,7 +184,9 @@ func (p *PrivateKey) Reset() {
 }
 
 func (p *PrivateKey) Bytes() []byte {
-	return p.privBytes[:]
+	b := make([]byte, PublicKeySize)
+	copy(b, p.privBytes[:])
+	return b
 }
 
 func (p *PrivateKey) FromBytes(data []byte) error {
@@ -239,7 +248,9 @@ func (p *PublicKey) Reset() {
 }
 
 func (p *PublicKey) Bytes() []byte {
-	return p.pubBytes[:]
+	b := make([]byte, PublicKeySize)
+	copy(b, p.pubBytes[:])
+	return b
 }
 
 func (p *PublicKey) rebuildB64String() {
