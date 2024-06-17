@@ -105,7 +105,7 @@ func (e *CsidhNike) DerivePublicKey(privKey nike.PrivateKey) nike.PublicKey {
 }
 
 func (e CsidhNike) Blind(groupMember nike.PublicKey, blindingFactor nike.PrivateKey) (blindedGroupMember nike.PublicKey) {
-	panic("Blind operation no implemented")
+	panic("Blind operation not implemented")
 }
 
 func (e *CsidhNike) NewEmptyPublicKey() nike.PublicKey {
@@ -147,7 +147,7 @@ type PublicKey struct {
 }
 
 func (p *PublicKey) Blind(blindingFactor nike.PrivateKey) error {
-	panic("Blind operation no implemented")
+	panic("Blind operation not implemented")
 }
 
 func (p *PublicKey) Reset() {
@@ -206,11 +206,7 @@ type PrivateKey struct {
 }
 
 func (p *PrivateKey) Public() nike.PublicKey {
-	pubKey := new(csidh.PublicKey)
-	csidh.GeneratePublicKey(pubKey, p.privateKey, rand.Reader)
-	return &PublicKey{
-		publicKey: pubKey,
-	}
+	return NOBS_CSIDH512Scheme.DerivePublicKey(p)
 }
 
 func (p *PrivateKey) Reset() {
