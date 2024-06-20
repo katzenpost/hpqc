@@ -8,7 +8,7 @@ import (
 	"errors"
 	"io"
 
-	"github.com/katzenpost/circl/dh/x448"
+	"github.com/katzenpost/x448"
 
 	"github.com/katzenpost/hpqc/nike"
 	"github.com/katzenpost/hpqc/rand"
@@ -89,7 +89,7 @@ func (e *scheme) PrivateKeySize() int {
 // or FromPEMFile methods.
 func (e *scheme) NewEmptyPublicKey() nike.PublicKey {
 	return &PublicKey{
-		pubBytes: new(x448.Key),
+		pubBytes: new([56]byte),
 	}
 }
 
@@ -99,7 +99,7 @@ func (e *scheme) NewEmptyPublicKey() nike.PublicKey {
 // or FromPEMFile methods.
 func (e *scheme) NewEmptyPrivateKey() nike.PrivateKey {
 	return &PrivateKey{
-		privBytes: new(x448.Key),
+		privBytes: new([56]byte),
 	}
 }
 
@@ -116,7 +116,7 @@ func (e *scheme) DerivePublicKey(privKey nike.PrivateKey) nike.PublicKey {
 }
 
 func (e *scheme) Blind(groupMember nike.PublicKey, blindingFactor nike.PrivateKey) nike.PublicKey {
-	sharedSecret := Exp(groupMember.(*PublicKey).pubBytes, blindingFactor.(*PrivateKey).privBytes)
+	sharedSecret := Exp(blindingFactor.(*PrivateKey).privBytes, groupMember.(*PublicKey).pubBytes)
 	pubKey := new(PublicKey)
 	err := pubKey.FromBytes(sharedSecret)
 	if err != nil {
@@ -147,27 +147,19 @@ func (e *scheme) UnmarshalBinaryPrivateKey(b []byte) (nike.PrivateKey, error) {
 }
 
 type PrivateKey struct {
-	pubKey    *PublicKey
-	privBytes *x448.Key
+	privBytes *[56]byte
 }
 
 func NewKeypair(rng io.Reader) (nike.PrivateKey, error) {
-	privkey := new(x448.Key)
+	privkey := new([56]byte)
 	count, err := rng.Read(privkey[:])
 	if err != nil {
 		return nil, err
 	}
-	if count != x448.Size {
+	if count != GroupElementLength {
 		return nil, errors.New("read wrong number of bytes from rng")
 	}
-	pubkey := new(x448.Key)
-	x448.KeyGen(pubkey, privkey)
-	mypubkey := &PublicKey{
-		pubBytes: pubkey,
-	}
-	mypubkey.rebuildB64String()
 	return &PrivateKey{
-		pubKey:    mypubkey,
 		privBytes: privkey,
 	}, nil
 }
@@ -179,8 +171,11 @@ func (p *PrivateKey) Public() nike.PublicKey {
 }
 
 func (p *PrivateKey) Reset() {
-	p.pubKey.Reset()
-	util.ExplicitBzero(p.privBytes[:])
+	zeros := make([]byte, PrivateKeySize)
+	err := p.FromBytes(zeros)
+	if err != nil {
+		panic(err)
+	}
 }
 
 func (p *PrivateKey) Bytes() []byte {
@@ -194,14 +189,8 @@ func (p *PrivateKey) FromBytes(data []byte) error {
 		return errInvalidKey
 	}
 
-	p.privBytes = new(x448.Key)
+	p.privBytes = new([56]byte)
 	copy(p.privBytes[:], data)
-
-	p.pubKey = &PublicKey{
-		pubBytes: new(x448.Key),
-	}
-	expG(p.pubKey.pubBytes, p.privBytes)
-	p.pubKey.rebuildB64String()
 
 	return nil
 }
@@ -227,8 +216,7 @@ func (p *PrivateKey) UnmarshalText(data []byte) error {
 }
 
 type PublicKey struct {
-	pubBytes  *x448.Key
-	b64String string
+	pubBytes *[56]byte
 }
 
 func (p *PublicKey) Blind(blindingFactor nike.PrivateKey) error {
@@ -236,15 +224,18 @@ func (p *PublicKey) Blind(blindingFactor nike.PrivateKey) error {
 	if !ok {
 		return errors.New("blindingFactor nike.PrivateKey must be the same concrete type as x448.PublicKey")
 	}
-	pubBytes := Exp(p.pubBytes, blindingFactor.(*PrivateKey).privBytes)
+	pubBytes := Exp(blindingFactor.(*PrivateKey).privBytes, p.pubBytes)
 	copy(p.pubBytes[:], pubBytes)
 	util.ExplicitBzero(pubBytes)
 	return nil
 }
 
 func (p *PublicKey) Reset() {
-	util.ExplicitBzero(p.pubBytes[:])
-	p.b64String = "[scrubbed]"
+	zeros := make([]byte, PublicKeySize)
+	err := p.FromBytes(zeros)
+	if err != nil {
+		panic(err)
+	}
 }
 
 func (p *PublicKey) Bytes() []byte {
@@ -253,18 +244,13 @@ func (p *PublicKey) Bytes() []byte {
 	return b
 }
 
-func (p *PublicKey) rebuildB64String() {
-	p.b64String = base64.StdEncoding.EncodeToString(p.Bytes())
-}
-
 func (p *PublicKey) FromBytes(data []byte) error {
 	if len(data) != PublicKeySize {
 		return errInvalidKey
 	}
 
-	p.pubBytes = new(x448.Key)
+	p.pubBytes = new([56]byte)
 	copy(p.pubBytes[:], data)
-	p.rebuildB64String()
 
 	return nil
 }
@@ -290,21 +276,12 @@ func (p *PublicKey) UnmarshalText(data []byte) error {
 }
 
 // Exp returns the group element, the result of x^y, over the ECDH group.
-func Exp(x, y *x448.Key) []byte {
-	if len(x) != GroupElementLength {
-		panic(errInvalidKey)
-	}
-	if len(y) != GroupElementLength {
-		panic(errInvalidKey)
-	}
-	sharedSecret := new(x448.Key)
-	ok := x448.Shared(sharedSecret, x, y)
-	if !ok {
-		panic("x448.Shared failed")
-	}
+func Exp(x, y *[56]byte) []byte {
+	sharedSecret := new([56]byte)
+	x448.ScalarMult(sharedSecret, x, y)
 	return sharedSecret[:]
 }
 
-func expG(dst, y *x448.Key) {
-	x448.KeyGen(dst, y)
+func expG(dst, y *[56]byte) {
+	x448.ScalarBaseMult(dst, y)
 }
