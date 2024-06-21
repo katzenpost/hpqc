@@ -24,7 +24,10 @@ var potentialSchemes = [...]nike.Scheme{
 	ctidh2048.Scheme(),
 
 	// hybrid NIKE schemes
-	hybrid.CTIDH511X25519,
+
+	// see ticket https://github.com/katzenpost/hpqc/issues/34
+	//hybrid.CTIDH511X25519,
+
 	hybrid.CTIDH512X25519,
 	hybrid.CTIDH1024X25519,
 	hybrid.CTIDH2048X25519,
