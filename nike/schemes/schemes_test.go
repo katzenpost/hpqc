@@ -4,6 +4,7 @@
 package schemes
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -76,6 +77,7 @@ func TestRoundTripBytes(t *testing.T) {
 		t.Log("OK")
 	}
 }
+
 func TestNIKEOps(t *testing.T) {
 	todo := All()
 
@@ -120,6 +122,25 @@ func TestNIKEOps(t *testing.T) {
 		privkey2.Reset()
 		privBlob2 := privkey2.Bytes()
 		require.NotEqual(t, privBlob1, privBlob2)
+
+		if strings.Contains(s.Name(), "NOBS") {
+			return
+		}
+
+		// blinding operations test
+		mixPub, mixPriv, err := s.GenerateKeyPairFromEntropy(rand.Reader)
+		require.NoError(t, err)
+		clientPub, clientPriv, err := s.GenerateKeyPairFromEntropy(rand.Reader)
+		require.NoError(t, err)
+		blindingFactor := s.GeneratePrivateKey(rand.Reader)
+		pubkey1, err = s.UnmarshalBinaryPublicKey(s.DeriveSecret(clientPriv, mixPub))
+		require.NoError(t, err)
+		value1 := s.Blind(pubkey1, blindingFactor)
+		require.NoError(t, err)
+		blinded := s.Blind(clientPub, blindingFactor)
+		require.NoError(t, err)
+		value2 := s.DeriveSecret(mixPriv, blinded)
+		require.Equal(t, value1.Bytes(), value2)
 	}
 
 	for _, scheme := range todo {

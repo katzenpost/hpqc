@@ -191,6 +191,7 @@ func (p *PrivateKey) FromBytes(data []byte) error {
 	if len(data) != Scheme().PrivateKeySize() {
 		return fmt.Errorf("invalid key size, expected %d but got %d", Scheme().PrivateKeySize(), len(data))
 	}
+	p.privateKey = new(cyclic.Int)
 	return p.privateKey.BinaryDecode(data)
 }
 
@@ -251,6 +252,7 @@ func (p *PublicKey) FromBytes(data []byte) error {
 	if len(data) != Scheme().PublicKeySize() {
 		return fmt.Errorf("invalid key size, expected %d but got %d", Scheme().PublicKeySize(), len(data))
 	}
+	p.publicKey = new(cyclic.Int)
 	err := p.publicKey.BinaryDecode(data)
 	if err != nil {
 		return nil
