@@ -77,6 +77,7 @@ func TestRoundTripBytes(t *testing.T) {
 		t.Log("OK")
 	}
 }
+
 func TestNIKEOps(t *testing.T) {
 	todo := All()
 
