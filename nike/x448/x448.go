@@ -8,7 +8,7 @@ import (
 	"errors"
 	"io"
 
-	"github.com/katzenpost/x448"
+	"github.com/katzenpost/circl/dh/x448"
 
 	"github.com/katzenpost/hpqc/nike"
 	"github.com/katzenpost/hpqc/rand"
@@ -89,7 +89,7 @@ func (e *scheme) PrivateKeySize() int {
 // or FromPEMFile methods.
 func (e *scheme) NewEmptyPublicKey() nike.PublicKey {
 	return &PublicKey{
-		pubBytes: new([56]byte),
+		pubBytes: new(x448.Key),
 	}
 }
 
@@ -99,7 +99,7 @@ func (e *scheme) NewEmptyPublicKey() nike.PublicKey {
 // or FromPEMFile methods.
 func (e *scheme) NewEmptyPrivateKey() nike.PrivateKey {
 	return &PrivateKey{
-		privBytes: new([56]byte),
+		privBytes: new(x448.Key),
 	}
 }
 
@@ -147,11 +147,11 @@ func (e *scheme) UnmarshalBinaryPrivateKey(b []byte) (nike.PrivateKey, error) {
 }
 
 type PrivateKey struct {
-	privBytes *[56]byte
+	privBytes *x448.Key
 }
 
 func NewKeypair(rng io.Reader) (nike.PrivateKey, error) {
-	privkey := new([56]byte)
+	privkey := new(x448.Key)
 	count, err := rng.Read(privkey[:])
 	if err != nil {
 		return nil, err
@@ -189,7 +189,7 @@ func (p *PrivateKey) FromBytes(data []byte) error {
 		return errInvalidKey
 	}
 
-	p.privBytes = new([56]byte)
+	p.privBytes = new(x448.Key)
 	copy(p.privBytes[:], data)
 
 	return nil
@@ -216,7 +216,7 @@ func (p *PrivateKey) UnmarshalText(data []byte) error {
 }
 
 type PublicKey struct {
-	pubBytes *[56]byte
+	pubBytes *x448.Key
 }
 
 func (p *PublicKey) Blind(blindingFactor nike.PrivateKey) error {
@@ -249,7 +249,7 @@ func (p *PublicKey) FromBytes(data []byte) error {
 		return errInvalidKey
 	}
 
-	p.pubBytes = new([56]byte)
+	p.pubBytes = new(x448.Key)
 	copy(p.pubBytes[:], data)
 
 	return nil
@@ -276,12 +276,15 @@ func (p *PublicKey) UnmarshalText(data []byte) error {
 }
 
 // Exp returns the group element, the result of x^y, over the ECDH group.
-func Exp(x, y *[56]byte) []byte {
-	sharedSecret := new([56]byte)
-	x448.ScalarMult(sharedSecret, x, y)
+func Exp(x, y *x448.Key) []byte {
+	sharedSecret := new(x448.Key)
+	ok := x448.Shared(sharedSecret, x, y)
+	if !ok {
+		panic("x448.Shared failed")
+	}
 	return sharedSecret[:]
 }
 
-func expG(dst, y *[56]byte) {
-	x448.ScalarBaseMult(dst, y)
+func expG(dst, y *x448.Key) {
+	x448.KeyGen(dst, y)
 }
