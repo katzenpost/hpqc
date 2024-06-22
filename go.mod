@@ -12,7 +12,6 @@ require (
 	github.com/katzenpost/circl v1.3.9-0.20240222183521-1cd9a34e9a0c
 	github.com/katzenpost/sntrup4591761 v0.0.0-20231024131303-8755eb1986b8
 	github.com/katzenpost/sphincsplus v0.0.2-0.20240114192234-1dc77b544e31
-	github.com/katzenpost/x448 v0.0.0-20240620191025-0d4bb125d9c5
 	github.com/stretchr/testify v1.8.4
 	gitlab.com/elixxir/crypto v0.0.9
 	gitlab.com/xx_network/crypto v0.0.6
