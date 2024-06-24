@@ -19,6 +19,7 @@ import (
 	"github.com/katzenpost/hpqc/kem"
 	"github.com/katzenpost/hpqc/kem/pem"
 	"github.com/katzenpost/hpqc/kem/util"
+	"golang.org/x/crypto/blake2b"
 )
 
 var (
@@ -73,7 +74,7 @@ func (sch *Scheme) SeedSize() int {
 }
 
 func (sch *Scheme) SharedKeySize() int {
-	return sch.first.SharedKeySize() + sch.second.SharedKeySize()
+	return blake2b.Size256
 }
 
 func (sch *Scheme) CiphertextSize() int {
@@ -177,9 +178,7 @@ func (sch *Scheme) Encapsulate(pk kem.PublicKey) (ct, ss []byte, err error) {
 		return nil, nil, err
 	}
 
-	ss = util.PairSplitPRF(ss1, ss2, ct1, ct2)
-
-	return append(ct1, ct2...), ss, nil
+	return append(ct1, ct2...), util.PairSplitPRF(ss1, ss2, ct1, ct2), nil
 }
 
 func (sch *Scheme) EncapsulateDeterministically(publicKey kem.PublicKey, seed []byte) (ct, ss []byte, err error) {

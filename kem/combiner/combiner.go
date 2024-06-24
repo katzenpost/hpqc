@@ -30,6 +30,7 @@ import (
 	"github.com/katzenpost/hpqc/kem"
 	"github.com/katzenpost/hpqc/kem/pem"
 	"github.com/katzenpost/hpqc/kem/util"
+	"golang.org/x/crypto/blake2b"
 )
 
 var (
@@ -208,11 +209,7 @@ func (sch *Scheme) SeedSize() int {
 
 // SharedKeySize returns the KEM's shared key size in bytes.
 func (sch *Scheme) SharedKeySize() int {
-	sum := 0
-	for _, s := range sch.schemes {
-		sum += s.SharedKeySize()
-	}
-	return sum
+	return blake2b.Size256
 }
 
 // CiphertextSize returns the KEM's ciphertext size in bytes.
