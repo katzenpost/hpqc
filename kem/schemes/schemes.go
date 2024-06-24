@@ -86,16 +86,13 @@ var allSchemes = []kem.Scheme{
 			mlkem768.Scheme(),
 		},
 	),
-
-	/* doesn't work on arm64 for some reason
 	combiner.New(
-		"DH4096_RFC3526-MLKEM768",
+		"MLKEM768-X448",
 		[]kem.Scheme{
-			adapter.FromNIKE(diffiehellman.Scheme()),
+			adapter.FromNIKE(x448.Scheme(rand.Reader)),
 			mlkem768.Scheme(),
 		},
 	),
-	*/
 }
 
 var allSchemeNames map[string]kem.Scheme
