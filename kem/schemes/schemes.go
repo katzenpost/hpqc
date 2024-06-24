@@ -4,8 +4,6 @@ import (
 	"strings"
 
 	"github.com/katzenpost/circl/kem/frodo/frodo640shake"
-	"github.com/katzenpost/circl/kem/kyber/kyber1024"
-	"github.com/katzenpost/circl/kem/kyber/kyber512"
 	"github.com/katzenpost/circl/kem/kyber/kyber768"
 	"github.com/katzenpost/circl/kem/mceliece/mceliece348864"
 	"github.com/katzenpost/circl/kem/mceliece/mceliece348864f"
@@ -55,15 +53,8 @@ var allSchemes = []kem.Scheme{
 	// post quantum KEM schemes
 
 	mlkem768.Scheme(),
-
 	sntrup.Scheme(),
-
-	kyber512.Scheme(),
-	kyber768.Scheme(),
-	kyber1024.Scheme(),
-
 	frodo640shake.Scheme(),
-
 	mceliece348864.Scheme(),
 	mceliece348864f.Scheme(),
 	mceliece460896.Scheme(),

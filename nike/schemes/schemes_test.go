@@ -23,6 +23,7 @@ func TestNIKEUnmarshaling(t *testing.T) {
 
 		pubkey1Blob, err := pubkey1.MarshalBinary()
 		require.NoError(t, err)
+		require.Equal(t, s.PublicKeySize(), len(pubkey1Blob))
 
 		t.Logf("pubkey1Blob is len %d", len(pubkey1Blob))
 
@@ -36,6 +37,7 @@ func TestNIKEUnmarshaling(t *testing.T) {
 
 		privkey1blob, err := privkey1.MarshalBinary()
 		require.NoError(t, err)
+		require.Equal(t, s.PrivateKeySize(), len(privkey1blob))
 
 		t.Logf("privkey1blob is len %d", len(privkey1blob))
 		refBytes = privkey1.Bytes()
@@ -48,6 +50,7 @@ func TestNIKEUnmarshaling(t *testing.T) {
 		require.NoError(t, err)
 
 		require.Equal(t, refBytes, privkey2.Bytes())
+		require.Equal(t, s.PrivateKeySize(), len(privkey2.Bytes()))
 	}
 
 	for _, scheme := range todo {
