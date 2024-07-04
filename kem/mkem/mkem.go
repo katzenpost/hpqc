@@ -14,12 +14,6 @@ import (
 	"github.com/katzenpost/hpqc/nike"
 )
 
-type MKEMCiphertext struct {
-	EphemeralPublicKey *PublicKey
-	DEKCiphertexts     [][]byte
-	SecretCiphertext   []byte
-}
-
 // Scheme is an MKEM scheme.
 type Scheme struct {
 	nike nike.Scheme
@@ -73,7 +67,7 @@ func (s *Scheme) decrypt(key []byte, ciphertext []byte) ([]byte, error) {
 	return aead.Open(nil, nonce, ciphertext, nil)
 }
 
-func (s *Scheme) Encapsulate(keys []*PublicKey, sharedSecret []byte) *MKEMCiphertext {
+func (s *Scheme) Encapsulate(keys []*PublicKey, sharedSecret []byte) []byte {
 	ephPub, ephPriv, err := s.nike.GenerateKeyPair()
 	if err != nil {
 		panic(err)
@@ -96,16 +90,22 @@ func (s *Scheme) Encapsulate(keys []*PublicKey, sharedSecret []byte) *MKEMCipher
 		outCiphertexts[i] = s.encrypt(secrets[i][:], msgKey)
 	}
 
-	return &MKEMCiphertext{
+	c := &Ciphertext{
 		EphemeralPublicKey: &PublicKey{
 			publicKey: ephPub,
 		},
 		DEKCiphertexts:   outCiphertexts,
 		SecretCiphertext: secretCiphertext,
 	}
+	return c.Marshal()
 }
 
-func (s *Scheme) Decapsulate(privkey *PrivateKey, c *MKEMCiphertext) ([]byte, error) {
+func (s *Scheme) Decapsulate(privkey *PrivateKey, ciphertext []byte) ([]byte, error) {
+	c, err := CiphertextFromBytes(s, ciphertext)
+	if err != nil {
+		return nil, err
+	}
+
 	ephSecret := hash.Sum256(s.nike.DeriveSecret(privkey.privateKey, c.EphemeralPublicKey.publicKey))
 	for i := 0; i < len(c.DEKCiphertexts); i++ {
 		msgKey, err := s.decrypt(ephSecret[:], c.DEKCiphertexts[i])
