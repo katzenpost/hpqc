@@ -27,7 +27,6 @@ import (
 	"github.com/katzenpost/hpqc/nike/ctidh/ctidh2048"
 	"github.com/katzenpost/hpqc/nike/ctidh/ctidh511"
 	"github.com/katzenpost/hpqc/nike/ctidh/ctidh512"
-	"github.com/katzenpost/hpqc/nike/diffiehellman"
 	"github.com/katzenpost/hpqc/nike/x25519"
 	"github.com/katzenpost/hpqc/nike/x448"
 	"github.com/katzenpost/hpqc/rand"
@@ -66,7 +65,7 @@ var allSchemes = []kem.Scheme{
 
 	// Classical DiffieHellman imeplementation has a bug with this ticket:
 	// https://github.com/katzenpost/hpqc/issues/39
-	adapter.FromNIKE(diffiehellman.Scheme()),
+	//adapter.FromNIKE(diffiehellman.Scheme()),
 
 	adapter.FromNIKE(x25519.Scheme(rand.Reader)),
 	adapter.FromNIKE(x448.Scheme(rand.Reader)),

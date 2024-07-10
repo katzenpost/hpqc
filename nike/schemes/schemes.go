@@ -8,7 +8,6 @@ import (
 	"github.com/katzenpost/hpqc/nike/ctidh/ctidh2048"
 	"github.com/katzenpost/hpqc/nike/ctidh/ctidh511"
 	"github.com/katzenpost/hpqc/nike/ctidh/ctidh512"
-	"github.com/katzenpost/hpqc/nike/diffiehellman"
 	"github.com/katzenpost/hpqc/nike/hybrid"
 	"github.com/katzenpost/hpqc/nike/x25519"
 	"github.com/katzenpost/hpqc/nike/x448"
@@ -45,7 +44,7 @@ var allSchemes = []nike.Scheme{
 
 	// Classical DiffieHellman imeplementation has a bug with this ticket:
 	// https://github.com/katzenpost/hpqc/issues/39
-	diffiehellman.Scheme(),
+	//diffiehellman.Scheme(),
 }
 
 var allSchemeNames map[string]nike.Scheme
