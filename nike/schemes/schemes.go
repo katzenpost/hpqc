@@ -29,8 +29,8 @@ var potentialSchemes = [...]nike.Scheme{
 	//hybrid.CTIDH511X25519,
 
 	hybrid.CTIDH512X25519,
-	hybrid.CTIDH1024X25519,
-	hybrid.CTIDH2048X25519,
+	hybrid.CTIDH1024X448,
+	hybrid.CTIDH2048X448,
 
 	// NOBS CSIDH doesn't work on arm32
 	// XXX TODO: deprecate and remove.
@@ -42,6 +42,9 @@ var allSchemes = []nike.Scheme{
 	// classical NIKE schemes
 	x25519.Scheme(rand.Reader),
 	x448.Scheme(rand.Reader),
+
+	// Classical DiffieHellman imeplementation has a bug with this ticket:
+	// https://github.com/katzenpost/hpqc/issues/39
 	diffiehellman.Scheme(),
 }
 
