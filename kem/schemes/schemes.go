@@ -27,7 +27,6 @@ import (
 	"github.com/katzenpost/hpqc/nike/ctidh/ctidh2048"
 	"github.com/katzenpost/hpqc/nike/ctidh/ctidh511"
 	"github.com/katzenpost/hpqc/nike/ctidh/ctidh512"
-	"github.com/katzenpost/hpqc/nike/diffiehellman"
 	"github.com/katzenpost/hpqc/nike/x25519"
 	"github.com/katzenpost/hpqc/nike/x448"
 	"github.com/katzenpost/hpqc/rand"
@@ -35,18 +34,39 @@ import (
 
 var potentialSchemes = [...]kem.Scheme{
 
-	// post quantum KEM schemes
+	// PQ KEMs
 
 	adapter.FromNIKE(ctidh511.Scheme()),
 	adapter.FromNIKE(ctidh512.Scheme()),
 	adapter.FromNIKE(ctidh1024.Scheme()),
 	adapter.FromNIKE(ctidh2048.Scheme()),
+
+	// hybrid KEMs
+
+	combiner.New(
+		"CTIDH512-X25519",
+		[]kem.Scheme{
+			adapter.FromNIKE(ctidh512.Scheme()),
+			adapter.FromNIKE(x25519.Scheme(rand.Reader)),
+		},
+	),
+	combiner.New(
+		"CTIDH1024-X448",
+		[]kem.Scheme{
+			adapter.FromNIKE(ctidh1024.Scheme()),
+			adapter.FromNIKE(x448.Scheme(rand.Reader)),
+		},
+	),
 }
 
 var allSchemes = []kem.Scheme{
 
 	// classical KEM schemes (converted from NIKE via hashed elgamal construction)
-	adapter.FromNIKE(diffiehellman.Scheme()),
+
+	// Classical DiffieHellman imeplementation has a bug with this ticket:
+	// https://github.com/katzenpost/hpqc/issues/39
+	//adapter.FromNIKE(diffiehellman.Scheme()),
+
 	adapter.FromNIKE(x25519.Scheme(rand.Reader)),
 	adapter.FromNIKE(x448.Scheme(rand.Reader)),
 
@@ -78,7 +98,8 @@ var allSchemes = []kem.Scheme{
 		kyber768.Scheme(),
 	),
 
-	// An alternative to Xwing using a generic and secure KEM combiner.
+	// If Xwing is not the PQ Hybrid KEM you are looking for then we recommend
+	// using our secure generic KEM combiner:
 	combiner.New(
 		"MLKEM768-X25519",
 		[]kem.Scheme{
