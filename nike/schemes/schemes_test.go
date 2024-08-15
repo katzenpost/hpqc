@@ -12,6 +12,7 @@ import (
 	"github.com/katzenpost/hpqc/nike"
 	"github.com/katzenpost/hpqc/rand"
 	"github.com/katzenpost/hpqc/util"
+	"github.com/katzenpost/hpqc/nike/x25519"
 )
 
 func TestNIKEUnmarshaling(t *testing.T) {
@@ -150,5 +151,27 @@ func TestNIKEOps(t *testing.T) {
 		t.Logf("testing NIKE Scheme: %s", scheme.Name())
 		testNike(scheme)
 		t.Log("OK")
+	}
+}
+
+func BenchmarkNIKE(b *testing.B) {
+	benchSchemes := []nike.Scheme{
+		x25519.Scheme(rand.Reader),
+	}
+	for _, scheme := range benchSchemes {
+		scheme := scheme
+		_, privkey1, err := scheme.GenerateKeyPairFromEntropy(rand.Reader)
+		if err != nil {
+			panic(err)
+		}
+		pubkey2, _, err := scheme.GenerateKeyPairFromEntropy(rand.Reader)
+		if err != nil {
+			panic(err)
+		}
+		b.Run(scheme.Name(), func(b *testing.B) {
+			for i := 0; i < b.N; i++ {
+				_ = scheme.DeriveSecret(privkey1, pubkey2)
+			}
+		})
 	}
 }
