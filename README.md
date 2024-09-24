@@ -83,14 +83,15 @@ func SplitPRF(ss1, ss2, ss3, cct1, cct2, cct3 []byte) []byte {
 * X25519
 * X448
 * CTIDH511, CTIDH512, CTIDH1024, CTIDH2048
-* X25519_CTIDH511, X25519_CTIDH512, X25519_CTIDH1024, X25519_CTIDH2048
-* NOBS_CSIDH-512
+* CTIDH512X25519, CTIDH512X448, CTIDH1024X25519, CTIDH1024X448, CTIDH2048X448
 * X25519_NOBS_CSIDH-512
 
 | KEM: Key Encapsulation Methods |
 |:---:|
-* X25519 (adapted via ad hoc hashed elgamal construction)
-* CTIDH1024 (adapted via ad hoc hashed elgamal construction)
+* X25519
+* CTIDH1024
+* CTIDH512-X25519
+* CTIDH1024-X448
 * MLKEM-768
 * Xwing
 * McEliece
