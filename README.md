@@ -20,14 +20,81 @@ The theme of the library is hybrid post quantum cryptographic constructions, nam
 
 This library makes some unique contributions in golang:
 
-1. a set of generic NIKE interfaces for NIKE scheme, public key and private key types
-2. generic hybrid NIKE, combines any two NIKEs into one
-3. secure KEM combiner that can combine an arbtrary number of KEMs into one KEM
-4. a "NIKE to KEM adapter" which uses an ad hoc hashed elgamal construction
-5. cgo bindings for the Sphincs+ C reference source
-6. cgo bindings for the CTIDH C source
-7. generic hybrid signature scheme, combines any two signature schemes into one
+* Use our generic NIKE, KEM and Signature scheme interfaces to help you achieve cryptographic agility:
 
+```golang
+import ""github.com/katzenpost/hpqc/kem"
+
+func encryptMessage(publicKey kem.PublicKey, scheme kem.Scheme, message []byte) {
+        ct, ss, err := scheme.Encapsulate(publicKey)
+		if err != nil {
+		        panic(err)
+		}
+		// ...
+}
+```
+
+* a "NIKE to KEM adapter" which uses an ad hoc hashed elgamal construction.
+  The following example code snippet demonstrates how our NIKE to KEM adapter
+  satisfies the KEM interfaces and thus can be combined with other KEMs.
+
+* Securely combine any number of NIKEs and KEMs together into a hybrid KEM:
+
+```golang
+import (
+	"github.com/katzenpost/hpqc/kem"
+	"github.com/katzenpost/hpqc/kem/adapter"
+	"github.com/katzenpost/hpqc/kem/combiner"
+	"github.com/katzenpost/hpqc/kem/hybrid"
+	"github.com/katzenpost/hpqc/kem/mlkem768"
+	"github.com/katzenpost/circl/kem/frodo/frodo640shake"
+	"github.com/katzenpost/hpqc/nike/x448"
+	"github.com/katzenpost/hpqc/nike/ctidh/ctidh1024"
+)
+
+var kemScheme kem.Scheme = combiner.New(
+		"MLKEM768-Frodo640Shake-CTIDH1024-X448",
+		[]kem.Scheme{
+		    mlkem768.Scheme(),
+			frodo640shake.Scheme(),
+			adapter.FromNIKE(ctidh1024.Scheme()),
+			adapter.FromNIKE(x448.Scheme(rand.Reader)),
+		},
+)
+```
+
+Cryptographic agility means that if your double ratchet is already using the NIKE interfaces,
+then it's trivial to upgrade it to use a hybrid NIKE which appeases the exact same interfaces:
+
+```golang
+import (
+	"github.com/katzenpost/hpqc/nike"
+	"github.com/katzenpost/hpqc/nike/ctidh/ctidh1024"
+	"github.com/katzenpost/hpqc/nike/x25519"
+	"github.com/katzenpost/hpqc/rand"
+)
+
+var CTIDH1024X25519 nike.Scheme = &hybrid.Scheme{
+	name:   "CTIDH1024-X25519",
+	second: ctidh1024.Scheme(),
+	first:  x25519.Scheme(rand.Reader),
+}
+```
+
+* cgo bindings for the Sphincs+ C reference source
+* cgo bindings for the CTIDH C source
+
+* generic hybrid signature scheme, combines any two signature schemes into one
+
+```golang
+import (
+	"github.com/katzenpost/hpqc/sign/hybrid"
+	"github.com/katzenpost/hpqc/sign/ed25519"
+	"github.com/katzenpost/hpqc/sign/sphincsplus"
+)
+
+var Ed25519Sphincs = hybrid.New("Ed25519 Sphincs+", ed25519.Scheme(), sphincsplus.Scheme())
+```
 
 
 
