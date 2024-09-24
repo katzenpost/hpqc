@@ -18,9 +18,14 @@ The theme of the library is hybrid post quantum cryptographic constructions, nam
 * hybrid NIKEs
 * hybrid signature schemes
 
-This library makes some unique contributions in golang:
 
-* Use our generic NIKE, KEM and Signature scheme interfaces to help you achieve cryptographic agility:
+The key to understanding and using this cryptography library is to review the `Scheme` interfaces:
+
+* KEM Scheme: https://pkg.go.dev/github.com/katzenpost/hpqc@v0.0.44/kem#Scheme
+* NIKE Scheme: https://pkg.go.dev/github.com/katzenpost/hpqc@v0.0.44/nike#Scheme
+* Signature Scheme: https://pkg.go.dev/github.com/katzenpost/hpqc@v0.0.44/sign#Scheme
+
+Use our generic NIKE, KEM and Signature scheme interfaces to help you achieve cryptographic agility:
 
 ```golang
 import ""github.com/katzenpost/hpqc/kem"
@@ -173,6 +178,10 @@ func SplitPRF(ss1, ss2, ss3, cct1, cct2, cct3 []byte) []byte {
 * ed25519_sphincs+
 * ed25519_dilithium2/3
 
+
+## Warning
+
+This cryptography library has not had any review. It should be considered experimental.
 
 
 ## licensing
