@@ -29,6 +29,7 @@ var potentialSchemes = [...]nike.Scheme{
 
 	hybrid.CTIDH512X25519,
 	hybrid.CTIDH512X448,
+	hybrid.CTIDH1024X25519,
 	hybrid.CTIDH1024X448,
 	hybrid.CTIDH2048X448,
 
