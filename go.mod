@@ -3,7 +3,7 @@ module github.com/katzenpost/hpqc
 go 1.21.3
 
 require (
-	codeberg.org/vula/highctidh v1.0.2024053000
+	codeberg.org/vula/highctidh v1.0.2024092800
 	filippo.io/edwards25519 v1.0.0
 	filippo.io/mlkem768 v0.0.0-20240221181710-5ce91625fdc1
 	github.com/go-faster/xor v1.0.0
