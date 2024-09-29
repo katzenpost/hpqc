@@ -86,9 +86,6 @@ var CTIDH1024X25519 nike.Scheme = &hybrid.Scheme{
 }
 ```
 
-* cgo bindings for the Sphincs+ C reference source
-* cgo bindings for the CTIDH C source
-
 * generic hybrid signature scheme, combines any two signature schemes into one
 
 ```golang
@@ -145,6 +142,33 @@ func SplitPRF(ss1, ss2, ss3, cct1, cct2, cct3 []byte) []byte {
 ```
 
 
+## The PQ NIKE: CTIDH via highctidh
+
+This library makes available the post quantum NIKE (non-interactive key exchange) known as [CTIDH](https://ctidh.isogeny.org/)
+via CGO bindings. However these CGO bindings are now being maintained by the highctidh fork: https://codeberg.org/vula/highctidh.git
+That having been said, if you are going to use CTIDH you'll want to read the highctidh README; 
+here we reproduce some of the notes about the golang cgo bindings:
+
+
+### musl libc and cgo
+
+The Golang bindings are compatable with musl libc for field sizes 511
+and 512 without any configuration. For field sizes of 1024 and 2048,
+Golang users building with musl libc will need to set an environment
+variable to increase the default stack size at build time. The stack
+size should be a multiple of the page size.
+
+For GNU/Linux:
+
+```
+CGO_LDFLAGS: -Wl,-z,stack-size=0x1F40000
+```
+For MacOS:
+
+```
+CGO_LDFLAGS: -Wl,-stack_size,0x1F40000
+```
+
 
 ## cryptographic primitives
 
@@ -181,7 +205,7 @@ func SplitPRF(ss1, ss2, ss3, cct1, cct2, cct3 []byte) []byte {
 
 ## Warning
 
-This cryptography library has not had any review. It should be considered experimental.
+This cryptography library has not had any security review. It should be considered experimental.
 
 
 ## licensing
