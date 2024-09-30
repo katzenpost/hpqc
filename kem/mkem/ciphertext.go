@@ -14,13 +14,13 @@ var (
 type Ciphertext struct {
 	EphemeralPublicKey *PublicKey
 	DEKCiphertexts     [][]byte
-	SecretCiphertext   []byte
+	Envelope           []byte
 }
 
 type IntermediaryCiphertext struct {
 	EphemeralPublicKey []byte
 	DEKCiphertexts     [][]byte
-	SecretCiphertext   []byte
+	Envelope           []byte
 }
 
 func (i *IntermediaryCiphertext) Bytes() []byte {
@@ -53,8 +53,8 @@ func CiphertextFromBytes(scheme *Scheme, b []byte) (*Ciphertext, error) {
 		EphemeralPublicKey: &PublicKey{
 			publicKey: pubkey,
 		},
-		DEKCiphertexts:   ic.DEKCiphertexts,
-		SecretCiphertext: ic.SecretCiphertext,
+		DEKCiphertexts: ic.DEKCiphertexts,
+		Envelope:       ic.Envelope,
 	}
 	return c, nil
 }
@@ -63,7 +63,7 @@ func (m *Ciphertext) Marshal() []byte {
 	ic := &IntermediaryCiphertext{
 		EphemeralPublicKey: m.EphemeralPublicKey.publicKey.Bytes(),
 		DEKCiphertexts:     m.DEKCiphertexts,
-		SecretCiphertext:   m.SecretCiphertext,
+		Envelope:           m.Envelope,
 	}
 	return ic.Bytes()
 }

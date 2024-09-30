@@ -67,7 +67,34 @@ func (s *Scheme) decrypt(key []byte, ciphertext []byte) ([]byte, error) {
 	return aead.Open(nil, nonce, ciphertext, nil)
 }
 
-func (s *Scheme) Encapsulate(keys []*PublicKey, sharedSecret []byte) []byte {
+func (s *Scheme) EnvelopeReply(privkey *PrivateKey, pubkey *PublicKey, plaintext []byte) []byte {
+	secret := hash.Sum256(s.nike.DeriveSecret(privkey.privateKey, pubkey.publicKey))
+	ciphertext := s.encrypt(secret[:], plaintext)
+	c := &Ciphertext{
+		EphemeralPublicKey: &PublicKey{
+			publicKey: pubkey.publicKey,
+		},
+		DEKCiphertexts: nil,
+		Envelope:       ciphertext,
+	}
+	return c.Marshal()
+}
+
+func (s *Scheme) DecryptEnvelope(privkey *PrivateKey, pubkey *PublicKey, ciphertext []byte) ([]byte, error) {
+	c, err := CiphertextFromBytes(s, ciphertext)
+	if err != nil {
+		return nil, err
+	}
+
+	secret := hash.Sum256(s.nike.DeriveSecret(privkey.privateKey, pubkey.publicKey))
+	plaintext, err := s.decrypt(secret[:], c.Envelope)
+	if err != nil {
+		return nil, err
+	}
+	return plaintext, nil
+}
+
+func (s *Scheme) Encapsulate(keys []*PublicKey, payload []byte) (*PrivateKey, []byte) {
 	ephPub, ephPriv, err := s.nike.GenerateKeyPair()
 	if err != nil {
 		panic(err)
@@ -83,7 +110,7 @@ func (s *Scheme) Encapsulate(keys []*PublicKey, sharedSecret []byte) []byte {
 	if err != nil {
 		panic(err)
 	}
-	secretCiphertext := s.encrypt(msgKey, sharedSecret)
+	ciphertext := s.encrypt(msgKey, payload)
 
 	outCiphertexts := make([][]byte, len(secrets))
 	for i := 0; i < len(secrets); i++ {
@@ -94,10 +121,12 @@ func (s *Scheme) Encapsulate(keys []*PublicKey, sharedSecret []byte) []byte {
 		EphemeralPublicKey: &PublicKey{
 			publicKey: ephPub,
 		},
-		DEKCiphertexts:   outCiphertexts,
-		SecretCiphertext: secretCiphertext,
+		DEKCiphertexts: outCiphertexts,
+		Envelope:       ciphertext,
 	}
-	return c.Marshal()
+	return &PrivateKey{
+		privateKey: ephPriv,
+	}, c.Marshal()
 }
 
 func (s *Scheme) Decapsulate(privkey *PrivateKey, ciphertext []byte) ([]byte, error) {
@@ -112,7 +141,7 @@ func (s *Scheme) Decapsulate(privkey *PrivateKey, ciphertext []byte) ([]byte, er
 		if err != nil {
 			continue
 		}
-		return s.decrypt(msgKey, c.SecretCiphertext)
+		return s.decrypt(msgKey, c.Envelope)
 	}
 	return nil, errors.New("failed to trial decrypt")
 }

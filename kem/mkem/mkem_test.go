@@ -16,7 +16,7 @@ func TestCiphertextMarshaling(t *testing.T) {
 	ic := &IntermediaryCiphertext{
 		EphemeralPublicKey: []byte("hello1"),
 		DEKCiphertexts:     [][]byte{[]byte("yo123")},
-		SecretCiphertext:   []byte("hello i am ciphertext"),
+		Envelope:           []byte("hello i am ciphertext"),
 	}
 	blob1 := ic.Bytes()
 
@@ -48,7 +48,7 @@ func TestMKEMCorrectness(t *testing.T) {
 	_, err = rand.Reader.Read(secret)
 	require.NoError(t, err)
 
-	ciphertext := s.Encapsulate([]*PublicKey{replica1pub, replica2pub}, secret)
+	_, ciphertext := s.Encapsulate([]*PublicKey{replica1pub, replica2pub}, secret)
 
 	ciphertext2, err := CiphertextFromBytes(s, ciphertext)
 	require.NoError(t, err)
@@ -64,4 +64,37 @@ func TestMKEMCorrectness(t *testing.T) {
 	require.NoError(t, err)
 
 	require.Equal(t, secret, secret2)
+}
+
+func TestMKEMProtocol(t *testing.T) {
+	nikeName := "x25519"
+	nike := schemes.ByName(nikeName)
+	s := FromNIKE(nike)
+
+	// replicas create their keys and publish them
+	replica1pub, replica1priv, err := s.GenerateKeyPair()
+	require.NoError(t, err)
+	replica2pub, _, err := s.GenerateKeyPair()
+	require.NoError(t, err)
+
+	// client to replica
+	request := make([]byte, 32)
+	_, err = rand.Reader.Read(request)
+	require.NoError(t, err)
+	privKey1, envelopeRaw := s.Encapsulate([]*PublicKey{replica1pub, replica2pub}, request)
+	envelope1, err := CiphertextFromBytes(s, envelopeRaw)
+	require.NoError(t, err)
+
+	// replica decrypts message from client
+	request1, err := s.Decapsulate(replica1priv, envelopeRaw)
+	require.NoError(t, err)
+	require.Equal(t, request1, request)
+	replyPayload := []byte("hello")
+	reply1 := s.EnvelopeReply(replica1priv, envelope1.EphemeralPublicKey, replyPayload)
+
+	// client decrypts reply from replica
+	plaintext, err := s.DecryptEnvelope(privKey1, replica1pub, reply1)
+	require.NoError(t, err)
+
+	require.Equal(t, replyPayload, plaintext)
 }
