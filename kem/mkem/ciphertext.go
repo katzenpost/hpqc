@@ -4,7 +4,11 @@
 // Package mkem provides multiparty KEM construction.
 package mkem
 
-import "github.com/fxamacker/cbor/v2"
+import (
+	"github.com/fxamacker/cbor/v2"
+
+	"github.com/katzenpost/hpqc/nike"
+)
 
 var (
 	// Create reusable EncMode interface with immutable options, safe for concurrent use.
@@ -12,7 +16,7 @@ var (
 )
 
 type Ciphertext struct {
-	EphemeralPublicKey *PublicKey
+	EphemeralPublicKey nike.PublicKey
 	DEKCiphertexts     [][]byte
 	Envelope           []byte
 }
@@ -50,18 +54,16 @@ func CiphertextFromBytes(scheme *Scheme, b []byte) (*Ciphertext, error) {
 		return nil, err
 	}
 	c := &Ciphertext{
-		EphemeralPublicKey: &PublicKey{
-			publicKey: pubkey,
-		},
-		DEKCiphertexts: ic.DEKCiphertexts,
-		Envelope:       ic.Envelope,
+		EphemeralPublicKey: pubkey,
+		DEKCiphertexts:     ic.DEKCiphertexts,
+		Envelope:           ic.Envelope,
 	}
 	return c, nil
 }
 
 func (m *Ciphertext) Marshal() []byte {
 	ic := &IntermediaryCiphertext{
-		EphemeralPublicKey: m.EphemeralPublicKey.publicKey.Bytes(),
+		EphemeralPublicKey: m.EphemeralPublicKey.Bytes(),
 		DEKCiphertexts:     m.DEKCiphertexts,
 		Envelope:           m.Envelope,
 	}

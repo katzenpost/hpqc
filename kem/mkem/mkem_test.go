@@ -8,8 +8,9 @@ import (
 	"crypto/rand"
 	"testing"
 
-	"github.com/katzenpost/hpqc/nike/schemes"
 	"github.com/stretchr/testify/require"
+
+	"github.com/katzenpost/hpqc/nike"
 )
 
 func TestCiphertextMarshaling(t *testing.T) {
@@ -34,9 +35,7 @@ func TestCiphertextMarshaling(t *testing.T) {
 }
 
 func TestMKEMCorrectness(t *testing.T) {
-	nikeName := "x25519"
-	nike := schemes.ByName(nikeName)
-	s := FromNIKE(nike)
+	s := NewScheme()
 
 	replica1pub, replica1priv, err := s.GenerateKeyPair()
 	require.NoError(t, err)
@@ -48,7 +47,7 @@ func TestMKEMCorrectness(t *testing.T) {
 	_, err = rand.Reader.Read(secret)
 	require.NoError(t, err)
 
-	_, ciphertext := s.Encapsulate([]*PublicKey{replica1pub, replica2pub}, secret)
+	_, ciphertext := s.Encapsulate([]nike.PublicKey{replica1pub, replica2pub}, secret)
 
 	ciphertext2, err := CiphertextFromBytes(s, ciphertext)
 	require.NoError(t, err)
@@ -67,9 +66,7 @@ func TestMKEMCorrectness(t *testing.T) {
 }
 
 func TestMKEMProtocol(t *testing.T) {
-	nikeName := "x25519"
-	nike := schemes.ByName(nikeName)
-	s := FromNIKE(nike)
+	s := NewScheme()
 
 	// replicas create their keys and publish them
 	replica1pub, replica1priv, err := s.GenerateKeyPair()
@@ -81,7 +78,7 @@ func TestMKEMProtocol(t *testing.T) {
 	request := make([]byte, 32)
 	_, err = rand.Reader.Read(request)
 	require.NoError(t, err)
-	privKey1, envelopeRaw := s.Encapsulate([]*PublicKey{replica1pub, replica2pub}, request)
+	privKey1, envelopeRaw := s.Encapsulate([]nike.PublicKey{replica1pub, replica2pub}, request)
 	envelope1, err := CiphertextFromBytes(s, envelopeRaw)
 	require.NoError(t, err)
 

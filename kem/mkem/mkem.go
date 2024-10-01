@@ -12,6 +12,7 @@ import (
 	"github.com/katzenpost/chacha20poly1305"
 	"github.com/katzenpost/hpqc/hash"
 	"github.com/katzenpost/hpqc/nike"
+	"github.com/katzenpost/hpqc/nike/hybrid"
 )
 
 // Scheme is an MKEM scheme.
@@ -19,27 +20,18 @@ type Scheme struct {
 	nike nike.Scheme
 }
 
-// FromNIKE creates a new KEM adapter Scheme
-// using the given NIKE Scheme.
-func FromNIKE(nike nike.Scheme) *Scheme {
-	if nike == nil {
-		panic("NIKE is nil")
-	}
+func NewScheme() *Scheme {
 	return &Scheme{
-		nike: nike,
+		nike: hybrid.CTIDH1024X25519,
 	}
 }
 
-func (s *Scheme) GenerateKeyPair() (*PublicKey, *PrivateKey, error) {
+func (s *Scheme) GenerateKeyPair() (nike.PublicKey, nike.PrivateKey, error) {
 	pubkey, privkey, err := s.nike.GenerateKeyPair()
 	if err != nil {
 		return nil, nil, err
 	}
-	return &PublicKey{
-			publicKey: pubkey,
-		}, &PrivateKey{
-			privateKey: privkey,
-		}, nil
+	return pubkey, privkey, nil
 }
 
 func (s *Scheme) createCipher(key []byte) cipher.AEAD {
@@ -67,26 +59,24 @@ func (s *Scheme) decrypt(key []byte, ciphertext []byte) ([]byte, error) {
 	return aead.Open(nil, nonce, ciphertext, nil)
 }
 
-func (s *Scheme) EnvelopeReply(privkey *PrivateKey, pubkey *PublicKey, plaintext []byte) []byte {
-	secret := hash.Sum256(s.nike.DeriveSecret(privkey.privateKey, pubkey.publicKey))
+func (s *Scheme) EnvelopeReply(privkey nike.PrivateKey, pubkey nike.PublicKey, plaintext []byte) []byte {
+	secret := hash.Sum256(s.nike.DeriveSecret(privkey, pubkey))
 	ciphertext := s.encrypt(secret[:], plaintext)
 	c := &Ciphertext{
-		EphemeralPublicKey: &PublicKey{
-			publicKey: pubkey.publicKey,
-		},
-		DEKCiphertexts: nil,
-		Envelope:       ciphertext,
+		EphemeralPublicKey: pubkey,
+		DEKCiphertexts:     nil,
+		Envelope:           ciphertext,
 	}
 	return c.Marshal()
 }
 
-func (s *Scheme) DecryptEnvelope(privkey *PrivateKey, pubkey *PublicKey, ciphertext []byte) ([]byte, error) {
+func (s *Scheme) DecryptEnvelope(privkey nike.PrivateKey, pubkey nike.PublicKey, ciphertext []byte) ([]byte, error) {
 	c, err := CiphertextFromBytes(s, ciphertext)
 	if err != nil {
 		return nil, err
 	}
 
-	secret := hash.Sum256(s.nike.DeriveSecret(privkey.privateKey, pubkey.publicKey))
+	secret := hash.Sum256(s.nike.DeriveSecret(privkey, pubkey))
 	plaintext, err := s.decrypt(secret[:], c.Envelope)
 	if err != nil {
 		return nil, err
@@ -94,7 +84,7 @@ func (s *Scheme) DecryptEnvelope(privkey *PrivateKey, pubkey *PublicKey, ciphert
 	return plaintext, nil
 }
 
-func (s *Scheme) Encapsulate(keys []*PublicKey, payload []byte) (*PrivateKey, []byte) {
+func (s *Scheme) Encapsulate(keys []nike.PublicKey, payload []byte) (nike.PrivateKey, []byte) {
 	ephPub, ephPriv, err := s.nike.GenerateKeyPair()
 	if err != nil {
 		panic(err)
@@ -102,7 +92,7 @@ func (s *Scheme) Encapsulate(keys []*PublicKey, payload []byte) (*PrivateKey, []
 
 	secrets := make([][hash.HashSize]byte, len(keys))
 	for i := 0; i < len(keys); i++ {
-		secrets[i] = hash.Sum256(s.nike.DeriveSecret(ephPriv, keys[i].publicKey))
+		secrets[i] = hash.Sum256(s.nike.DeriveSecret(ephPriv, keys[i]))
 	}
 
 	msgKey := make([]byte, 32)
@@ -118,24 +108,20 @@ func (s *Scheme) Encapsulate(keys []*PublicKey, payload []byte) (*PrivateKey, []
 	}
 
 	c := &Ciphertext{
-		EphemeralPublicKey: &PublicKey{
-			publicKey: ephPub,
-		},
-		DEKCiphertexts: outCiphertexts,
-		Envelope:       ciphertext,
+		EphemeralPublicKey: ephPub,
+		DEKCiphertexts:     outCiphertexts,
+		Envelope:           ciphertext,
 	}
-	return &PrivateKey{
-		privateKey: ephPriv,
-	}, c.Marshal()
+	return ephPriv, c.Marshal()
 }
 
-func (s *Scheme) Decapsulate(privkey *PrivateKey, ciphertext []byte) ([]byte, error) {
+func (s *Scheme) Decapsulate(privkey nike.PrivateKey, ciphertext []byte) ([]byte, error) {
 	c, err := CiphertextFromBytes(s, ciphertext)
 	if err != nil {
 		return nil, err
 	}
 
-	ephSecret := hash.Sum256(s.nike.DeriveSecret(privkey.privateKey, c.EphemeralPublicKey.publicKey))
+	ephSecret := hash.Sum256(s.nike.DeriveSecret(privkey, c.EphemeralPublicKey))
 	for i := 0; i < len(c.DEKCiphertexts); i++ {
 		msgKey, err := s.decrypt(ephSecret[:], c.DEKCiphertexts[i])
 		if err != nil {
@@ -144,14 +130,4 @@ func (s *Scheme) Decapsulate(privkey *PrivateKey, ciphertext []byte) ([]byte, er
 		return s.decrypt(msgKey, c.Envelope)
 	}
 	return nil, errors.New("failed to trial decrypt")
-}
-
-// PrivateKey is an MKEM private key.
-type PrivateKey struct {
-	privateKey nike.PrivateKey
-}
-
-// PublicKey is an MKEM public key.
-type PublicKey struct {
-	publicKey nike.PublicKey
 }
