@@ -115,7 +115,6 @@ func (cur *MailboxIndex) AdvanceIndexTo(to uint64) (next MailboxIndex) {
 	hash := sha512.New // TODO blake
 
 	curIdxB := make([]byte, 8)
-	binary.LittleEndian.PutUint64(curIdxB, cur.Idx64)
 
 	next.Idx64 = cur.Idx64
 	next.HKDFState = cur.HKDFState
@@ -127,11 +126,8 @@ func (cur *MailboxIndex) AdvanceIndexTo(to uint64) (next MailboxIndex) {
 		next.CurBlindingFactor = [32]byte{}
 		next.CurEncryptionKey = [32]byte{}
 	}
-	//fmt.Println("AdvanceIndexTo", to)
 	for idx := next.Idx64; next.Idx64 < to; idx += 1 {
 		binary.LittleEndian.PutUint64(curIdxB, next.Idx64)
-		next.Idx64 = next.Idx64 + 1
-		//fmt.Println("AdvanceIndexTo: idx => ", next.Idx64)
 		hkdf := hkdf.New(hash, next.HKDFState[:], nil, curIdxB)
 		// Read H_{i+1}, E_i, K_i from the KDF:
 		if n, err := hkdf.Read(next.HKDFState[:]); err != nil || n != len(next.HKDFState) {
@@ -143,7 +139,7 @@ func (cur *MailboxIndex) AdvanceIndexTo(to uint64) (next MailboxIndex) {
 		if n, err := hkdf.Read(next.CurBlindingFactor[:]); err != nil || n != len(next.CurBlindingFactor) {
 			panic("hkdf failed, not reachable")
 		}
-		binary.LittleEndian.PutUint64(curIdxB, cur.Idx64)
+		next.Idx64 = next.Idx64 + 1
 	}
 	return
 }
@@ -213,12 +209,7 @@ func NewOwner(rng io.Reader) *Owner {
 	}
 	this.rootPrivateKey = *sk
 	this.rootPublicKey = *pk
-	//cb := sk.Bytes()
-	//fmt.Println("NewOwner rootPrivateKey", cb)
-	//fmt.Println("NewOwner rootPublicKey", *pk)
 	this.firstMailboxIndex = NewMailboxIndex(rng)
-	//fmt.Println("NewOwner first index", this.firstMailboxIndex.Idx64)
-	//fmt.Println("NewOwner first blind", this.firstMailboxIndex.CurBlindingFactor)
 	return &this
 }
 
