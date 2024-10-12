@@ -8,7 +8,6 @@ import (
 	"github.com/katzenpost/hpqc/sign/ed25519"
 	"golang.org/x/crypto/hkdf"
 	"io"
-	//"fmt"
 	"github.com/agl/gcmsiv"
 )
 
@@ -71,7 +70,14 @@ func (mbox *MailboxIndex) EncryptForContext(owner *Owner, ctx []byte, plaintext 
 	return
 }
 
-func (mbox *MailboxIndex) DecryptForContext(box [32]byte, ctx []byte, ciphertext []byte) (plaintext []byte, err error) {
+func (mbox *MailboxIndex) DecryptForContext(box [32]byte, ctx []byte, ciphertext []byte, sig []byte) (plaintext []byte, err error) {
+	box_pk := new(ed25519.PublicKey)
+	if err = box_pk.FromBytes(box[:]); err != nil {
+		return
+	}
+	if false == box_pk.Verify(sig, ciphertext) {
+		panic("verification failed TODO should be an error")
+	}
 	e_i_ctx := mbox.compute_E_ForContext(ctx)
 	sivdec, err := gcmsiv.NewGCMSIV(e_i_ctx[:])
 	if err != nil {

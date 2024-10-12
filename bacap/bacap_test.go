@@ -151,13 +151,12 @@ func TestEncryptForContext(t *testing.T) {
 	box_derived := mbox1.BoxIDForContext(uread, ctx1)
 
 	// Encrypt a new message:
-	box, ciphertext1, sig := mbox1.EncryptForContext(owner, ctx1, msg1)
-	_ = sig // TODO we should check the signature as part of reading the message...
+	box, ciphertext1, sig1 := mbox1.EncryptForContext(owner, ctx1, msg1)
 	assert.Equal(box_derived.Bytes(), box[:])
 	assert.NotEqual(msg1, ciphertext1)
 
 	// Now we attempt to decrypt the BACAP message:
-	plaintext1, err := mbox1.DecryptForContext(box, ctx1, ciphertext1)
+	plaintext1, err := mbox1.DecryptForContext(box, ctx1, ciphertext1, sig1)
 	assert.Equal(nil, err)
 	assert.Equal(msg1, plaintext1)
 }

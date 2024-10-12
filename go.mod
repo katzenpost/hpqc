@@ -1,6 +1,6 @@
 module github.com/katzenpost/hpqc
 
-go 1.21.3
+go 1.23
 
 require (
 	codeberg.org/vula/highctidh v1.0.2024050500
