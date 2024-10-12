@@ -1,7 +1,7 @@
 package bacap
 
 import (
-	"crypto"
+	//	"crypto"
 	"crypto/sha512"
 	"encoding"
 	"encoding/binary"
@@ -15,8 +15,8 @@ import (
 type MailboxIndex struct {
 	encoding.BinaryMarshaler
 
-	// the integer corresponding to CurBlindingFactor
-	Idx64 uint64 // i_0..2^64
+	// i_{0..2^64}: the message counter / index
+	Idx64 uint64
 
 	// K_i: blinding value used to derive mailboxID by blinding ed25519 keys
 	CurBlindingFactor [32]byte
@@ -65,16 +65,10 @@ func (mbox *MailboxIndex) EncryptForContext(owner *Owner, ctx []byte, plaintext 
 	// encrypt with AES-GCM-SIV:
 	c_i_ctx = sivenc.Seal([]byte{}, m_i_ctx[:16], plaintext, m_i_ctx[:32])
 
-	// from golang docs for ed25519.PrivateKey.Sign:
-	// If opts.HashFunc() is crypto.SHA512, the pre-hashed variant Ed25519ph
-	// is used and message is expected to be a SHA-512 hash,
-	// otherwise opts.HashFunc() must be crypto.Hash(0)
-	// and the message must not be hashed, as Ed25519 performs two passes over messages to be signed.
-	if s_i_ctx, err = owner.rootPrivateKey.Sign(nil, c_i_ctx, crypto.Hash(0)); err != nil {
-		panic(err) // Can't happen
-	}
-
-	return m_i_ctx, c_i_ctx, s_i_ctx
+	// derive blinded private key specific to box index + context and sign the GCM-SIV ciphertext:
+	S_i_ctx := owner.rootPrivateKey.Blind(k_i_ctx[:])
+	s_i_ctx = S_i_ctx.Sign(c_i_ctx)
+	return
 }
 
 func (mbox *MailboxIndex) DecryptForContext(box [32]byte, ctx []byte, ciphertext []byte) (plaintext []byte, err error) {
@@ -114,7 +108,7 @@ func (box *BACAPBox) Seal() []byte {
 	return []byte{}
 }
 
-func (cur *MailboxIndex) AdvanceIndexTo(to uint64) MailboxIndex {
+func (cur *MailboxIndex) AdvanceIndexTo(to uint64) (next MailboxIndex) {
 	if to < cur.Idx64 {
 		panic("TODO that is an error")
 	}
@@ -123,17 +117,22 @@ func (cur *MailboxIndex) AdvanceIndexTo(to uint64) MailboxIndex {
 	curIdxB := make([]byte, 8)
 	binary.LittleEndian.PutUint64(curIdxB, cur.Idx64)
 
-	next := MailboxIndex{}
 	next.Idx64 = cur.Idx64
 	next.HKDFState = cur.HKDFState
-	next.CurBlindingFactor = cur.CurBlindingFactor
-	next.CurEncryptionKey = cur.CurEncryptionKey
+	if to == next.Idx64 {
+		next.CurBlindingFactor = cur.CurBlindingFactor
+		next.CurEncryptionKey = cur.CurEncryptionKey
+		return
+	} else {
+		next.CurBlindingFactor = [32]byte{}
+		next.CurEncryptionKey = [32]byte{}
+	}
 	//fmt.Println("AdvanceIndexTo", to)
 	for idx := next.Idx64; next.Idx64 < to; idx += 1 {
 		binary.LittleEndian.PutUint64(curIdxB, next.Idx64)
 		next.Idx64 = next.Idx64 + 1
 		//fmt.Println("AdvanceIndexTo: idx => ", next.Idx64)
-		hkdf := hkdf.New(hash, next.HKDFState[:], next.CurBlindingFactor[:], curIdxB)
+		hkdf := hkdf.New(hash, next.HKDFState[:], nil, curIdxB)
 		// Read H_{i+1}, E_i, K_i from the KDF:
 		if n, err := hkdf.Read(next.HKDFState[:]); err != nil || n != len(next.HKDFState) {
 			panic("hkdf failed, not reachable")
@@ -144,8 +143,9 @@ func (cur *MailboxIndex) AdvanceIndexTo(to uint64) MailboxIndex {
 		if n, err := hkdf.Read(next.CurBlindingFactor[:]); err != nil || n != len(next.CurBlindingFactor) {
 			panic("hkdf failed, not reachable")
 		}
+		binary.LittleEndian.PutUint64(curIdxB, cur.Idx64)
 	}
-	return next
+	return
 }
 func (cur *MailboxIndex) NextIndex() MailboxIndex {
 	ne := cur.AdvanceIndexTo(cur.Idx64 + 1)
@@ -170,8 +170,8 @@ func NewMailboxIndex(rng io.Reader) *MailboxIndex {
 	}
 	// Since these are not cyclic, overflow of the index denotes the
 	// end of usable indices.
-	// We pick two integers in 0..2^62 and add them together.
-	// This ensures an exclusive upper bound of 2^63-1,
+	// We pick two integers in 0..2^62-1 and add them together.
+	// This ensures an exclusive upper bound of 2^63-2,
 	// leaving at least 2^63 usable indices.
 	// Sampling two 2^62 bit integers instead of one 2^63 bit biases
 	// the distribution towards the middle, reducing the risk of
