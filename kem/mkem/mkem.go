@@ -20,9 +20,9 @@ type Scheme struct {
 	nike nike.Scheme
 }
 
-func NewScheme() *Scheme {
+func NewScheme(scheme nike.Scheme) *Scheme {
 	return &Scheme{
-		nike: hybrid.CTIDH1024X25519,
+		nike: scheme,
 	}
 }
 
