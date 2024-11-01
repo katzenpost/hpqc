@@ -12,7 +12,6 @@ import (
 	"github.com/katzenpost/chacha20poly1305"
 	"github.com/katzenpost/hpqc/hash"
 	"github.com/katzenpost/hpqc/nike"
-	"github.com/katzenpost/hpqc/nike/hybrid"
 )
 
 // Scheme is an MKEM scheme.

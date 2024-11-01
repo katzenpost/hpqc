@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/katzenpost/hpqc/nike"
+	"github.com/katzenpost/hpqc/nike/schemes"
 )
 
 func TestCiphertextMarshaling(t *testing.T) {
@@ -35,7 +36,8 @@ func TestCiphertextMarshaling(t *testing.T) {
 }
 
 func TestMKEMCorrectness(t *testing.T) {
-	s := NewScheme()
+	nikeScheme := schemes.ByName("CTIDH512-X448")
+	s := NewScheme(nikeScheme)
 
 	replica1pub, replica1priv, err := s.GenerateKeyPair()
 	require.NoError(t, err)
@@ -66,7 +68,8 @@ func TestMKEMCorrectness(t *testing.T) {
 }
 
 func TestMKEMProtocol(t *testing.T) {
-	s := NewScheme()
+	nikeScheme := schemes.ByName("CTIDH512-X448")
+	s := NewScheme(nikeScheme)
 
 	// replicas create their keys and publish them
 	replica1pub, replica1priv, err := s.GenerateKeyPair()
