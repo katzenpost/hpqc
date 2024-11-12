@@ -2,6 +2,7 @@ package hybrid
 
 import (
 	"encoding/base64"
+	"fmt"
 	"io"
 
 	"github.com/katzenpost/hpqc/nike"
@@ -94,11 +95,15 @@ func (s *Scheme) GenerateKeyPairFromEntropy(rng io.Reader) (nike.PublicKey, nike
 }
 
 func (s *Scheme) GenerateKeyPair() (nike.PublicKey, nike.PrivateKey, error) {
+	fmt.Println("BEFORE first.GenerateKeyPair")
 	pubKey1, privKey1, err := s.first.GenerateKeyPair()
+	fmt.Println("AFTER first.GenerateKeyPair")
 	if err != nil {
 		return nil, nil, err
 	}
+	fmt.Println("BEFORE second.GenerateKeyPair")
 	pubKey2, privKey2, err := s.second.GenerateKeyPair()
+	fmt.Println("AFTER second.GenerateKeyPair")
 	if err != nil {
 		return nil, nil, err
 	}
