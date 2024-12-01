@@ -114,6 +114,78 @@ var allSchemes = []kem.Scheme{
 			mlkem768.Scheme(),
 		},
 	),
+
+	// all the Classic McEliece's from our fork of circl
+	combiner.New(
+		"mceliece348864-X25519",
+		[]kem.Scheme{
+			adapter.FromNIKE(x25519.Scheme(rand.Reader)),
+			mceliece348864.Scheme(),
+		},
+	),
+	combiner.New(
+		"mceliece348864f-X25519",
+		[]kem.Scheme{
+			adapter.FromNIKE(x25519.Scheme(rand.Reader)),
+			mceliece348864f.Scheme(),
+		},
+	),
+	combiner.New(
+		"mceliece460896-X25519",
+		[]kem.Scheme{
+			adapter.FromNIKE(x25519.Scheme(rand.Reader)),
+			mceliece460896.Scheme(),
+		},
+	),
+	combiner.New(
+		"mceliece460896f-X25519",
+		[]kem.Scheme{
+			adapter.FromNIKE(x25519.Scheme(rand.Reader)),
+			mceliece460896f.Scheme(),
+		},
+	),
+	combiner.New(
+		"mceliece6688128-X25519",
+		[]kem.Scheme{
+			adapter.FromNIKE(x25519.Scheme(rand.Reader)),
+			mceliece6688128.Scheme(),
+		},
+	),
+	combiner.New(
+		"mceliece6688128f-X25519",
+		[]kem.Scheme{
+			adapter.FromNIKE(x25519.Scheme(rand.Reader)),
+			mceliece6688128f.Scheme(),
+		},
+	),
+	combiner.New(
+		"mceliece6960119-X25519",
+		[]kem.Scheme{
+			adapter.FromNIKE(x25519.Scheme(rand.Reader)),
+			mceliece6960119.Scheme(),
+		},
+	),
+	combiner.New(
+		"mceliece6960119f-X25519",
+		[]kem.Scheme{
+			adapter.FromNIKE(x25519.Scheme(rand.Reader)),
+			mceliece6960119f.Scheme(),
+		},
+	),
+	combiner.New(
+		"mceliece8192128-X25519",
+		[]kem.Scheme{
+			adapter.FromNIKE(x25519.Scheme(rand.Reader)),
+			mceliece8192128.Scheme(),
+		},
+	),
+	combiner.New(
+		"mceliece8192128f-X25519",
+		[]kem.Scheme{
+			adapter.FromNIKE(x25519.Scheme(rand.Reader)),
+			mceliece8192128f.Scheme(),
+		},
+	),
 }
 
 var allSchemeNames map[string]kem.Scheme
