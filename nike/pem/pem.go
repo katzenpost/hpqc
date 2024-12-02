@@ -1,12 +1,10 @@
 // SPDX-FileCopyrightText: Copyright (c) 2023-2024 David Stainton
 // SPDX-License-Identifier: AGPL-3.0-only
-// infinitydaemon @CWDSYSTEMS
 
 package pem
 
 import (
 	"encoding/pem"
-	"errors"
 	"fmt"
 	"os"
 	"strings"
