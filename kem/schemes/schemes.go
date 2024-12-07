@@ -115,6 +115,21 @@ var allSchemes = []kem.Scheme{
 		},
 	),
 
+	combiner.New(
+		"FrodoKEM-640-SHAKE-X448",
+		[]kem.Scheme{
+			adapter.FromNIKE(x448.Scheme(rand.Reader)),
+			frodo640shake.Scheme(),
+		},
+	),
+	combiner.New(
+		"sntrup4591761-X448",
+		[]kem.Scheme{
+			adapter.FromNIKE(x448.Scheme(rand.Reader)),
+			sntrup.Scheme(),
+		},
+	),
+
 	// all the Classic McEliece's from our fork of circl
 	combiner.New(
 		"mceliece348864-X25519",
