@@ -185,22 +185,51 @@ CGO_LDFLAGS: -Wl,-stack_size,0x1F40000
 | KEM: Key Encapsulation Methods |
 |:---:|
 * X25519
+* X448
+* CTIDH511
+* CTIDH512
 * CTIDH1024
+* CTIDH2048
 * CTIDH512-X25519
 * CTIDH1024-X448
 * MLKEM-768
 * Xwing
-* McEliece
-* NTRUPrime
-* Kyber
-* FrodoKEM
+* NTRUPrime (sntrup4591761)
+* frodo640shake
+* Kyber768-X25519
+* MLKEM768-X25519
+* MLKEM768-X448
+* FrodoKEM-640-SHAKE-X448
+* sntrup4591761-X448
+* mceliece348864
+* mceliece348864f
+* mceliece460896
+* mceliece460896f
+* mceliece6688128
+* mceliece6688128f
+* mceliece6960119
+* mceliece6960119f
+* mceliece8192128
+* mceliece8192128f
+* mceliece348864-X25519
+* mceliece348864f-X25519
+* mceliece460896-X25519
+* mceliece460896f-X25519
+* mceliece6688128-X25519
+* mceliece6688128f-X25519
+* mceliece6960119-X25519
+* mceliece6960119f-X25519
+* mceliece8192128-X25519
+* mceliece8192128f-X25519
 
 | SIGN: Cryptographic Signature Schemes |
 |:---:|
 * ed25519
-* sphincs+
-* ed25519_sphincs+
-* ed25519_dilithium2/3
+* ed448
+* ed25519_Sphincs+shake-256f
+* ed448_Sphincs+shake-256f
+* ed25519_dilithium2
+* ed25519_dilithium3
 
 
 ## Warning
