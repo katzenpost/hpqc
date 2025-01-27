@@ -98,6 +98,111 @@ import (
 var Ed25519Sphincs = hybrid.New("Ed25519 Sphincs+", ed25519.Scheme(), sphincsplus.Scheme())
 ```
 
+## Using existing KEM Schemes
+
+If you just want to get started with one of our many existing KEM
+schemes, you can reference KEM schemes by name like so:
+
+```golang
+import (
+	"github.com/katzenpost/hpqc/kem/schemes"
+	"github.com/katzenpost/hpqc/kem"
+)
+
+
+func doCryptoStuff() {
+	scheme := schemes.ByName("Xwing")
+	if scheme == nil {
+		panic("KEM scheme not found")
+	}
+
+	myPubKey, myPrivKey, err := scheme.GenerateKeyPair()
+	if err != nil {
+		panic(err)
+	}
+	
+	kemCiphertext, sharedSecret, err := scheme.Encapsulate(myPubKey)
+	if err != nil {
+		panic(err)
+	}
+
+	sharedSecret2, err := scheme.Decapsulate(myPrivKey, kemCiphertext)
+	if err != nil {
+		panic(err)
+	}
+	
+	// do stuff with sharedSecret2 which is equal to sharedSecret
+}
+```
+
+
+## Using existing NIKE schemes
+
+If you just want to get started with one of our many existing NIKE
+schemes, you can reference NIKE schemes by name like so:
+
+```golang
+import (
+	"github.com/katzenpost/hpqc/nike/schemes"
+	"github.com/katzenpost/hpqc/nike"
+)
+
+
+func doCryptoStuff() {
+	scheme := schemes.ByName("X25519")
+	if scheme == nil {
+		panic("NIKE scheme not found")
+	}
+
+	alicePubKey, alicePrivKey, err := scheme.GenerateKeyPair()
+	if err != nil {
+		panic(err)
+	}
+
+	bobPubKey, bobPrivKey, err := scheme.GenerateKeyPair()
+	if err != nil {
+		panic(err)
+	}
+
+	aliceSharedSecret := scheme.DeriveSecret(alicePrivKey, bobPubKey)
+	bobSharedSecret := scheme.DeriveSecret(bobPrivKey, alicePubKey)
+	
+	// do stuff with shared secrets.
+	// aliceSharedSecret is equal to bobSharedSecret
+}
+```
+
+
+## Using existing Signature Schemes schemes
+
+If you just want to get started with one of our existing signature
+schemes, you can reference signature schemes by name like so:
+
+```golang
+import (
+	"github.com/katzenpost/hpqc/sign/schemes"
+	"github.com/katzenpost/hpqc/sign"
+)
+
+
+func doCryptoStuff(message []byte) {
+	scheme := schemes.ByName("ed25519")
+	if scheme == nil {
+		panic("Signature scheme not found")
+	}
+	
+	alicePubKey, alicePrivKey := scheme.GenerateKey()
+	signature := scheme.Sign(alicePrivKey, message, nil)
+	
+	ok := scheme.Verify(alicePubKey, message, signature, nil)
+	
+	if !ok {
+		panic("signature verification failed!")
+	}
+	
+	// ...
+}
+```
 
 
 ## NIKE to KEM adapter
@@ -234,8 +339,14 @@ CGO_LDFLAGS: -Wl,-stack_size,0x1F40000
 
 ## Warning
 
-This cryptography library has not had any security review. It should be considered experimental.
+This cryptography library has not had any security review.
+It should be considered experimental.
 
+## Acknowledgements
+
+This library was inspired by Cloudflare's `circl` cryptography library.
+HPQC uses the same set of interfaces as circl for signature schemes and
+for KEM schemes.
 
 ## licensing
 
