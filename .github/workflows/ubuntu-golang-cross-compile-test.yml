@@ -33,3 +33,5 @@ jobs:
           check-latest: true
       - name: Run tests
         run: go test -v ./...
+	env:
+	    CGO_LDFLAGS: -Wl,-z,stack-size=0x1F40000
