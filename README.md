@@ -100,7 +100,14 @@ var Ed25519Sphincs = hybrid.New("Ed25519 Sphincs+", ed25519.Scheme(), sphincsplu
 
 ## Using existing KEM Schemes
 
-If you just want to get started with one of our many existing KEM
+KEM schemes API docs:
+https://pkg.go.dev/github.com/katzenpost/hpqc/kem/schemes
+
+KEM interfaces docs; each KEM implements three interfaces,
+Scheme, PublicKey and PrivateKey interfaces which are documented here:
+https://pkg.go.dev/github.com/katzenpost/hpqc/kem
+
+If you want to get started with one of our many existing KEM
 schemes, you can reference KEM schemes by name like so:
 
 ```golang
@@ -138,7 +145,15 @@ func doCryptoStuff() {
 
 ## Using existing NIKE schemes
 
-If you just want to get started with one of our many existing NIKE
+NIKE schemes API docs:
+https://pkg.go.dev/github.com/katzenpost/hpqc/nike/schemes
+
+NIKE interfaces docs; each NIKE implements three interfaces,
+Scheme, PublicKey and PrivateKey interfaces which are documented here:
+https://pkg.go.dev/github.com/katzenpost/hpqc/nike
+
+
+If you want to get started with one of our many existing NIKE
 schemes, you can reference NIKE schemes by name like so:
 
 ```golang
@@ -175,7 +190,14 @@ func doCryptoStuff() {
 
 ## Using existing Signature Schemes schemes
 
-If you just want to get started with one of our existing signature
+Signature schemes API docs:
+https://pkg.go.dev/github.com/katzenpost/hpqc/sign/schemes
+
+Singature interfaces docs; each signature scheme implements three interfaces,
+Scheme, PublicKey and PrivateKey interfaces which are documented here:
+https://pkg.go.dev/github.com/katzenpost/hpqc/sign
+
+If you want to get started with one of our existing signature
 schemes, you can reference signature schemes by name like so:
 
 ```golang
