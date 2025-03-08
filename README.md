@@ -28,7 +28,7 @@ The key to understanding and using this cryptography library is to review the `S
 Use our generic NIKE, KEM and Signature scheme interfaces to help you achieve cryptographic agility:
 
 ```golang
-import ""github.com/katzenpost/hpqc/kem"
+import "github.com/katzenpost/hpqc/kem"
 
 func encryptMessage(publicKey kem.PublicKey, scheme kem.Scheme, message []byte) {
         ct, ss, err := scheme.Encapsulate(publicKey)
