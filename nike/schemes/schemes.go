@@ -8,7 +8,6 @@ import (
 	"github.com/katzenpost/hpqc/nike/ctidh/ctidh2048"
 	"github.com/katzenpost/hpqc/nike/ctidh/ctidh511"
 	"github.com/katzenpost/hpqc/nike/ctidh/ctidh512"
-	"github.com/katzenpost/hpqc/nike/diffiehellman"
 	"github.com/katzenpost/hpqc/nike/hybrid"
 	"github.com/katzenpost/hpqc/nike/x25519"
 	"github.com/katzenpost/hpqc/nike/x448"
@@ -24,10 +23,15 @@ var potentialSchemes = [...]nike.Scheme{
 	ctidh2048.Scheme(),
 
 	// hybrid NIKE schemes
-	hybrid.CTIDH511X25519,
+
+	// see ticket https://github.com/katzenpost/hpqc/issues/34
+	//hybrid.CTIDH511X25519,
+
 	hybrid.CTIDH512X25519,
+	hybrid.CTIDH512X448,
 	hybrid.CTIDH1024X25519,
-	hybrid.CTIDH2048X25519,
+	hybrid.CTIDH1024X448,
+	hybrid.CTIDH2048X448,
 
 	// NOBS CSIDH doesn't work on arm32
 	// XXX TODO: deprecate and remove.
@@ -39,7 +43,10 @@ var allSchemes = []nike.Scheme{
 	// classical NIKE schemes
 	x25519.Scheme(rand.Reader),
 	x448.Scheme(rand.Reader),
-	diffiehellman.Scheme(),
+
+	// Classical DiffieHellman imeplementation has a bug with this ticket:
+	// https://github.com/katzenpost/hpqc/issues/39
+	//diffiehellman.Scheme(),
 }
 
 var allSchemeNames map[string]nike.Scheme

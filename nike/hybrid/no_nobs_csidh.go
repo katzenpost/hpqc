@@ -8,8 +8,8 @@ import (
 	"github.com/katzenpost/hpqc/rand"
 )
 
-var NOBS_CSIDH512X25519 nike.Scheme = &scheme{
+var NOBS_CSIDH512X25519 nike.Scheme = &Scheme{
 	name:   "NOBS_CSIDH-X25519",
-	first:  ecdh.NewEcdhNike(rand.Reader),
+	first:  ecdh.Scheme(rand.Reader),
 	second: nil,
 }

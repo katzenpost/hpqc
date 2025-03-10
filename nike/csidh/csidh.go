@@ -105,7 +105,7 @@ func (e *CsidhNike) DerivePublicKey(privKey nike.PrivateKey) nike.PublicKey {
 }
 
 func (e CsidhNike) Blind(groupMember nike.PublicKey, blindingFactor nike.PrivateKey) (blindedGroupMember nike.PublicKey) {
-	panic("Blind operation no implemented")
+	panic("Blind operation not implemented")
 }
 
 func (e *CsidhNike) NewEmptyPublicKey() nike.PublicKey {
@@ -147,11 +147,15 @@ type PublicKey struct {
 }
 
 func (p *PublicKey) Blind(blindingFactor nike.PrivateKey) error {
-	panic("Blind operation no implemented")
+	panic("Blind operation not implemented")
 }
 
 func (p *PublicKey) Reset() {
-	p.publicKey = nil
+	zeros := make([]byte, csidh.PublicKeySize)
+	err := p.FromBytes(zeros)
+	if err != nil {
+		panic(err)
+	}
 }
 
 func (p *PublicKey) Bytes() []byte {
@@ -161,6 +165,7 @@ func (p *PublicKey) Bytes() []byte {
 }
 
 func (p *PublicKey) FromBytes(b []byte) error {
+	p.publicKey = new(csidh.PublicKey)
 	ok := p.publicKey.Import(b)
 	if !ok {
 		return errors.New("csidh public key import failure")
@@ -201,15 +206,15 @@ type PrivateKey struct {
 }
 
 func (p *PrivateKey) Public() nike.PublicKey {
-	pubKey := new(csidh.PublicKey)
-	csidh.GeneratePublicKey(pubKey, p.privateKey, rand.Reader)
-	return &PublicKey{
-		publicKey: pubKey,
-	}
+	return NOBS_CSIDH512Scheme.DerivePublicKey(p)
 }
 
 func (p *PrivateKey) Reset() {
-	p.privateKey = nil
+	zeros := make([]byte, csidh.PrivateKeySize)
+	err := p.FromBytes(zeros)
+	if err != nil {
+		panic(err)
+	}
 }
 
 func (p *PrivateKey) Bytes() []byte {
@@ -222,6 +227,7 @@ func (p *PrivateKey) Bytes() []byte {
 }
 
 func (p *PrivateKey) FromBytes(b []byte) error {
+	p.privateKey = new(csidh.PrivateKey)
 	ok := p.privateKey.Import(b)
 	if !ok {
 		return errors.New("csidh private key import failure")

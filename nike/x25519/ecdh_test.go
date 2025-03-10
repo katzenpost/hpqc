@@ -69,7 +69,7 @@ func TestPrivateKey(t *testing.T) {
 
 	err = pubKey.FromBytes(privKey.Public().Bytes())
 	assert.NoError(err, "PrivateKey.PublicKey().Bytes->FromBytes()")
-	assert.Equal(privKey.Public(), &pubKey, "PrivateKey.PublicKey().Bytes->FromBytes()")
+	assert.Equal(privKey.Public().Bytes(), pubKey.Bytes(), "PrivateKey.PublicKey().Bytes->FromBytes()")
 }
 
 func TestECDHOps(t *testing.T) {
