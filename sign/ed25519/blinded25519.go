@@ -29,6 +29,7 @@
 package ed25519
 
 import (
+	bigint "math/big"
 	"crypto/ed25519"
 	"crypto/sha512"
 	"crypto/subtle"
@@ -247,6 +248,54 @@ func (k *BlindedPrivateKey) Blind(factor []byte) *BlindedPrivateKey {
 
 	bpk := new(BlindedPrivateKey)
 	bpk.blinded = newsec
+	return bpk
+}
+
+//
+// Unblind a private key (inverse of Blind()) using the modular inverse of factor[]:
+// inv := (factor ^ -1) % p
+// inverted := b.blinded * inv = inverted.Blind(factor)
+//
+func (b *BlindedPrivateKey) Unblind(factor []byte) (*BlindedPrivateKey) {
+	reverse := func(s []byte) []byte {
+		for i := len(s)/2-1; i >= 0; i-- {
+			opp := len(s)-1-i
+			s[i], s[opp] = s[opp], s[i]
+		}
+		return s
+	}
+
+	sum := sha512.Sum512_256(factor)
+	factor = sum[:]
+	factor_sc, err := new(edwards25519.Scalar).SetBytesWithClamping(factor)
+	if err != nil { panic(err) }
+
+	inv := bigint.NewInt(0)
+	inv.SetBytes(reverse(factor_sc.Bytes())) // little-endian, 32 bytes -> reverse: big-endian
+
+	l := bigint.NewInt(0)
+	l_bytes := [32]byte{16, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 20, 222, 249, 222, 162, 247, 156, 214, 88, 18, 99, 26, 92, 245, 211, 237}
+	l.SetBytes(l_bytes[:])
+	inv = inv.ModInverse(inv, l)
+
+	invbytes := reverse(inv.Bytes()) // big-endian, leading zeroes stripped -> reverse: little-endian
+	invbyt := make([]byte, 32)
+	// inv.Bytes() is variable-length, so we need to offset it to reintroduce the leading zero bytes
+	copy(invbyt[32-len(invbytes):32], invbytes[:])
+
+	inv_sc, err := new(edwards25519.Scalar).SetCanonicalBytes(invbyt[:])
+	if err != nil { panic(err) }
+
+	original_sc, err := new(edwards25519.Scalar).SetCanonicalBytes(b.blinded[:32])
+	if err != nil { panic(err) }
+	inverted := new(edwards25519.Scalar).Multiply(original_sc, inv_sc)
+
+	pkxA_n := new(edwards25519.Point).ScalarBaseMult(inverted)
+
+	bpk := new(BlindedPrivateKey)
+	bpk.blinded = make([]byte, ed25519.PrivateKeySize)
+	copy(bpk.blinded[:32], inverted.Bytes())
+	copy(bpk.blinded[32:], pkxA_n.Bytes())
 	return bpk
 }
 

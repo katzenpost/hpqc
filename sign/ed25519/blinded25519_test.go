@@ -194,3 +194,34 @@ func TestBlinding(t *testing.T) {
 		t.Error("failed bothwork", err)
 	}
 }
+
+func TestUnblind(t *testing.T) {
+	t.Parallel()
+
+	assert := assert.New(t)
+	test_seed := time.Now().UnixNano()
+	rng := rand.New(rand.NewSource(test_seed))
+
+	originalO, _, err := NewKeypair(rng)
+	require.NoError(t, err, "NewKeypair(1)")
+	assert.Equal(true, CheckPublicKey(originalO.PublicKey()))
+
+	factor := make([]byte, BlindFactorSize)
+	_, err = rng.Read(factor[:])
+	require.NoError(t, err)
+	factor2 := make([]byte, BlindFactorSize)
+	_, err = rng.Read(factor2[:])
+	require.NoError(t, err)
+
+	// Test that blinded public+private keys match:
+	f1_blind_secret := originalO.Blind(factor)
+	f1_blind_public := originalO.PublicKey().Blind(factor)
+	assert.Equal(f1_blind_secret.Identity(), f1_blind_public.Bytes())
+
+	f2_sk := f1_blind_secret.Blind(factor2)
+
+	unblinded := f2_sk.Unblind(factor2)
+	assert.Equal(f1_blind_secret, unblinded)
+	reblinded := unblinded.Blind(factor2)
+	assert.Equal(f2_sk, reblinded)
+}
