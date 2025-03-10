@@ -1,14 +1,14 @@
+// SPDX-FileCopyrightText: © 2025 Katzenpost dev team
+// SPDX-License-Identifier: AGPL-3.0-only
+
 package bacap
 
 import (
-	"github.com/stretchr/testify/assert"
 	"math/rand"
 	"testing"
 	"time"
-	// "encoding/hex"
-	// "fmt"
-	//
-	//	"github.com/stretchr/testify/require"
+
+	"github.com/stretchr/testify/assert"
 )
 
 // Check that advancing mailbox states:

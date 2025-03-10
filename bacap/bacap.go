@@ -1,19 +1,25 @@
+// SPDX-FileCopyrightText: © 2025 Katzenpost dev team
+// SPDX-License-Identifier: AGPL-3.0-only
+
 package bacap
 
 import (
-	//	"crypto"
+	"bytes"
 	"crypto/sha512"
 	"encoding"
 	"encoding/binary"
-	"github.com/katzenpost/hpqc/sign/ed25519"
-	"golang.org/x/crypto/hkdf"
+	"errors"
 	"io"
+
 	"github.com/agl/gcmsiv"
+	"golang.org/x/crypto/hkdf"
+
+	"github.com/katzenpost/hpqc/sign/ed25519"
 )
 
-type MailboxIndex struct {
-	encoding.BinaryMarshaler
+const MailboxIndexSize = 8 + 32 + 32 + 32
 
+type MailboxIndex struct {
 	// i_{0..2^64}: the message counter / index
 	Idx64 uint64
 
@@ -27,19 +33,52 @@ type MailboxIndex struct {
 	HKDFState [32]byte // H_i, for computing the next mailbox
 }
 
-func (mbox *MailboxIndex) compute_E_ForContext(ctx []byte) (e_i_ctx [32]byte) {
+// ensure we implement encoding.BinaryMarshaler/BinaryUmarshaler
+var _ encoding.BinaryMarshaler = (*MailboxIndex)(nil)
+var _ encoding.BinaryUnmarshaler = (*MailboxIndex)(nil)
+
+func (m *MailboxIndex) MarshalBinary() ([]byte, error) {
+	ret := new(bytes.Buffer)
+	err := binary.Write(ret, binary.LittleEndian, m.Idx64)
+	if err != nil {
+		return nil, err
+	}
+	for _, field := range [][]byte{
+		m.CurBlindingFactor[:],
+		m.CurEncryptionKey[:],
+		m.HKDFState[:],
+	} {
+		if _, err := ret.Write(field); err != nil {
+			return nil, err
+		}
+	}
+	return ret.Bytes(), nil
+}
+
+func (m *MailboxIndex) UnmarshalBinary(data []byte) error {
+	if len(data) != MailboxIndexSize {
+		return errors.New("invalid MailboxIndex binary size")
+	}
+	m.Idx64 = binary.LittleEndian.Uint64(data[:8])
+	copy(m.CurBlindingFactor[:], data[8:40])
+	copy(m.CurEncryptionKey[:], data[40:72])
+	copy(m.HKDFState[:], data[72:104])
+	return nil
+}
+
+func (mbox *MailboxIndex) deriveEForContext(ctx []byte) (eICtx [32]byte) {
 	hash := sha512.New
-	hkdf_encryption_E_i := hkdf.New(hash, mbox.CurEncryptionKey[:], ctx, []byte{})
-	if n, err := hkdf_encryption_E_i.Read(e_i_ctx[:]); err != nil || n != len(e_i_ctx) {
+	hkdfEncryptionEI := hkdf.New(hash, mbox.CurEncryptionKey[:], ctx, []byte{})
+	if n, err := hkdfEncryptionEI.Read(eICtx[:]); err != nil || n != len(eICtx) {
 		panic("hkdf error")
 	}
 	return
 }
 
-func (mbox *MailboxIndex) compute_K_ForContext(ctx []byte) (k_i_ctx [32]byte) {
+func (mbox *MailboxIndex) deriveKForContext(ctx []byte) (kICtx [32]byte) {
 	hash := sha512.New
-	hkdf_blinding_K_i := hkdf.New(hash, mbox.CurBlindingFactor[:], ctx, []byte{})
-	if n, err := hkdf_blinding_K_i.Read(k_i_ctx[:]); err != nil || n != len(k_i_ctx) {
+	hkdfBlindingKI := hkdf.New(hash, mbox.CurBlindingFactor[:], ctx, []byte{})
+	if n, err := hkdfBlindingKI.Read(kICtx[:]); err != nil || n != len(kICtx) {
 		panic("hkdf error")
 	}
 	return
@@ -47,39 +86,39 @@ func (mbox *MailboxIndex) compute_K_ForContext(ctx []byte) (k_i_ctx [32]byte) {
 
 // Produce M_i^ctx = P_R * K_i
 func (mbox *MailboxIndex) BoxIDForContext(cap *UniversalReadCap, ctx []byte) *ed25519.PublicKey {
-	k_i_ctx := mbox.compute_K_ForContext(ctx)
-	return cap.rootPublicKey.Blind(k_i_ctx[:])
+	kICtx := mbox.deriveKForContext(ctx)
+	return cap.rootPublicKey.Blind(kICtx[:])
 }
 
 // Produce M_i^ctx, c_i^ctx, s_i^ctx
-func (mbox *MailboxIndex) EncryptForContext(owner *Owner, ctx []byte, plaintext []byte) (m_i_ctx [32]byte, c_i_ctx []byte, s_i_ctx []byte) {
-	k_i_ctx := mbox.compute_K_ForContext(ctx)
-	m_i_ctx = *(*[32]byte)(owner.rootPublicKey.Blind(k_i_ctx[:]).Bytes())
-	e_i_ctx := mbox.compute_E_ForContext(ctx)
-	sivenc, err := gcmsiv.NewGCMSIV(e_i_ctx[:])
+func (mbox *MailboxIndex) EncryptForContext(owner *Owner, ctx []byte, plaintext []byte) (mICtx [32]byte, cICtx []byte, sICtx []byte) {
+	kICtx := mbox.deriveKForContext(ctx)
+	mICtx = *(*[32]byte)(owner.rootPublicKey.Blind(kICtx[:]).Bytes())
+	eICtx := mbox.deriveEForContext(ctx)
+	sivenc, err := gcmsiv.NewGCMSIV(eICtx[:])
 	if err != nil {
 		panic(err) // Can't happen
 	}
 
 	// encrypt with AES-GCM-SIV:
-	c_i_ctx = sivenc.Seal([]byte{}, m_i_ctx[:16], plaintext, m_i_ctx[:32])
+	cICtx = sivenc.Seal([]byte{}, mICtx[:16], plaintext, mICtx[:32])
 
 	// derive blinded private key specific to box index + context and sign the GCM-SIV ciphertext:
-	S_i_ctx := owner.rootPrivateKey.Blind(k_i_ctx[:])
-	s_i_ctx = S_i_ctx.Sign(c_i_ctx)
+	SICtx := owner.rootPrivateKey.Blind(kICtx[:])
+	sICtx = SICtx.Sign(cICtx)
 	return
 }
 
 func (mbox *MailboxIndex) DecryptForContext(box [32]byte, ctx []byte, ciphertext []byte, sig []byte) (plaintext []byte, err error) {
-	box_pk := new(ed25519.PublicKey)
-	if err = box_pk.FromBytes(box[:]); err != nil {
+	boxPk := new(ed25519.PublicKey)
+	if err = boxPk.FromBytes(box[:]); err != nil {
 		return
 	}
-	if false == box_pk.Verify(sig, ciphertext) {
+	if false == boxPk.Verify(sig, ciphertext) {
 		panic("verification failed TODO should be an error")
 	}
-	e_i_ctx := mbox.compute_E_ForContext(ctx)
-	sivdec, err := gcmsiv.NewGCMSIV(e_i_ctx[:])
+	eICtx := mbox.deriveEForContext(ctx)
+	sivdec, err := gcmsiv.NewGCMSIV(eICtx[:])
 	if err != nil {
 		return nil, err
 	}
@@ -91,16 +130,16 @@ func (mbox *MailboxIndex) DecryptForContext(box [32]byte, ctx []byte, ciphertext
 
 // a MailboxIndex specialized for a given "context" (Ctx)
 type BACAPBox struct {
-	Ctx     [32]byte
-	E_i_ctx [32]byte
-	K_i_ctx [32]byte
-	M_i_ctx [32]byte
+	Ctx   [32]byte
+	EICtx [32]byte
+	KICtx [32]byte
+	mICtx [32]byte
 }
 
 // Verify the integrity of a received payload
 func (box *BACAPBox) Verify() error {
-	// - check that M_i_ctx was the public key used to produce valid ed25519 signature
-	//   s_i_ctx over c_i_ctx
+	// - check that mICtx was the public key used to produce valid ed25519 signature
+	//   sICtx over cICtx
 	return nil
 }
 
@@ -166,8 +205,8 @@ func NewMailboxIndex(rng io.Reader) *MailboxIndex {
 	// We could start at deterministic index 0, ie 0,
 	// but then we would reveal to a later recipient of a capability
 	// exactly how many messages preceeded it.
-	idx64_b := [16]byte{}
-	if n, err := io.ReadFull(rng, idx64_b[:]); err != nil || n != len(idx64_b) {
+	idx64B := [16]byte{}
+	if n, err := io.ReadFull(rng, idx64B[:]); err != nil || n != len(idx64B) {
 		panic(err)
 	}
 	// Since these are not cyclic, overflow of the index denotes the
@@ -183,10 +222,10 @@ func NewMailboxIndex(rng io.Reader) *MailboxIndex {
 	// an index of N informs them that we have sent *at most* N messages
 	// prior to introducing them, and we would like to minimize the
 	// disclosure of such facts.
-	idx64_b[0] &= 0x2f // 0x2f leaves out the top two bits
-	idx64_b[8] &= 0x2f
-	this.Idx64 = binary.LittleEndian.Uint64(idx64_b[:8])
-	this.Idx64 += binary.LittleEndian.Uint64(idx64_b[8:])
+	idx64B[0] &= 0x2f // 0x2f leaves out the top two bits
+	idx64B[8] &= 0x2f
+	this.Idx64 = binary.LittleEndian.Uint64(idx64B[:8])
+	this.Idx64 += binary.LittleEndian.Uint64(idx64B[8:])
 	// believe this is called Irwin-Hall sum.
 	// this might be better if normal distribution is what we want:
 	// https://en.wikipedia.org/wiki/Box%E2%80%93Muller_transform
@@ -196,14 +235,64 @@ func NewMailboxIndex(rng io.Reader) *MailboxIndex {
 }
 
 type Owner struct {
-	encoding.BinaryMarshaler
-
 	// on-disk:
-	rootPrivateKey    ed25519.PrivateKey
-	firstMailboxIndex *MailboxIndex
+	rootPrivateKey ed25519.PrivateKey
 
 	// in-memory only:
 	rootPublicKey ed25519.PublicKey
+
+	firstMailboxIndex *MailboxIndex
+}
+
+const OwnerSize = 64 + 32 + MailboxIndexSize
+
+// ensure we implement encoding.BinaryMarshaler/BinaryUmarshaler
+var _ encoding.BinaryMarshaler = (*Owner)(nil)
+var _ encoding.BinaryUnmarshaler = (*Owner)(nil)
+
+func (o *Owner) MarshalBinary() ([]byte, error) {
+	var buf bytes.Buffer
+
+	// Write rootPrivateKey (64 bytes for ed25519.PrivateKey)
+	if _, err := buf.Write(o.rootPrivateKey.Bytes()); err != nil {
+		return nil, err
+	}
+
+	// Write rootPublicKey (32 bytes for ed25519.PublicKey)
+	if _, err := buf.Write(o.rootPublicKey.Bytes()); err != nil {
+		return nil, err
+	}
+
+	// Marshal and write firstMailboxIndex
+	mboxBytes, err := o.firstMailboxIndex.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+	if _, err := buf.Write(mboxBytes); err != nil {
+		return nil, err
+	}
+
+	return buf.Bytes(), nil
+}
+
+func (o *Owner) UnmarshalBinary(data []byte) error {
+	if len(data) != OwnerSize {
+		return errors.New("invalid Owner binary size")
+	}
+	err := o.rootPrivateKey.FromBytes(data[:64])
+	if err != nil {
+		return err
+	}
+	err = o.rootPublicKey.FromBytes(data[64:96])
+	if err != nil {
+		return err
+	}
+	o.firstMailboxIndex = &MailboxIndex{}
+	if err := o.firstMailboxIndex.UnmarshalBinary(data[96:]); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func NewOwner(rng io.Reader) *Owner {
@@ -222,10 +311,45 @@ func NewOwner(rng io.Reader) *Owner {
 // A universal read capability can be used to compute BACAP boxes and decrypt their message payloads
 // for indices >= firstMailboxIndex
 type UniversalReadCap struct {
-	encoding.BinaryMarshaler
 	rootPublicKey ed25519.PublicKey
-	//universalReadSecret *ed25519.BlindedPrivateKey
+
 	firstMailboxIndex *MailboxIndex
+}
+
+const UniversalReadCapSize = 32 + MailboxIndexSize
+
+// ensure we implement encoding.BinaryMarshaler/BinaryUmarshaler
+var _ encoding.BinaryMarshaler = (*UniversalReadCap)(nil)
+var _ encoding.BinaryUnmarshaler = (*UniversalReadCap)(nil)
+
+func (u *UniversalReadCap) MarshalBinary() ([]byte, error) {
+	var buf bytes.Buffer
+	if _, err := buf.Write(u.rootPublicKey.Bytes()); err != nil {
+		return nil, err
+	}
+	mboxBytes, err := u.firstMailboxIndex.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+	if _, err := buf.Write(mboxBytes); err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
+}
+
+func (u *UniversalReadCap) UnmarshalBinary(data []byte) error {
+	if len(data) != UniversalReadCapSize {
+		return errors.New("invalid UniversalReadCap binary size")
+	}
+	err := u.rootPublicKey.FromBytes(data[:32])
+	if err != nil {
+		return err
+	}
+	u.firstMailboxIndex = &MailboxIndex{}
+	if err := u.firstMailboxIndex.UnmarshalBinary(data[32:]); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (owner *Owner) NewUniversalReadCap() *UniversalReadCap {
@@ -292,7 +416,7 @@ func (sr *StatefulReader) ParseReply(box [32]byte, ciphertext []byte, sig [64]by
 	// if box != sr.nextIndex.BoxIDForContext(&sr.urcap, sr.ctx) {
 	//   then we have a problem, where the reply is for a different box than we asked for.
 	// }
-	// sr.nextIndex.compute_E_ForContext(sr.ctx)
+	// sr.nextIndex.deriveEForContext(sr.ctx)
 	if true {
 		// we got a valid reply (deleted msg or msg with payload)
 		sr.lastInboxRead = *sr.nextIndex
