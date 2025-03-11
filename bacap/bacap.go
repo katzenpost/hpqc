@@ -189,9 +189,7 @@ func (cur *MailboxIndex) AdvanceIndexTo(to uint64) (*MailboxIndex, error) {
 	next.Idx64 = cur.Idx64
 	next.HKDFState = cur.HKDFState
 	if to == next.Idx64 {
-		next.CurBlindingFactor = cur.CurBlindingFactor
-		next.CurEncryptionKey = cur.CurEncryptionKey
-		return &next, nil
+		return cur, nil
 	}
 
 	next.CurBlindingFactor = [32]byte{}
@@ -402,7 +400,7 @@ type StatefulReader struct {
 	ctx           []byte
 }
 
-// ReadNext gets the next box ID to read. Not thread-safe.
+// ReadNext gets the next box ID to read.
 func (sr *StatefulReader) ReadNext() (*ed25519.PublicKey, error) {
 	if sr.nextIndex == nil {
 		tmp, err := sr.lastInboxRead.NextIndex()
@@ -418,8 +416,8 @@ func (sr *StatefulReader) ReadNext() (*ed25519.PublicKey, error) {
 	return nextBox, nil
 }
 
-// ParseReplyParse repl  advances state if reading was successful. Not thread safe.
-func (sr *StatefulReader) ParseReply(box [32]byte, ciphertext []byte, sig [64]byte) (plaintext []byte, err error) {
+// ParseReply advances state if reading was successful.
+func (sr *StatefulReader) ParseReply(ctx []byte, box [32]byte, ciphertext []byte, sig [64]byte) ([]byte, error) {
 	if box == [32]byte{} {
 		return nil, errors.New("empty box, no message received")
 	}
@@ -430,14 +428,10 @@ func (sr *StatefulReader) ParseReply(box [32]byte, ciphertext []byte, sig [64]by
 	if !bytes.Equal(box[:], nextboxPubKey.Bytes()) {
 		return nil, errors.New("reply does not match expected box ID")
 	}
-
-	mailboxKey := sr.nextIndex.DeriveMailboxID(sr.urcap.rootPublicKey)
-	scheme := mailboxKey.Scheme()
-	if !scheme.Verify(mailboxKey, ciphertext, sig[:], nil) {
-		return nil, errors.New("signature verification failed")
+	plaintext, err := sr.nextIndex.DecryptForContext(box, ctx, ciphertext, sig[:])
+	if err != nil {
+		return nil, err
 	}
-
-	// we got a valid reply (deleted msg or msg with payload)
 	sr.lastInboxRead = sr.nextIndex
 	tmp, err := sr.nextIndex.NextIndex()
 	if err != nil {
