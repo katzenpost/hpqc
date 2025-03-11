@@ -9,9 +9,11 @@ import (
 	"encoding"
 	"encoding/binary"
 	"errors"
+	"hash"
 	"io"
 
 	"github.com/agl/gcmsiv"
+	"golang.org/x/crypto/blake2b"
 	"golang.org/x/crypto/hkdf"
 
 	"github.com/katzenpost/hpqc/sign/ed25519"
@@ -38,8 +40,8 @@ var _ encoding.BinaryMarshaler = (*MailboxIndex)(nil)
 var _ encoding.BinaryUnmarshaler = (*MailboxIndex)(nil)
 
 func (m *MailboxIndex) MarshalBinary() ([]byte, error) {
-	ret := new(bytes.Buffer)
-	err := binary.Write(ret, binary.LittleEndian, m.Idx64)
+	var buf bytes.Buffer
+	err := binary.Write(&buf, binary.LittleEndian, m.Idx64)
 	if err != nil {
 		return nil, err
 	}
@@ -48,11 +50,11 @@ func (m *MailboxIndex) MarshalBinary() ([]byte, error) {
 		m.CurEncryptionKey[:],
 		m.HKDFState[:],
 	} {
-		if _, err := ret.Write(field); err != nil {
+		if _, err := buf.Write(field); err != nil {
 			return nil, err
 		}
 	}
-	return ret.Bytes(), nil
+	return buf.Bytes(), nil
 }
 
 func (m *MailboxIndex) UnmarshalBinary(data []byte) error {
@@ -110,12 +112,12 @@ func (mbox *MailboxIndex) EncryptForContext(owner *Owner, ctx []byte, plaintext 
 }
 
 func (mbox *MailboxIndex) DecryptForContext(box [32]byte, ctx []byte, ciphertext []byte, sig []byte) (plaintext []byte, err error) {
-	boxPk := new(ed25519.PublicKey)
+	var boxPk ed25519.PublicKey
 	if err = boxPk.FromBytes(box[:]); err != nil {
 		return
 	}
 	if false == boxPk.Verify(sig, ciphertext) {
-		panic("verification failed TODO should be an error")
+		return nil, errors.New("signature verification failed")
 	}
 	eICtx := mbox.deriveEForContext(ctx)
 	sivdec, err := gcmsiv.NewGCMSIV(eICtx[:])
@@ -153,25 +155,32 @@ func (box *BACAPBox) Seal() []byte {
 	return []byte{}
 }
 
-func (cur *MailboxIndex) AdvanceIndexTo(to uint64) (next MailboxIndex) {
+func (cur *MailboxIndex) AdvanceIndexTo(to uint64) (*MailboxIndex, error) {
 	if to < cur.Idx64 {
-		panic("TODO that is an error")
+		return nil, errors.New("")
 	}
-	hash := sha512.New // TODO blake
+	hash := func() hash.Hash {
+		h, err := blake2b.New512(nil)
+		if err != nil {
+			panic(err)
+		}
+		return h
+	}
 
 	curIdxB := make([]byte, 8)
 
+	var next MailboxIndex
 	next.Idx64 = cur.Idx64
 	next.HKDFState = cur.HKDFState
 	if to == next.Idx64 {
 		next.CurBlindingFactor = cur.CurBlindingFactor
 		next.CurEncryptionKey = cur.CurEncryptionKey
-		return
+		return &next, nil
 	} else {
 		next.CurBlindingFactor = [32]byte{}
 		next.CurEncryptionKey = [32]byte{}
 	}
-	for idx := next.Idx64; next.Idx64 < to; idx += 1 {
+	for next.Idx64 < to {
 		binary.LittleEndian.PutUint64(curIdxB, next.Idx64)
 		hkdf := hkdf.New(hash, next.HKDFState[:], nil, curIdxB)
 		// Read H_{i+1}, E_i, K_i from the KDF:
@@ -186,18 +195,18 @@ func (cur *MailboxIndex) AdvanceIndexTo(to uint64) (next MailboxIndex) {
 		}
 		next.Idx64 = next.Idx64 + 1
 	}
-	return
-}
-func (cur *MailboxIndex) NextIndex() MailboxIndex {
-	ne := cur.AdvanceIndexTo(cur.Idx64 + 1)
-	return ne
+	return &next, nil
 }
 
-func NewMailboxIndex(rng io.Reader) *MailboxIndex {
-	this := MailboxIndex{}
+func (cur *MailboxIndex) NextIndex() (*MailboxIndex, error) {
+	return cur.AdvanceIndexTo(cur.Idx64 + 1)
+}
+
+func NewMailboxIndex(rng io.Reader) (*MailboxIndex, error) {
+	m := MailboxIndex{}
 
 	// Pick a random HKDF key for the conversation:
-	if ilen, err := io.ReadFull(rng, this.HKDFState[:]); err != nil || ilen != 32 {
+	if ilen, err := io.ReadFull(rng, m.HKDFState[:]); err != nil || ilen != 32 {
 		panic(err)
 	}
 
@@ -224,14 +233,17 @@ func NewMailboxIndex(rng io.Reader) *MailboxIndex {
 	// disclosure of such facts.
 	idx64B[0] &= 0x2f // 0x2f leaves out the top two bits
 	idx64B[8] &= 0x2f
-	this.Idx64 = binary.LittleEndian.Uint64(idx64B[:8])
-	this.Idx64 += binary.LittleEndian.Uint64(idx64B[8:])
+	m.Idx64 = binary.LittleEndian.Uint64(idx64B[:8])
+	m.Idx64 += binary.LittleEndian.Uint64(idx64B[8:])
 	// believe this is called Irwin-Hall sum.
 	// this might be better if normal distribution is what we want:
 	// https://en.wikipedia.org/wiki/Box%E2%80%93Muller_transform
 
-	this = this.NextIndex()
-	return &this
+	nextIndex, err := m.NextIndex()
+	if err != nil {
+		return nil, err
+	}
+	return nextIndex, nil
 }
 
 type Owner struct {
@@ -295,17 +307,19 @@ func (o *Owner) UnmarshalBinary(data []byte) error {
 	return nil
 }
 
-func NewOwner(rng io.Reader) *Owner {
-	this := Owner{}
-	//this.rootPrivateKey, this.rootPublicKey, err
+func NewOwner(rng io.Reader) (*Owner, error) {
+	o := Owner{}
 	sk, pk, err := ed25519.NewKeypair(rng) // S_R, P_R
 	if err != nil {
-		panic("rng is broken")
+		panic(err)
 	}
-	this.rootPrivateKey = *sk
-	this.rootPublicKey = *pk
-	this.firstMailboxIndex = NewMailboxIndex(rng)
-	return &this
+	o.rootPrivateKey = *sk
+	o.rootPublicKey = *pk
+	o.firstMailboxIndex, err = NewMailboxIndex(rng)
+	if err != nil {
+		return nil, err
+	}
+	return &o, nil
 }
 
 // A universal read capability can be used to compute BACAP boxes and decrypt their message payloads
@@ -353,13 +367,13 @@ func (u *UniversalReadCap) UnmarshalBinary(data []byte) error {
 }
 
 func (owner *Owner) NewUniversalReadCap() *UniversalReadCap {
-	this := UniversalReadCap{}
-	this.rootPublicKey = owner.rootPublicKey
-	// NB: this is the firstIndex that we know about/can read,
+	o := UniversalReadCap{}
+	o.rootPublicKey = owner.rootPublicKey
+	// NB: o is the firstIndex that we know about/can read,
 	// not necessarily the first index in the conversation:
-	this.firstMailboxIndex = owner.firstMailboxIndex
-	//this.universalReadSecret = owner.UniversalCap(readCapString)
-	return &this
+	o.firstMailboxIndex = owner.firstMailboxIndex
+	//o.universalReadSecret = owner.UniversalCap(readCapString)
+	return &o
 }
 
 func (mbIdx *MailboxIndex) DeriveMailboxID(rootPublicKey *ed25519.PublicKey) *ed25519.PublicKey {
@@ -398,14 +412,17 @@ type StatefulReader struct {
 }
 
 // Get the next box ID to read. Not thread-safe.
-func (sr *StatefulReader) ReadNext() *ed25519.PublicKey {
+func (sr *StatefulReader) ReadNext() (*ed25519.PublicKey, error) {
 	// TODO specialize it for sr.ctx
 	if sr.nextIndex == nil {
-		tmp := sr.lastInboxRead.NextIndex()
-		sr.nextIndex = &tmp
+		tmp, err := sr.lastInboxRead.NextIndex()
+		if err != nil {
+			return nil, err
+		}
+		sr.nextIndex = tmp
 	}
 	nextBox := sr.nextIndex.BoxIDForContext(&sr.urcap, sr.ctx)
-	return nextBox
+	return nextBox, nil
 }
 
 // Not thread-safe. Parse reply, advance state if reading was successful.
@@ -420,8 +437,11 @@ func (sr *StatefulReader) ParseReply(box [32]byte, ciphertext []byte, sig [64]by
 	if true {
 		// we got a valid reply (deleted msg or msg with payload)
 		sr.lastInboxRead = *sr.nextIndex
-		tmp := sr.nextIndex.NextIndex()
-		sr.nextIndex = &tmp
+		tmp, err := sr.nextIndex.NextIndex()
+		if err != nil {
+			return nil, err
+		}
+		sr.nextIndex = tmp
 	} else {
 		plaintext = nil
 	}
