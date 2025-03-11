@@ -11,9 +11,10 @@ import (
 	"hash"
 	"io"
 
-	"github.com/agl/gcmsiv"
 	"golang.org/x/crypto/blake2b"
 	"golang.org/x/crypto/hkdf"
+
+	"github.com/agl/gcmsiv"
 
 	"github.com/katzenpost/hpqc/sign/ed25519"
 )
