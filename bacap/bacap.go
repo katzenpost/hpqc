@@ -5,6 +5,7 @@ package bacap
 
 import (
 	"bytes"
+	"crypto/hmac"
 	"encoding"
 	"encoding/binary"
 	"errors"
@@ -414,6 +415,21 @@ func (sr *StatefulReader) ReadNext() (*ed25519.PublicKey, error) {
 
 // Not thread-safe. Parse reply, advance state if reading was successful.
 func (sr *StatefulReader) ParseReply(box [32]byte, ciphertext []byte, sig [64]byte) (plaintext []byte, err error) {
+	if box == [32]byte{} {
+		return nil, errors.New("empty box, no message received")
+	}
+	if sr.nextIndex == nil {
+		return nil, errors.New("next index is nil, cannot parse reply")
+	}
+	nextboxPubKey := sr.nextIndex.BoxIDForContext(&sr.urcap, sr.ctx)
+	if !hmac.Equal(box[:], nextboxPubKey.Bytes()) {
+		return nil, errors.New("then we have a problem, where the reply is for a different box than we asked for.")
+	}
+	scheme := sr.nextIndex.DeriveMailboxID(&sr.urcap.rootPublicKey).Scheme()
+	if !scheme.Verify(sr.nextIndex.DeriveMailboxID(&sr.urcap.rootPublicKey), ciphertext, sig[:], nil) {
+		return nil, errors.New("signature verification failed")
+	}
+
 	// we got a valid reply (deleted msg or msg with payload)
 	sr.lastInboxRead = *sr.nextIndex
 	tmp, err := sr.nextIndex.NextIndex()
