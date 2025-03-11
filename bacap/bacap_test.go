@@ -120,7 +120,7 @@ func TestReadCap(t *testing.T) {
 
 	mb2, err := mb1.NextIndex()
 	require.NoError(t, err)
-	mb2_id := mb2.DeriveMailboxID(&uread.rootPublicKey)
+	mb2_id := mb2.DeriveMailboxID(uread.rootPublicKey)
 	_ = mb2_id
 	//mb2_read_sk := uread.Specialize(&mb2)
 	//mb2_sig := mb2_read_sk.Sign(msg1)
@@ -141,7 +141,7 @@ func TestMake1000(t *testing.T) {
 	for i := 0; i < 1000; i++ {
 		mb_cur, err = mb_cur.NextIndex()
 		require.NoError(t, err)
-		mb2_id := mb_cur.DeriveMailboxID(&uread.rootPublicKey)
+		mb2_id := mb_cur.DeriveMailboxID(uread.rootPublicKey)
 		_ = mb2_id
 		//fmt.Printf("mailbox:%v:%s\n",mb_cur.Idx64, hex.EncodeToString(mb2_id.Bytes()))
 	}

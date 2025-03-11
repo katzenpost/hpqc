@@ -265,10 +265,10 @@ func NewMailboxIndex(rng io.Reader) (*MailboxIndex, error) {
 
 type Owner struct {
 	// on-disk:
-	rootPrivateKey ed25519.PrivateKey
+	rootPrivateKey *ed25519.PrivateKey
 
 	// in-memory only:
-	rootPublicKey ed25519.PublicKey
+	rootPublicKey *ed25519.PublicKey
 
 	firstMailboxIndex *MailboxIndex
 }
@@ -318,8 +318,8 @@ func NewOwner(rng io.Reader) (*Owner, error) {
 	if err != nil {
 		panic(err)
 	}
-	o.rootPrivateKey = *sk
-	o.rootPublicKey = *pk
+	o.rootPrivateKey = sk
+	o.rootPublicKey = pk
 	o.firstMailboxIndex, err = NewMailboxIndex(rng)
 	if err != nil {
 		return nil, err
@@ -330,7 +330,7 @@ func NewOwner(rng io.Reader) (*Owner, error) {
 // A universal read capability can be used to compute BACAP boxes and decrypt their message payloads
 // for indices >= firstMailboxIndex
 type UniversalReadCap struct {
-	rootPublicKey ed25519.PublicKey
+	rootPublicKey *ed25519.PublicKey
 
 	firstMailboxIndex *MailboxIndex
 }
@@ -393,15 +393,11 @@ type noCopy struct{}
 func (*noCopy) Lock()   {}
 func (*noCopy) Unlock() {}
 
-type StatefulWriter struct {
-	noCopy noCopy
-}
-
 // StatefulReader is a helper type with mutable state for sequential reading
 type StatefulReader struct {
 	noCopy        noCopy
-	urcap         UniversalReadCap
-	lastInboxRead MailboxIndex
+	urcap         *UniversalReadCap
+	lastInboxRead *MailboxIndex
 	nextIndex     *MailboxIndex
 	ctx           []byte
 }
@@ -418,7 +414,7 @@ func (sr *StatefulReader) ReadNext() (*ed25519.PublicKey, error) {
 	if sr.ctx == nil {
 		return nil, errors.New("next context is nil")
 	}
-	nextBox := sr.nextIndex.BoxIDForContext(&sr.urcap, sr.ctx)
+	nextBox := sr.nextIndex.BoxIDForContext(sr.urcap, sr.ctx)
 	return nextBox, nil
 }
 
@@ -430,19 +426,19 @@ func (sr *StatefulReader) ParseReply(box [32]byte, ciphertext []byte, sig [64]by
 	if sr.nextIndex == nil {
 		return nil, errors.New("next index is nil, cannot parse reply")
 	}
-	nextboxPubKey := sr.nextIndex.BoxIDForContext(&sr.urcap, sr.ctx)
+	nextboxPubKey := sr.nextIndex.BoxIDForContext(sr.urcap, sr.ctx)
 	if !bytes.Equal(box[:], nextboxPubKey.Bytes()) {
 		return nil, errors.New("reply does not match expected box ID")
 	}
 
-	mailboxKey := sr.nextIndex.DeriveMailboxID(&sr.urcap.rootPublicKey)
+	mailboxKey := sr.nextIndex.DeriveMailboxID(sr.urcap.rootPublicKey)
 	scheme := mailboxKey.Scheme()
 	if !scheme.Verify(mailboxKey, ciphertext, sig[:], nil) {
 		return nil, errors.New("signature verification failed")
 	}
 
 	// we got a valid reply (deleted msg or msg with payload)
-	sr.lastInboxRead = *sr.nextIndex
+	sr.lastInboxRead = sr.nextIndex
 	tmp, err := sr.nextIndex.NextIndex()
 	if err != nil {
 		return nil, err
