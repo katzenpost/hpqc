@@ -70,8 +70,8 @@ func (m *MailboxIndex) UnmarshalBinary(data []byte) error {
 
 func (mbox *MailboxIndex) deriveEForContext(ctx []byte) (eICtx [32]byte) {
 	hash := sha512.New
-	hkdfEncryptionEI := hkdf.New(hash, mbox.CurEncryptionKey[:], ctx, []byte{})
-	if n, err := hkdfEncryptionEI.Read(eICtx[:]); err != nil || n != len(eICtx) {
+	hkdfEncEI := hkdf.New(hash, mbox.CurEncryptionKey[:], ctx, []byte{})
+	if n, err := hkdfEncEI.Read(eICtx[:]); err != nil || n != len(eICtx) {
 		panic("hkdf error")
 	}
 	return
@@ -79,8 +79,8 @@ func (mbox *MailboxIndex) deriveEForContext(ctx []byte) (eICtx [32]byte) {
 
 func (mbox *MailboxIndex) deriveKForContext(ctx []byte) (kICtx [32]byte) {
 	hash := sha512.New
-	hkdfBlindingKI := hkdf.New(hash, mbox.CurBlindingFactor[:], ctx, []byte{})
-	if n, err := hkdfBlindingKI.Read(kICtx[:]); err != nil || n != len(kICtx) {
+	hkdfBlindKI := hkdf.New(hash, mbox.CurBlindingFactor[:], ctx, []byte{})
+	if n, err := hkdfBlindKI.Read(kICtx[:]); err != nil || n != len(kICtx) {
 		panic("hkdf error")
 	}
 	return
@@ -176,10 +176,11 @@ func (cur *MailboxIndex) AdvanceIndexTo(to uint64) (*MailboxIndex, error) {
 		next.CurBlindingFactor = cur.CurBlindingFactor
 		next.CurEncryptionKey = cur.CurEncryptionKey
 		return &next, nil
-	} else {
-		next.CurBlindingFactor = [32]byte{}
-		next.CurEncryptionKey = [32]byte{}
 	}
+
+	next.CurBlindingFactor = [32]byte{}
+	next.CurEncryptionKey = [32]byte{}
+
 	for next.Idx64 < to {
 		binary.LittleEndian.PutUint64(curIdxB, next.Idx64)
 		hkdf := hkdf.New(hash, next.HKDFState[:], nil, curIdxB)
@@ -264,26 +265,15 @@ var _ encoding.BinaryUnmarshaler = (*Owner)(nil)
 
 func (o *Owner) MarshalBinary() ([]byte, error) {
 	var buf bytes.Buffer
-
-	// Write rootPrivateKey (64 bytes for ed25519.PrivateKey)
 	if _, err := buf.Write(o.rootPrivateKey.Bytes()); err != nil {
 		return nil, err
 	}
-
-	// Write rootPublicKey (32 bytes for ed25519.PublicKey)
 	if _, err := buf.Write(o.rootPublicKey.Bytes()); err != nil {
 		return nil, err
 	}
-
-	// Marshal and write firstMailboxIndex
-	mboxBytes, err := o.firstMailboxIndex.MarshalBinary()
-	if err != nil {
+	if err := binary.Write(&buf, binary.LittleEndian, o.firstMailboxIndex); err != nil {
 		return nil, err
 	}
-	if _, err := buf.Write(mboxBytes); err != nil {
-		return nil, err
-	}
-
 	return buf.Bytes(), nil
 }
 
