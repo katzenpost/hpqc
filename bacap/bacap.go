@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: © 2025 Katzenpost dev team
 // SPDX-License-Identifier: AGPL-3.0-only
 
+// bacap package provides the Blinded Cryptographic Capability system
 package bacap
 
 import (
@@ -19,9 +20,42 @@ import (
 	"github.com/katzenpost/hpqc/sign/ed25519"
 )
 
-// BACAP could possibly be improved, here's a ticket for
-// completing the TODO tasks written by it's original author:
-// https://github.com/katzenpost/hpqc/issues/55
+/*
+   BACAP is the Blinded Cryptographic Capability system whose
+   design is expounded upon in section 4 of our paper:
+
+   "BACAP (Blinding-and-Capability scheme) allows us
+   to deterministically derive a sequence of key pairs using
+   blinding, built upon Ed25519, and suitable for un-
+   linkable messaging. It enables participants to derive box
+   IDs and corresponding encryption keys for independent,
+   single-use boxes using shared symmetric keys.
+
+   A box consists of an ID, a message payload, and a
+   signature over the payload. There are two basic capabili-
+   ties - one that lets a party derive the box IDs and decrypt
+   the messages, and one that additionally lets the holder
+   derive private keys to sign the messages. The signatures
+   are universally veriﬁable, as the box ID for each box
+   doubles as the public key for the signatures.
+
+   In the context of a messaging system, the protocol is
+   used by Alice to send an inﬁnite sequence of messages
+   to Bob, one per box, with Bob using a separate, second
+   instance of the protocol to send messages to Alice.
+   "
+
+   Echomix: a Strong Anonymity System with Messaging
+
+   https://arxiv.org/abs/2501.02933
+   https://arxiv.org/pdf/2501.02933
+
+
+   This BACAP implementation could possibly be improved, here's a ticket for
+   completing the TODO tasks written by it's original author:
+
+   https://github.com/katzenpost/hpqc/issues/55
+*/
 
 const MailboxIndexSize = 8 + 32 + 32 + 32
 
@@ -138,31 +172,6 @@ func (mbox *MailboxIndex) DecryptForContext(box [32]byte, ctx []byte, ciphertext
 		return nil, err
 	}
 	return
-}
-
-// a MailboxIndex specialized for a given "context" (Ctx)
-type BACAPBox struct {
-	Ctx   [32]byte
-	EICtx [32]byte
-	KICtx [32]byte
-	mICtx [32]byte
-}
-
-// Verify the integrity of a received payload
-func (box *BACAPBox) Verify() error {
-	// - check that mICtx was the public key used to produce valid ed25519 signature
-	//   sICtx over cICtx
-	return nil
-}
-
-// Decrypt a message, after checking the signature
-func (box *BACAPBox) Unseal() error {
-	return nil
-}
-
-// Encrypt a message, signing it
-func (box *BACAPBox) Seal() []byte {
-	return []byte{}
 }
 
 func (cur *MailboxIndex) AdvanceIndexTo(to uint64) (*MailboxIndex, error) {
