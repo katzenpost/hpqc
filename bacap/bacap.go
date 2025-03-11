@@ -18,6 +18,10 @@ import (
 	"github.com/katzenpost/hpqc/sign/ed25519"
 )
 
+// BACAP could possibly be improved, here's a ticket for
+// completing the TODO tasks written by it's original author:
+// https://github.com/katzenpost/hpqc/issues/55
+
 const MailboxIndexSize = 8 + 32 + 32 + 32
 
 type MailboxIndex struct {
@@ -375,13 +379,6 @@ func (mbIdx *MailboxIndex) DeriveMailboxID(rootPublicKey *ed25519.PublicKey) *ed
 	return pk
 }
 
-// TODO:
-// - need to excercise the caps with signature
-// - need iterated "advance by x / advance to x" helpers
-// - some kind of data structure to support skip indexes ?
-// - figure out if there's a practical reason to have a fixed KDF key instead of just plain iteration.
-//   - maybe put the rootPublicKey in blind derivation?
-
 // warn about accidental copying of these as they have mutable state:
 // https://stackoverflow.com/a/52495303
 type noCopy struct{}
@@ -404,7 +401,6 @@ type StatefulReader struct {
 
 // Get the next box ID to read. Not thread-safe.
 func (sr *StatefulReader) ReadNext() (*ed25519.PublicKey, error) {
-	// TODO specialize it for sr.ctx
 	if sr.nextIndex == nil {
 		tmp, err := sr.lastInboxRead.NextIndex()
 		if err != nil {
