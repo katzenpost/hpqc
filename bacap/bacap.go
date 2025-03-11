@@ -5,7 +5,6 @@ package bacap
 
 import (
 	"bytes"
-	"crypto/sha512"
 	"encoding"
 	"encoding/binary"
 	"errors"
@@ -69,7 +68,10 @@ func (m *MailboxIndex) UnmarshalBinary(data []byte) error {
 }
 
 func (mbox *MailboxIndex) deriveEForContext(ctx []byte) (eICtx [32]byte) {
-	hash := sha512.New
+	hash := func() hash.Hash {
+		h, _ := blake2b.New512(nil)
+		return h
+	}
 	hkdfEncEI := hkdf.New(hash, mbox.CurEncryptionKey[:], ctx, []byte{})
 	if n, err := hkdfEncEI.Read(eICtx[:]); err != nil || n != len(eICtx) {
 		panic("hkdf error")
@@ -78,7 +80,10 @@ func (mbox *MailboxIndex) deriveEForContext(ctx []byte) (eICtx [32]byte) {
 }
 
 func (mbox *MailboxIndex) deriveKForContext(ctx []byte) (kICtx [32]byte) {
-	hash := sha512.New
+	hash := func() hash.Hash {
+		h, _ := blake2b.New512(nil)
+		return h
+	}
 	hkdfBlindKI := hkdf.New(hash, mbox.CurBlindingFactor[:], ctx, []byte{})
 	if n, err := hkdfBlindKI.Read(kICtx[:]); err != nil || n != len(kICtx) {
 		panic("hkdf error")
@@ -157,13 +162,10 @@ func (box *BACAPBox) Seal() []byte {
 
 func (cur *MailboxIndex) AdvanceIndexTo(to uint64) (*MailboxIndex, error) {
 	if to < cur.Idx64 {
-		return nil, errors.New("")
+		return nil, errors.New("cannot rewind index: target index is less than current index")
 	}
 	hash := func() hash.Hash {
-		h, err := blake2b.New512(nil)
-		if err != nil {
-			panic(err)
-		}
+		h, _ := blake2b.New512(nil)
 		return h
 	}
 
@@ -293,7 +295,6 @@ func (o *Owner) UnmarshalBinary(data []byte) error {
 	if err := o.firstMailboxIndex.UnmarshalBinary(data[96:]); err != nil {
 		return err
 	}
-
 	return nil
 }
 
@@ -417,23 +418,12 @@ func (sr *StatefulReader) ReadNext() (*ed25519.PublicKey, error) {
 
 // Not thread-safe. Parse reply, advance state if reading was successful.
 func (sr *StatefulReader) ParseReply(box [32]byte, ciphertext []byte, sig [64]byte) (plaintext []byte, err error) {
-	// if box == [32]byte{0} {
-	//   there was no reply, either the message hasn't been sent or it has been deleted.
-	// }
-	// if box != sr.nextIndex.BoxIDForContext(&sr.urcap, sr.ctx) {
-	//   then we have a problem, where the reply is for a different box than we asked for.
-	// }
-	// sr.nextIndex.deriveEForContext(sr.ctx)
-	if true {
-		// we got a valid reply (deleted msg or msg with payload)
-		sr.lastInboxRead = *sr.nextIndex
-		tmp, err := sr.nextIndex.NextIndex()
-		if err != nil {
-			return nil, err
-		}
-		sr.nextIndex = tmp
-	} else {
-		plaintext = nil
+	// we got a valid reply (deleted msg or msg with payload)
+	sr.lastInboxRead = *sr.nextIndex
+	tmp, err := sr.nextIndex.NextIndex()
+	if err != nil {
+		return nil, err
 	}
+	sr.nextIndex = tmp
 	return
 }
