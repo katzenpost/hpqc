@@ -5,7 +5,6 @@ package bacap
 
 import (
 	"bytes"
-	"crypto/hmac"
 	"encoding"
 	"encoding/binary"
 	"errors"
@@ -409,6 +408,9 @@ func (sr *StatefulReader) ReadNext() (*ed25519.PublicKey, error) {
 		}
 		sr.nextIndex = tmp
 	}
+	if sr.ctx == nil {
+		return nil, errors.New("next context is nil")
+	}
 	nextBox := sr.nextIndex.BoxIDForContext(&sr.urcap, sr.ctx)
 	return nextBox, nil
 }
@@ -422,11 +424,13 @@ func (sr *StatefulReader) ParseReply(box [32]byte, ciphertext []byte, sig [64]by
 		return nil, errors.New("next index is nil, cannot parse reply")
 	}
 	nextboxPubKey := sr.nextIndex.BoxIDForContext(&sr.urcap, sr.ctx)
-	if !hmac.Equal(box[:], nextboxPubKey.Bytes()) {
+	if !bytes.Equal(box[:], nextboxPubKey.Bytes()) {
 		return nil, errors.New("then we have a problem, where the reply is for a different box than we asked for.")
 	}
-	scheme := sr.nextIndex.DeriveMailboxID(&sr.urcap.rootPublicKey).Scheme()
-	if !scheme.Verify(sr.nextIndex.DeriveMailboxID(&sr.urcap.rootPublicKey), ciphertext, sig[:], nil) {
+
+	mailboxKey := sr.nextIndex.DeriveMailboxID(&sr.urcap.rootPublicKey)
+	scheme := mailboxKey.Scheme()
+	if !scheme.Verify(mailboxKey, ciphertext, sig[:], nil) {
 		return nil, errors.New("signature verification failed")
 	}
 
@@ -437,5 +441,5 @@ func (sr *StatefulReader) ParseReply(box [32]byte, ciphertext []byte, sig [64]by
 		return nil, err
 	}
 	sr.nextIndex = tmp
-	return
+	return plaintext, nil
 }
