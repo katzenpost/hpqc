@@ -371,12 +371,9 @@ func (owner *Owner) NewUniversalReadCap() *UniversalReadCap {
 	return &o
 }
 
+// DeriveMailboxID derives the blinded public key, the mailbox ID, given the root public key.
 func (mbIdx *MailboxIndex) DeriveMailboxID(rootPublicKey *ed25519.PublicKey) *ed25519.PublicKey {
-	//fmt.Println("DeriveMailboxID: blinding rootPublicKey",rootPublicKey)
-	//fmt.Println("DeriveMailboxID: curblind:", mbIdx.CurBlindingFactor)
-	pk := rootPublicKey.Blind(mbIdx.CurBlindingFactor[:])
-	//fmt.Println("DeriveMailboxID => pk:", pk)
-	return pk
+	return rootPublicKey.Blind(mbIdx.CurBlindingFactor[:])
 }
 
 // warn about accidental copying of these as they have mutable state:
@@ -390,7 +387,7 @@ type StatefulWriter struct {
 	noCopy noCopy
 }
 
-// Helper type with mutable state for sequential reading
+// StatefulReader is a helper type with mutable state for sequential reading
 type StatefulReader struct {
 	noCopy        noCopy
 	urcap         UniversalReadCap
@@ -399,7 +396,7 @@ type StatefulReader struct {
 	ctx           []byte
 }
 
-// Get the next box ID to read. Not thread-safe.
+// ReadNext gets the next box ID to read. Not thread-safe.
 func (sr *StatefulReader) ReadNext() (*ed25519.PublicKey, error) {
 	if sr.nextIndex == nil {
 		tmp, err := sr.lastInboxRead.NextIndex()
@@ -415,7 +412,7 @@ func (sr *StatefulReader) ReadNext() (*ed25519.PublicKey, error) {
 	return nextBox, nil
 }
 
-// Not thread-safe. Parse reply, advance state if reading was successful.
+// ParseReplyParse repl  advances state if reading was successful. Not thread safe.
 func (sr *StatefulReader) ParseReply(box [32]byte, ciphertext []byte, sig [64]byte) (plaintext []byte, err error) {
 	if box == [32]byte{} {
 		return nil, errors.New("empty box, no message received")
@@ -425,7 +422,7 @@ func (sr *StatefulReader) ParseReply(box [32]byte, ciphertext []byte, sig [64]by
 	}
 	nextboxPubKey := sr.nextIndex.BoxIDForContext(&sr.urcap, sr.ctx)
 	if !bytes.Equal(box[:], nextboxPubKey.Bytes()) {
-		return nil, errors.New("then we have a problem, where the reply is for a different box than we asked for.")
+		return nil, errors.New("reply does not match expected box ID")
 	}
 
 	mailboxKey := sr.nextIndex.DeriveMailboxID(&sr.urcap.rootPublicKey)
