@@ -4,11 +4,14 @@
 package bacap
 
 import (
+	"fmt"
 	"math/rand"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/katzenpost/hpqc/util"
 )
 
 // Check that advancing mailbox states:
@@ -82,50 +85,17 @@ func TestReadCap(t *testing.T) {
 	t.Log("TestReadCap test_seed", test_seed)
 	rng := rand.New(rand.NewSource(test_seed))
 
-	msg1 := []byte("abc")
-	_ = msg1
-
 	owner, err := NewOwner(rng)
 	require.NoError(t, err)
 	uread := owner.NewUniversalReadCap()
 	require.Equal(t, owner.firstMailboxIndex.Idx64, uread.firstMailboxIndex.Idx64)
 	require.Equal(t, owner.rootPublicKey, uread.rootPublicKey)
-	// These next 3 lines we take a detour to ensure that the blinding works
-	// (universal secrets should never be used directly), hence the private
-	// key is unexported:
-	//u_sig := uread.Sign(msg1)
-	//u_read_pk := uread.universalReadSecret.PublicKey()
-	//require.Equal(true, u_read_pk.Verify(u_sig, msg1))
 
-	// We pick a mailbox index:
 	mb1 := uread.firstMailboxIndex
-	// Reader computes read cap private key:
-	//mb1_read_sk := uread.Specialize(mb1)
-	// Reader computes mailbox ID:
-	//mb1_id := mb1.DeriveMailboxID(&uread.rootPublicKey)
-	// Reader signs the read request, excercising the capability:
-	//sig1 := mb1_read_sk.Sign(msg1)
-	// Unit test: We check that the corresponding public key works:
-	//mb1_read_topk := mb1_read_sk.PublicKey()
-	//require.Equal(true, mb1_read_topk.Verify(sig1, msg1))
-
-	// Now Reader uploads to server: mb1_id, sig1, msg1
-
-	// Server derives read cap verifier from the mailbox ID:
-	//mb1_read_pk := mb1_id //DeriveCapVerifier(mb1_id, readCapString)
-	// Server validates the cap signature:
-	//require.Equal(true, mb1_read_pk.Verify(sig1, msg1))
-	// Unit test: Server should have derived same key as we did before:
-	//require.Equal(mb1_read_pk, mb1_read_topk)
-
 	mb2, err := mb1.NextIndex()
 	require.NoError(t, err)
 	mb2_id := mb2.DeriveMailboxID(uread.rootPublicKey)
-	_ = mb2_id
-	//mb2_read_sk := uread.Specialize(&mb2)
-	//mb2_sig := mb2_read_sk.Sign(msg1)
-	//mb2_read_pk := DeriveCapVerifier(mb2_id, readCapString)
-	//require.Equal(true, mb2_read_pk.Verify(mb2_id, msg1))
+	require.False(t, util.CtIsZero(mb2_id.Bytes()))
 }
 
 func TestMake1000(t *testing.T) {
@@ -142,35 +112,38 @@ func TestMake1000(t *testing.T) {
 		mb_cur, err = mb_cur.NextIndex()
 		require.NoError(t, err)
 		mb2_id := mb_cur.DeriveMailboxID(uread.rootPublicKey)
-		_ = mb2_id
-		//fmt.Printf("mailbox:%v:%s\n",mb_cur.Idx64, hex.EncodeToString(mb2_id.Bytes()))
+		require.False(t, util.CtIsZero(mb2_id.Bytes()))
 	}
 }
 
-func TestEncryptForContext(t *testing.T) {
+func TestEncryptDecrypt(t *testing.T) {
 	t.Parallel()
 	test_seed := time.Now().UnixNano()
-	t.Log("TestEncryptForContext test_seed", test_seed)
 	rng := rand.New(rand.NewSource(test_seed))
 
-	ctx1 := []byte{'c', 't', 'x', '1'}
-
-	msg1 := []byte("abc")
-	_ = msg1
+	ctx1 := []byte("ctx1")
 
 	owner, err := NewOwner(rng)
 	require.NoError(t, err)
 	uread := owner.NewUniversalReadCap()
-	mbox1 := *uread.firstMailboxIndex
-	box_derived := mbox1.BoxIDForContext(uread, ctx1)
 
-	// Encrypt a new message:
-	box, ciphertext1, sig1 := mbox1.EncryptForContext(owner, ctx1, msg1)
-	require.Equal(t, box_derived.Bytes(), box[:])
-	require.NotEqual(t, msg1, ciphertext1)
+	boxCurrent := uread.firstMailboxIndex
+	for i := 0; i < 1000; i++ {
+		boxCurrent, err = boxCurrent.NextIndex()
+		require.NoError(t, err)
 
-	// Now we attempt to decrypt the BACAP message:
-	plaintext1, err := mbox1.DecryptForContext(box, ctx1, ciphertext1, sig1)
-	require.Equal(t, nil, err)
-	require.Equal(t, msg1, plaintext1)
+		boxDerived := boxCurrent.BoxIDForContext(uread, ctx1)
+
+		// Encrypt a new message:
+		msg := []byte(fmt.Sprintf("message %d", i))
+		box, ciphertext1, sig1 := boxCurrent.EncryptForContext(owner, ctx1, msg)
+		require.Equal(t, boxDerived.Bytes(), box[:])
+		require.NotEqual(t, msg, ciphertext1)
+
+		// Now we attempt to decrypt the BACAP message:
+		plaintext1, err := boxCurrent.DecryptForContext(box, ctx1, ciphertext1, sig1)
+		require.Equal(t, nil, err)
+		require.Equal(t, msg, plaintext1)
+	}
+
 }
