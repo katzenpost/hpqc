@@ -21,6 +21,9 @@ import (
 )
 
 /*
+   BACAP
+   =====
+
    BACAP is the Blinded Cryptographic Capability system with
    some resistance against quantum adversaries whose design
    is expounded upon in section 4 of our paper:
@@ -66,10 +69,12 @@ import (
    messages boxes in a deterministic sequence.
 
    Each of the above two capabilities are used with the MessageBoxIndex
-   to perform various cryptographic operations. Beyond that we have
-   two high level types: StatefulReader and StatefulWriter.
-   These two encapsulate all the operational details of advancing state
+   to perform their respective encrypt and sign vs verify and decrypt operations.
+
+   Beyond that we have two high level types: StatefulReader and StatefulWriter
+   which encapsulate all the operational details of advancing state
    after message processing.
+
 
    **TODOs**
 
