@@ -5,12 +5,11 @@ package bacap
 
 import (
 	"fmt"
-	"math/rand"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/katzenpost/hpqc/rand"
 	"github.com/katzenpost/hpqc/util"
 )
 
@@ -21,10 +20,8 @@ import (
 // - advancing the same independently produces the same new state (hoping to detect accidental mutation)
 func TestAdvanceIndex(t *testing.T) {
 	t.Parallel()
-	test_seed := time.Now().UnixNano()
-	rng := rand.New(rand.NewSource(test_seed))
 
-	mb_r, err := NewMailboxIndex(rng)
+	mb_r, err := NewMessageBoxIndex(rand.Reader)
 	require.NoError(t, err)
 	mb_1a, err := mb_r.NextIndex()
 	require.NoError(t, err)
@@ -92,52 +89,46 @@ func TestAdvanceIndex(t *testing.T) {
 
 func TestReadCap(t *testing.T) {
 	t.Parallel()
-	test_seed := time.Now().UnixNano()
-	rng := rand.New(rand.NewSource(test_seed))
 
-	owner, err := NewOwner(rng)
+	owner, err := NewBoxOwnerCap(rand.Reader)
 	require.NoError(t, err)
-	uread := owner.NewUniversalReadCap()
-	require.Equal(t, owner.firstMailboxIndex.Idx64, uread.firstMailboxIndex.Idx64)
+	uread := owner.UniversalReadCap()
+	require.Equal(t, owner.firstMessageBoxIndex.Idx64, uread.firstMessageBoxIndex.Idx64)
 	require.Equal(t, owner.rootPublicKey, uread.rootPublicKey)
 
-	mb1 := uread.firstMailboxIndex
+	mb1 := uread.firstMessageBoxIndex
 	mb2, err := mb1.NextIndex()
 	require.NoError(t, err)
-	mb2_id := mb2.DeriveMailboxID(uread.rootPublicKey)
+	mb2_id := mb2.DeriveMessageBoxID(uread.rootPublicKey)
 	require.False(t, util.CtIsZero(mb2_id.Bytes()))
 }
 
 func TestMake1000(t *testing.T) {
 	t.Parallel()
-	test_seed := time.Now().UnixNano()
-	rng := rand.New(rand.NewSource(test_seed))
 
-	owner, err := NewOwner(rng)
+	owner, err := NewBoxOwnerCap(rand.Reader)
 	require.NoError(t, err)
-	uread := owner.NewUniversalReadCap()
-	mb_cur := uread.firstMailboxIndex
+	uread := owner.UniversalReadCap()
+	mb_cur := uread.firstMessageBoxIndex
 	for i := 0; i < 1000; i++ {
 		mb_cur, err = mb_cur.NextIndex()
 		require.NoError(t, err)
-		mb2_id := mb_cur.DeriveMailboxID(uread.rootPublicKey)
+		mb2_id := mb_cur.DeriveMessageBoxID(uread.rootPublicKey)
 		require.False(t, util.CtIsZero(mb2_id.Bytes()))
 	}
 }
 
 func TestEncryptDecrypt(t *testing.T) {
 	t.Parallel()
-	test_seed := time.Now().UnixNano()
-	rng := rand.New(rand.NewSource(test_seed))
 
 	ctx1 := []byte("ctx1")
 	ctx2 := []byte("ctx2")
 
-	owner, err := NewOwner(rng)
+	owner, err := NewBoxOwnerCap(rand.Reader)
 	require.NoError(t, err)
-	uread := owner.NewUniversalReadCap()
+	uread := owner.UniversalReadCap()
 
-	boxCurrent := uread.firstMailboxIndex
+	boxCurrent := uread.firstMessageBoxIndex
 	for i := 0; i < 3; i++ {
 		boxCurrent, err = boxCurrent.NextIndex()
 		require.NoError(t, err)
@@ -164,5 +155,43 @@ func TestEncryptDecrypt(t *testing.T) {
 		_, err = boxCurrent.DecryptForContext(box, ctx1, ciphertext1, sig1[:len(sig1)-1])
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "signature verification failed")
+	}
+}
+
+func TestStatefulReaderWriter(t *testing.T) {
+	t.Parallel()
+
+	ctx := []byte("test-session")
+	owner, err := NewBoxOwnerCap(rand.Reader)
+	require.NoError(t, err)
+
+	uread := owner.UniversalReadCap()
+
+	writer, err := NewStatefulWriter(owner, ctx)
+	require.NoError(t, err)
+
+	reader, err := NewStatefulReader(uread, ctx)
+	require.NoError(t, err)
+
+	// Encrypt and decrypt n messages sequentially
+	n := 40
+	for i := 0; i < n; i++ {
+		msg := []byte(fmt.Sprintf("message %d", i))
+
+		// Writer encrypts the next message
+		boxID, ciphertext, sigraw, err := writer.EncryptNext(msg)
+		require.NoError(t, err)
+
+		// Reader retrieves the next expected box ID
+		expectedBoxID, err := reader.NextBoxID()
+		require.NoError(t, err)
+		require.Equal(t, expectedBoxID.Bytes(), boxID[:])
+
+		// Reader decrypts the received message
+		sig := [64]byte{}
+		copy(sig[:], sigraw)
+		plaintext, err := reader.DecryptNext(ctx, boxID, ciphertext, sig)
+		require.NoError(t, err)
+		require.Equal(t, msg, plaintext)
 	}
 }
