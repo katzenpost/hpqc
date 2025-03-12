@@ -1,7 +1,64 @@
 // SPDX-FileCopyrightText: © 2025 Katzenpost dev team
 // SPDX-License-Identifier: AGPL-3.0-only
 
-// bacap package provides the Blinded Cryptographic Capability system
+// Package bacap provides the Blinded Cryptographic Capability system (BACAP).
+//
+// BACAP is the Blinded Cryptographic Capability system with
+// some resistance against quantum adversaries whose design
+// is expounded upon in section 4 of our paper:
+//
+//	"BACAP (Blinding-and-Capability scheme) allows us
+//	to deterministically derive a sequence of key pairs using
+//	blinding, built upon Ed25519, and suitable for un-
+//	linkable messaging. It enables participants to derive box
+//	IDs and corresponding encryption keys for independent,
+//	single-use boxes using shared symmetric keys.
+//
+//	A box consists of an ID, a message payload, and a
+//	signature over the payload. There are two basic capabili-
+//	ties - one that lets a party derive the box IDs and decrypt
+//	the messages, and one that additionally lets the holder
+//	derive private keys to sign the messages. The signatures
+//	are universally veriﬁable, as the box ID for each box
+//	doubles as the public key for the signatures.
+//
+//	In the context of a messaging system, the protocol is
+//	used by Alice to send an inﬁnite sequence of messages
+//	to Bob, one per box, with Bob using a separate, second
+//	instance of the protocol to send messages to Alice.
+//
+// **Our paper**
+//
+// Echomix: a Strong Anonymity System with Messaging
+//
+// https://arxiv.org/abs/2501.02933
+// https://arxiv.org/pdf/2501.02933
+//
+// **API Design**
+//
+// Two Capability types:
+//
+// 1. UniversalReadCap: The Universal Read Capability allows the bearer
+// to generate an infinite sequence of verification and decryption keys
+// for message boxes in a deterministic sequence.
+//
+// 2. BoxOwnerCap: The Message Box Owner Capability allows the bearer to
+// generate an infinite sequence of signing and encryption keys for
+// messages boxes in a deterministic sequence.
+//
+// Each of the above two capabilities are used with the MessageBoxIndex
+// to perform their respective encrypt and sign vs verify and decrypt operations.
+//
+// Beyond that we have two high-level types: StatefulReader and StatefulWriter,
+// which encapsulate all the operational details of advancing state
+// after message processing.
+//
+// **TODOs**
+//
+// This BACAP implementation could possibly be improved, here's a ticket for
+// completing the TODO tasks written by its original author:
+//
+// https://github.com/katzenpost/hpqc/issues/55
 package bacap
 
 import (
@@ -19,70 +76,6 @@ import (
 
 	"github.com/katzenpost/hpqc/sign/ed25519"
 )
-
-/*
-   BACAP
-   =====
-
-   BACAP is the Blinded Cryptographic Capability system with
-   some resistance against quantum adversaries whose design
-   is expounded upon in section 4 of our paper:
-
-   "BACAP (Blinding-and-Capability scheme) allows us
-   to deterministically derive a sequence of key pairs using
-   blinding, built upon Ed25519, and suitable for un-
-   linkable messaging. It enables participants to derive box
-   IDs and corresponding encryption keys for independent,
-   single-use boxes using shared symmetric keys.
-
-   A box consists of an ID, a message payload, and a
-   signature over the payload. There are two basic capabili-
-   ties - one that lets a party derive the box IDs and decrypt
-   the messages, and one that additionally lets the holder
-   derive private keys to sign the messages. The signatures
-   are universally veriﬁable, as the box ID for each box
-   doubles as the public key for the signatures.
-
-   In the context of a messaging system, the protocol is
-   used by Alice to send an inﬁnite sequence of messages
-   to Bob, one per box, with Bob using a separate, second
-   instance of the protocol to send messages to Alice.
-   "
-
-   **our paper**
-
-   Echomix: a Strong Anonymity System with Messaging
-
-   https://arxiv.org/abs/2501.02933
-   https://arxiv.org/pdf/2501.02933
-
-   ** API design **
-
-   Two Capability types:
-
-   1. UniversalReadCap: The Universal Read Capability allows the bearer
-   to generate an infinite sequence of verification and decryption keys
-   for message boxes in a deterministic sequence.
-
-   2. BoxOwnerCap: The Message Box Owner Capability allows the bearer to
-   generate an infinite sequence of signing and encryption keys for
-   messages boxes in a deterministic sequence.
-
-   Each of the above two capabilities are used with the MessageBoxIndex
-   to perform their respective encrypt and sign vs verify and decrypt operations.
-
-   Beyond that we have two high level types: StatefulReader and StatefulWriter
-   which encapsulate all the operational details of advancing state
-   after message processing.
-
-
-   **TODOs**
-
-   This BACAP implementation could possibly be improved, here's a ticket for
-   completing the TODO tasks written by it's original author:
-
-   https://github.com/katzenpost/hpqc/issues/55
-*/
 
 // MessageBoxIndexSize is the size in bytes of one MessageBoxIndex struct.
 const MessageBoxIndexSize = 8 + 32 + 32 + 32
