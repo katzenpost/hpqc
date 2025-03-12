@@ -108,6 +108,13 @@ func TestReadCap(t *testing.T) {
 	require.NoError(t, err)
 
 	uread := owner.UniversalReadCap()
+
+	blob, err = uread.MarshalBinary()
+	require.NoError(t, err)
+	uread2 := NewEmptyUniversalReadCap()
+	err = uread2.UnmarshalBinary(blob)
+	require.NoError(t, err)
+
 	require.Equal(t, owner.firstMessageBoxIndex.Idx64, uread.firstMessageBoxIndex.Idx64)
 	require.Equal(t, owner.rootPublicKey, uread.rootPublicKey)
 

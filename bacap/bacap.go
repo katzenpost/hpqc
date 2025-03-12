@@ -376,6 +376,13 @@ type UniversalReadCap struct {
 	firstMessageBoxIndex *MessageBoxIndex
 }
 
+func NewEmptyUniversalReadCap() *UniversalReadCap {
+	return &UniversalReadCap{
+		rootPublicKey:        new(ed25519.PublicKey),
+		firstMessageBoxIndex: new(MessageBoxIndex),
+	}
+}
+
 // UniversalReadCapSize is the size in bytes of the UniversalReadCap struct type.
 const UniversalReadCapSize = 32 + MessageBoxIndexSize
 
