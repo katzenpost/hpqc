@@ -27,14 +27,14 @@
 //	to Bob, one per box, with Bob using a separate, second
 //	instance of the protocol to send messages to Alice.
 //
-// **Our paper**
+// # Our paper
 //
 // Echomix: a Strong Anonymity System with Messaging
 //
 // https://arxiv.org/abs/2501.02933
 // https://arxiv.org/pdf/2501.02933
 //
-// **API Design**
+// # API Design
 //
 // Two Capability types:
 //
@@ -53,7 +53,7 @@
 // which encapsulate all the operational details of advancing state
 // after message processing.
 //
-// **TODOs**
+// # TODOs
 //
 // This BACAP implementation could possibly be improved, here's a ticket for
 // completing the TODO tasks written by its original author:

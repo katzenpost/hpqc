@@ -14,18 +14,25 @@
 hpqc is a golang cryptography library. hpqc is used by the Katzenpost mixnet.
 The theme of the library is hybrid post quantum cryptographic constructions, namely:
 
-* hybrid KEMs
-* hybrid NIKEs
+* hybrid KEMs (key encapsulation mechanism)
+* hybrid NIKEs (non-interactive key exchange)
 * hybrid signature schemes
 
+* BACAP: Another unique contribution of this libray is BACAP, our Blinded Cryptographic Capability system
+which is very useful for constructing anonymous messaging systems. Read more about it in section 4
+of our paper: https://arxiv.org/abs/2501.02933
+and read our BACAP API documentation, here: https://pkg.go.dev/github.com/katzenpost/hpqc@v0.0.52/bacap
 
-The key to understanding and using this cryptography library is to review the `Scheme` interfaces:
+
+The key to understanding and using this cryptography library is to review the `Scheme` interfaces,
+for KEM, NIKE and signature schemes:
 
 * KEM Scheme: https://pkg.go.dev/github.com/katzenpost/hpqc@v0.0.44/kem#Scheme
 * NIKE Scheme: https://pkg.go.dev/github.com/katzenpost/hpqc@v0.0.44/nike#Scheme
 * Signature Scheme: https://pkg.go.dev/github.com/katzenpost/hpqc@v0.0.44/sign#Scheme
 
-Use our generic NIKE, KEM and Signature scheme interfaces to help you achieve cryptographic agility:
+Using our generic NIKE, KEM and Signature scheme interfaces helps you achieve cryptographic code agility
+which makes it easy to change cryptographic primitives:
 
 ```golang
 import "github.com/katzenpost/hpqc/kem"
@@ -68,7 +75,7 @@ var kemScheme kem.Scheme = combiner.New(
 )
 ```
 
-Cryptographic agility means that if your double ratchet is already using the NIKE interfaces,
+Generic cryptographic interfaces means that if your double ratchet is already using the NIKE interfaces,
 then it's trivial to upgrade it to use a hybrid NIKE which appeases the exact same interfaces:
 
 ```golang
