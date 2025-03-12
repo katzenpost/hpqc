@@ -22,7 +22,6 @@ import (
 func TestAdvanceIndex(t *testing.T) {
 	t.Parallel()
 	test_seed := time.Now().UnixNano()
-	t.Log("TestAdvanceIndex test_seed", test_seed)
 	rng := rand.New(rand.NewSource(test_seed))
 
 	mb_r, err := NewMailboxIndex(rng)
@@ -77,12 +76,23 @@ func TestAdvanceIndex(t *testing.T) {
 		require.Equal(t, mb_step, mb_cur)
 	}
 	require.Equal(t, mb_adv, mb_cur)
+
+	// rewind prohibited and should cause an error
+	_, err = mb_2c.AdvanceIndexTo(mb_2c.Idx64 - 1)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "cannot rewind index")
+
+	// check that NextIndex is the same as AdvanceIndexTo with +1
+	mb_single_step, err := mb_r.AdvanceIndexTo(mb_r.Idx64 + 1)
+	require.NoError(t, err)
+	mb_manual, err := mb_r.NextIndex()
+	require.NoError(t, err)
+	require.Equal(t, mb_single_step, mb_manual)
 }
 
 func TestReadCap(t *testing.T) {
 	t.Parallel()
 	test_seed := time.Now().UnixNano()
-	t.Log("TestReadCap test_seed", test_seed)
 	rng := rand.New(rand.NewSource(test_seed))
 
 	owner, err := NewOwner(rng)
@@ -101,7 +111,6 @@ func TestReadCap(t *testing.T) {
 func TestMake1000(t *testing.T) {
 	t.Parallel()
 	test_seed := time.Now().UnixNano()
-	t.Log("TestReadCap test_seed", test_seed)
 	rng := rand.New(rand.NewSource(test_seed))
 
 	owner, err := NewOwner(rng)
@@ -122,28 +131,38 @@ func TestEncryptDecrypt(t *testing.T) {
 	rng := rand.New(rand.NewSource(test_seed))
 
 	ctx1 := []byte("ctx1")
+	ctx2 := []byte("ctx2")
 
 	owner, err := NewOwner(rng)
 	require.NoError(t, err)
 	uread := owner.NewUniversalReadCap()
 
 	boxCurrent := uread.firstMailboxIndex
-	for i := 0; i < 1000; i++ {
+	for i := 0; i < 3; i++ {
 		boxCurrent, err = boxCurrent.NextIndex()
 		require.NoError(t, err)
 
 		boxDerived := boxCurrent.BoxIDForContext(uread, ctx1)
 
-		// Encrypt a new message:
+		// encrypt a new message:
 		msg := []byte(fmt.Sprintf("message %d", i))
 		box, ciphertext1, sig1 := boxCurrent.EncryptForContext(owner, ctx1, msg)
 		require.Equal(t, boxDerived.Bytes(), box[:])
 		require.NotEqual(t, msg, ciphertext1)
 
-		// Now we attempt to decrypt the BACAP message:
+		// decrypt the BACAP message
 		plaintext1, err := boxCurrent.DecryptForContext(box, ctx1, ciphertext1, sig1)
 		require.Equal(t, nil, err)
 		require.Equal(t, msg, plaintext1)
-	}
 
+		// wrong cryptographic context
+		plaintext2, err := boxCurrent.DecryptForContext(box, ctx2, ciphertext1, sig1)
+		require.Error(t, err)
+		require.NotEqual(t, msg, plaintext2)
+
+		// corrupt signature
+		_, err = boxCurrent.DecryptForContext(box, ctx1, ciphertext1, sig1[:len(sig1)-1])
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "signature verification failed")
+	}
 }

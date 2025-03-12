@@ -183,8 +183,6 @@ func (cur *MailboxIndex) AdvanceIndexTo(to uint64) (*MailboxIndex, error) {
 		return h
 	}
 
-	curIdxB := make([]byte, 8)
-
 	var next MailboxIndex
 	next.Idx64 = cur.Idx64
 	next.HKDFState = cur.HKDFState
@@ -194,6 +192,7 @@ func (cur *MailboxIndex) AdvanceIndexTo(to uint64) (*MailboxIndex, error) {
 
 	next.CurBlindingFactor = [32]byte{}
 	next.CurEncryptionKey = [32]byte{}
+	curIdxB := make([]byte, 8)
 
 	for next.Idx64 < to {
 		binary.LittleEndian.PutUint64(curIdxB, next.Idx64)
