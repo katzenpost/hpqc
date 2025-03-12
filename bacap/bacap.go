@@ -312,7 +312,9 @@ type BoxOwnerCap struct {
 	firstMessageBoxIndex *MessageBoxIndex
 }
 
-const BoxOwnerCapSize = 64 + 32 + MessageBoxIndexSize
+// BoxOwnerCapSize is the size in bytes of a serialized BoxOwnerCap
+// not counting it's rootPublicKey field.
+const BoxOwnerCapSize = 64 + MessageBoxIndexSize
 
 // ensure we implement encoding.BinaryMarshaler/BinaryUmarshaler
 var _ encoding.BinaryMarshaler = (*BoxOwnerCap)(nil)
@@ -344,7 +346,7 @@ func (o *BoxOwnerCap) UnmarshalBinary(data []byte) error {
 	}
 	o.rootPublicKey = o.rootPrivateKey.PublicKey()
 	o.firstMessageBoxIndex = &MessageBoxIndex{}
-	if err := o.firstMessageBoxIndex.UnmarshalBinary(data[96:]); err != nil {
+	if err := o.firstMessageBoxIndex.UnmarshalBinary(data[64:]); err != nil {
 		return err
 	}
 	return nil

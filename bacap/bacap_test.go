@@ -23,6 +23,14 @@ func TestAdvanceIndex(t *testing.T) {
 
 	mb_r, err := NewMessageBoxIndex(rand.Reader)
 	require.NoError(t, err)
+
+	blob, err := mb_r.MarshalBinary()
+	require.NoError(t, err)
+
+	mb_r2, _ := NewMessageBoxIndex(rand.Reader)
+	err = mb_r2.UnmarshalBinary(blob)
+	require.NoError(t, err)
+
 	mb_1a, err := mb_r.NextIndex()
 	require.NoError(t, err)
 	mb_1b, err := mb_r.NextIndex()
@@ -92,6 +100,13 @@ func TestReadCap(t *testing.T) {
 
 	owner, err := NewBoxOwnerCap(rand.Reader)
 	require.NoError(t, err)
+
+	blob, err := owner.MarshalBinary()
+	require.NoError(t, err)
+	owner2, _ := NewBoxOwnerCap(rand.Reader)
+	err = owner2.UnmarshalBinary(blob)
+	require.NoError(t, err)
+
 	uread := owner.UniversalReadCap()
 	require.Equal(t, owner.firstMessageBoxIndex.Idx64, uread.firstMessageBoxIndex.Idx64)
 	require.Equal(t, owner.rootPublicKey, uread.rootPublicKey)
@@ -179,6 +194,12 @@ func TestStatefulReaderWriter(t *testing.T) {
 		msg := []byte(fmt.Sprintf("message %d", i))
 
 		// Writer encrypts the next message
+
+		// writer prepares given box ID for writing
+		box, err := writer.NextBoxID()
+		require.NoError(t, err)
+		require.NotNil(t, box)
+
 		boxID, ciphertext, sigraw, err := writer.EncryptNext(msg)
 		require.NoError(t, err)
 
