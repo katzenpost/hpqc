@@ -456,9 +456,13 @@ type StatefulReader struct {
 
 // NewStatefulReader initializes a StatefulReader for the given UniversalReadCap and context.
 func NewStatefulReader(urcap *UniversalReadCap, ctx []byte) (*StatefulReader, error) {
+	// Make a copy of ctx to prevent modification outside this struct
+	ctxCopy := make([]byte, len(ctx))
+	copy(ctxCopy, ctx)
+
 	sr := &StatefulReader{
 		urcap:         urcap,
-		ctx:           ctx,
+		ctx:           ctxCopy,
 		lastInboxRead: urcap.firstMessageBoxIndex,
 		nextIndex:     urcap.firstMessageBoxIndex,
 	}
@@ -517,9 +521,13 @@ type StatefulWriter struct {
 
 // NewStatefulWriter initializes a StatefulWriter for the given owner and context.
 func NewStatefulWriter(owner *BoxOwnerCap, ctx []byte) (*StatefulWriter, error) {
+	// Make a copy of ctx to prevent modification outside this struct
+	ctxCopy := make([]byte, len(ctx))
+	copy(ctxCopy, ctx)
+
 	sw := &StatefulWriter{
 		owner:         owner,
-		ctx:           ctx,
+		ctx:           ctxCopy,
 		lastOutboxIdx: nil,                        // No messages written yet
 		nextIndex:     owner.firstMessageBoxIndex, // Start at firstMessage boxIndex (not skipping)
 	}
