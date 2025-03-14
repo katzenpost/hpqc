@@ -75,6 +75,7 @@ import (
 	"github.com/agl/gcmsiv"
 
 	"github.com/katzenpost/hpqc/sign/ed25519"
+	"github.com/katzenpost/hpqc/util"
 )
 
 // MessageBoxIndexSize is the size in bytes of one MessageBoxIndex struct.
@@ -419,9 +420,7 @@ func (u *UniversalReadCap) MarshalBinary() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	if _, err := buf.Write(mboxBytes); err != nil {
-		return nil, err
-	}
+	buf.Write(mboxBytes) // error is always nil
 	return buf.Bytes(), nil
 }
 
@@ -459,6 +458,10 @@ type StatefulReader struct {
 
 // NewStatefulReader initializes a StatefulReader for the given UniversalReadCap and context.
 func NewStatefulReader(urcap *UniversalReadCap, ctx []byte) (*StatefulReader, error) {
+	if ctx == nil {
+		return nil, errors.New("ctx is nil")
+	}
+
 	// Make a copy of ctx to prevent modification outside this struct
 	ctxCopy := make([]byte, len(ctx))
 	copy(ctxCopy, ctx)
@@ -490,7 +493,7 @@ func (sr *StatefulReader) NextBoxID() (*ed25519.PublicKey, error) {
 
 // ParseReply advances state if reading was successful.
 func (sr *StatefulReader) DecryptNext(ctx []byte, box [32]byte, ciphertext []byte, sig [64]byte) ([]byte, error) {
-	if box == [32]byte{} {
+	if util.CtIsZero(box[:]) {
 		return nil, errors.New("empty box, no message received")
 	}
 	if sr.nextIndex == nil {
@@ -524,6 +527,10 @@ type StatefulWriter struct {
 
 // NewStatefulWriter initializes a StatefulWriter for the given owner and context.
 func NewStatefulWriter(owner *BoxOwnerCap, ctx []byte) (*StatefulWriter, error) {
+	if ctx == nil {
+		return nil, errors.New("ctx is nil")
+	}
+
 	// Make a copy of ctx to prevent modification outside this struct
 	ctxCopy := make([]byte, len(ctx))
 	copy(ctxCopy, ctx)
