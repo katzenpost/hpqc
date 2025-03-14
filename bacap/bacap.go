@@ -7,7 +7,7 @@
 // some resistance against quantum adversaries whose design
 // is expounded upon in section 4 of our paper:
 //
-//	"BACAP (Blinding-and-Capability scheme) allows us
+//	BACAP (Blinding-and-Capability scheme) allows us
 //	to deterministically derive a sequence of key pairs using
 //	blinding, built upon Ed25519, and suitable for un-
 //	linkable messaging. It enables participants to derive box
