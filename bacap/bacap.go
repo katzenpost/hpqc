@@ -101,153 +101,6 @@ type MessageBoxIndex struct {
 var _ encoding.BinaryMarshaler = (*MessageBoxIndex)(nil)
 var _ encoding.BinaryUnmarshaler = (*MessageBoxIndex)(nil)
 
-// MarshalBinary returns a binary blob of the given type.
-func (m *MessageBoxIndex) MarshalBinary() ([]byte, error) {
-	var buf bytes.Buffer
-	err := binary.Write(&buf, binary.LittleEndian, m.Idx64)
-	if err != nil {
-		return nil, err
-	}
-	for _, field := range [][]byte{
-		m.CurBlindingFactor[:],
-		m.CurEncryptionKey[:],
-		m.HKDFState[:],
-	} {
-		if _, err := buf.Write(field); err != nil {
-			return nil, err
-		}
-	}
-	return buf.Bytes(), nil
-}
-
-// UnmarshalBinary populates the given MessageBoxIndex from the given serialized blob
-// or it returns an error.
-func (m *MessageBoxIndex) UnmarshalBinary(data []byte) error {
-	if len(data) != MessageBoxIndexSize {
-		return errors.New("invalid MessageBoxIndex binary size")
-	}
-	m.Idx64 = binary.LittleEndian.Uint64(data[:8])
-	copy(m.CurBlindingFactor[:], data[8:40])
-	copy(m.CurEncryptionKey[:], data[40:72])
-	copy(m.HKDFState[:], data[72:104])
-	return nil
-}
-
-func (mbox *MessageBoxIndex) deriveEForContext(ctx []byte) (eICtx [32]byte) {
-	hash := func() hash.Hash {
-		h, _ := blake2b.New512(nil)
-		return h
-	}
-	hkdfEncEI := hkdf.New(hash, mbox.CurEncryptionKey[:], ctx, []byte{})
-	if n, err := hkdfEncEI.Read(eICtx[:]); err != nil || n != len(eICtx) {
-		panic("hkdf error")
-	}
-	return
-}
-
-func (mbox *MessageBoxIndex) deriveKForContext(ctx []byte) (kICtx [32]byte) {
-	hash := func() hash.Hash {
-		h, _ := blake2b.New512(nil)
-		return h
-	}
-	hkdfBlindKI := hkdf.New(hash, mbox.CurBlindingFactor[:], ctx, []byte{})
-	if n, err := hkdfBlindKI.Read(kICtx[:]); err != nil || n != len(kICtx) {
-		panic("hkdf error")
-	}
-	return
-}
-
-// BoxIDForContext returns a new box ID given a universal read cap and a cryptographic context.
-func (mbox *MessageBoxIndex) BoxIDForContext(cap *UniversalReadCap, ctx []byte) *ed25519.PublicKey {
-	kICtx := mbox.deriveKForContext(ctx)
-	return cap.rootPublicKey.Blind(kICtx[:]) // Produce M_i^ctx = P_R * K_i
-}
-
-// EncryptForContext encrypts the given plaintext. The given BoxOwnerCap type and context
-// are used here in the encryption key derivation.
-func (mbox *MessageBoxIndex) EncryptForContext(owner *BoxOwnerCap, ctx []byte, plaintext []byte) (mICtx [32]byte, cICtx []byte, sICtx []byte) {
-	kICtx := mbox.deriveKForContext(ctx)
-	mICtx = *(*[32]byte)(owner.rootPublicKey.Blind(kICtx[:]).Bytes())
-	eICtx := mbox.deriveEForContext(ctx)
-	sivenc, err := gcmsiv.NewGCMSIV(eICtx[:])
-	if err != nil {
-		panic(err) // Can't happen
-	}
-
-	// encrypt with AES-GCM-SIV:
-	cICtx = sivenc.Seal([]byte{}, mICtx[:16], plaintext, mICtx[:32])
-
-	// derive blinded private key specific to box index + context and sign the GCM-SIV ciphertext:
-	SICtx := owner.rootPrivateKey.Blind(kICtx[:])
-	sICtx = SICtx.Sign(cICtx)
-	return // Produce M_i^ctx, c_i^ctx, s_i^ctx
-}
-
-// DecryptForContext decrypts the given ciphertext and verifies the given signature
-// using a key derives from the context and other cryptographic materials.
-func (mbox *MessageBoxIndex) DecryptForContext(box [32]byte, ctx []byte, ciphertext []byte, sig []byte) (plaintext []byte, err error) {
-	var boxPk ed25519.PublicKey
-	if err = boxPk.FromBytes(box[:]); err != nil {
-		return
-	}
-	if false == boxPk.Verify(sig, ciphertext) {
-		return nil, errors.New("signature verification failed")
-	}
-	eICtx := mbox.deriveEForContext(ctx)
-	sivdec, err := gcmsiv.NewGCMSIV(eICtx[:])
-	if err != nil {
-		return nil, err
-	}
-	if plaintext, err = sivdec.Open([]byte{}, box[:16], ciphertext, box[:]); err != nil {
-		return nil, err
-	}
-	return
-}
-
-// AdvanceIndexTo returns a MessageBoxIndex with it's state advanced to the specified index.
-func (cur *MessageBoxIndex) AdvanceIndexTo(to uint64) (*MessageBoxIndex, error) {
-	if to < cur.Idx64 {
-		return nil, errors.New("cannot rewind index: target index is less than current index")
-	}
-	hash := func() hash.Hash {
-		h, _ := blake2b.New512(nil)
-		return h
-	}
-
-	var next MessageBoxIndex
-	next.Idx64 = cur.Idx64
-	next.HKDFState = cur.HKDFState
-	if to == next.Idx64 {
-		return cur, nil
-	}
-
-	next.CurBlindingFactor = [32]byte{}
-	next.CurEncryptionKey = [32]byte{}
-	curIdxB := make([]byte, 8)
-
-	for next.Idx64 < to {
-		binary.LittleEndian.PutUint64(curIdxB, next.Idx64)
-		hkdf := hkdf.New(hash, next.HKDFState[:], nil, curIdxB)
-		// Read H_{i+1}, E_i, K_i from the KDF:
-		if n, err := hkdf.Read(next.HKDFState[:]); err != nil || n != len(next.HKDFState) {
-			panic("hkdf failed, not reachable")
-		}
-		if n, err := hkdf.Read(next.CurEncryptionKey[:]); err != nil || n != len(next.CurEncryptionKey) {
-			panic("hkdf failed, not reachable")
-		}
-		if n, err := hkdf.Read(next.CurBlindingFactor[:]); err != nil || n != len(next.CurBlindingFactor) {
-			panic("hkdf failed, not reachable")
-		}
-		next.Idx64 = next.Idx64 + 1
-	}
-	return &next, nil
-}
-
-// NextIndex returns a MessageBoxIndex type with it's state advanced to the next box.
-func (cur *MessageBoxIndex) NextIndex() (*MessageBoxIndex, error) {
-	return cur.AdvanceIndexTo(cur.Idx64 + 1)
-}
-
 // NewMessageBoxIndex returns a new MessageBoxIndex
 func NewMessageBoxIndex(rng io.Reader) (*MessageBoxIndex, error) {
 	m := MessageBoxIndex{}
@@ -293,6 +146,158 @@ func NewMessageBoxIndex(rng io.Reader) (*MessageBoxIndex, error) {
 	return nextIndex, nil
 }
 
+// MarshalBinary returns a binary blob of the given type.
+func (m *MessageBoxIndex) MarshalBinary() ([]byte, error) {
+	var buf bytes.Buffer
+	err := binary.Write(&buf, binary.LittleEndian, m.Idx64)
+	if err != nil {
+		return nil, err
+	}
+	for _, field := range [][]byte{
+		m.CurBlindingFactor[:],
+		m.CurEncryptionKey[:],
+		m.HKDFState[:],
+	} {
+		if _, err := buf.Write(field); err != nil {
+			return nil, err
+		}
+	}
+	return buf.Bytes(), nil
+}
+
+// UnmarshalBinary populates the given MessageBoxIndex from the given serialized blob
+// or it returns an error.
+func (m *MessageBoxIndex) UnmarshalBinary(data []byte) error {
+	if len(data) != MessageBoxIndexSize {
+		return errors.New("invalid MessageBoxIndex binary size")
+	}
+	m.Idx64 = binary.LittleEndian.Uint64(data[:8])
+	copy(m.CurBlindingFactor[:], data[8:40])
+	copy(m.CurEncryptionKey[:], data[40:72])
+	copy(m.HKDFState[:], data[72:104])
+	return nil
+}
+
+func (m *MessageBoxIndex) deriveEForContext(ctx []byte) (eICtx [32]byte) {
+	hash := func() hash.Hash {
+		h, _ := blake2b.New512(nil)
+		return h
+	}
+	hkdfEncEI := hkdf.New(hash, m.CurEncryptionKey[:], ctx, []byte{})
+	if n, err := hkdfEncEI.Read(eICtx[:]); err != nil || n != len(eICtx) {
+		panic("hkdf error")
+	}
+	return
+}
+
+func (m *MessageBoxIndex) deriveKForContext(ctx []byte) (kICtx [32]byte) {
+	hash := func() hash.Hash {
+		h, _ := blake2b.New512(nil)
+		return h
+	}
+	hkdfBlindKI := hkdf.New(hash, m.CurBlindingFactor[:], ctx, []byte{})
+	if n, err := hkdfBlindKI.Read(kICtx[:]); err != nil || n != len(kICtx) {
+		panic("hkdf error")
+	}
+	return
+}
+
+// BoxIDForContext returns a new box ID given a universal read cap and a cryptographic context.
+func (m *MessageBoxIndex) BoxIDForContext(cap *UniversalReadCap, ctx []byte) *ed25519.PublicKey {
+	kICtx := m.deriveKForContext(ctx)
+	return cap.rootPublicKey.Blind(kICtx[:]) // Produce M_i^ctx = P_R * K_i
+}
+
+// EncryptForContext encrypts the given plaintext. The given BoxOwnerCap type and context
+// are used here in the encryption key derivation.
+func (m *MessageBoxIndex) EncryptForContext(owner *BoxOwnerCap, ctx []byte, plaintext []byte) (mICtx [32]byte, cICtx []byte, sICtx []byte) {
+	kICtx := m.deriveKForContext(ctx)
+	mICtx = *(*[32]byte)(owner.rootPublicKey.Blind(kICtx[:]).Bytes())
+	eICtx := m.deriveEForContext(ctx)
+	sivenc, err := gcmsiv.NewGCMSIV(eICtx[:])
+	if err != nil {
+		panic(err) // Can't happen
+	}
+
+	// encrypt with AES-GCM-SIV:
+	cICtx = sivenc.Seal([]byte{}, mICtx[:16], plaintext, mICtx[:32])
+
+	// derive blinded private key specific to box index + context and sign the GCM-SIV ciphertext:
+	SICtx := owner.rootPrivateKey.Blind(kICtx[:])
+	sICtx = SICtx.Sign(cICtx)
+	return // Produce M_i^ctx, c_i^ctx, s_i^ctx
+}
+
+// DecryptForContext decrypts the given ciphertext and verifies the given signature
+// using a key derives from the context and other cryptographic materials.
+func (m *MessageBoxIndex) DecryptForContext(box [32]byte, ctx []byte, ciphertext []byte, sig []byte) (plaintext []byte, err error) {
+	var boxPk ed25519.PublicKey
+	if err = boxPk.FromBytes(box[:]); err != nil {
+		return
+	}
+	if false == boxPk.Verify(sig, ciphertext) {
+		return nil, errors.New("signature verification failed")
+	}
+	eICtx := m.deriveEForContext(ctx)
+	sivdec, err := gcmsiv.NewGCMSIV(eICtx[:])
+	if err != nil {
+		return nil, err
+	}
+	if plaintext, err = sivdec.Open([]byte{}, box[:16], ciphertext, box[:]); err != nil {
+		return nil, err
+	}
+	return
+}
+
+// AdvanceIndexTo returns a MessageBoxIndex with it's state advanced to the specified index.
+func (m *MessageBoxIndex) AdvanceIndexTo(to uint64) (*MessageBoxIndex, error) {
+	if to < m.Idx64 {
+		return nil, errors.New("cannot rewind index: target index is less than current index")
+	}
+	hash := func() hash.Hash {
+		h, _ := blake2b.New512(nil)
+		return h
+	}
+
+	var next MessageBoxIndex
+	next.Idx64 = m.Idx64
+	next.HKDFState = m.HKDFState
+	if to == next.Idx64 {
+		return m, nil
+	}
+
+	next.CurBlindingFactor = [32]byte{}
+	next.CurEncryptionKey = [32]byte{}
+	curIdxB := make([]byte, 8)
+
+	for next.Idx64 < to {
+		binary.LittleEndian.PutUint64(curIdxB, next.Idx64)
+		hkdf := hkdf.New(hash, next.HKDFState[:], nil, curIdxB)
+		// Read H_{i+1}, E_i, K_i from the KDF:
+		if n, err := hkdf.Read(next.HKDFState[:]); err != nil || n != len(next.HKDFState) {
+			panic("hkdf failed, not reachable")
+		}
+		if n, err := hkdf.Read(next.CurEncryptionKey[:]); err != nil || n != len(next.CurEncryptionKey) {
+			panic("hkdf failed, not reachable")
+		}
+		if n, err := hkdf.Read(next.CurBlindingFactor[:]); err != nil || n != len(next.CurBlindingFactor) {
+			panic("hkdf failed, not reachable")
+		}
+		next.Idx64 = next.Idx64 + 1
+	}
+	return &next, nil
+}
+
+// NextIndex returns a MessageBoxIndex type with it's state advanced to the next box.
+func (m *MessageBoxIndex) NextIndex() (*MessageBoxIndex, error) {
+	return m.AdvanceIndexTo(m.Idx64 + 1)
+}
+
+// DeriveMessageBoxID derives the blinded public key, the mailbox ID, given the root public key.
+func (m *MessageBoxIndex) DeriveMessageBoxID(rootPublicKey *ed25519.PublicKey) *ed25519.PublicKey {
+	return rootPublicKey.Blind(m.CurBlindingFactor[:])
+}
+
 // BoxOwnerCap is used by the creator of the message box. It encapsulates
 // private key material.
 type BoxOwnerCap struct {
@@ -312,6 +317,33 @@ const BoxOwnerCapSize = 64 + MessageBoxIndexSize
 // ensure we implement encoding.BinaryMarshaler/BinaryUmarshaler
 var _ encoding.BinaryMarshaler = (*BoxOwnerCap)(nil)
 var _ encoding.BinaryUnmarshaler = (*BoxOwnerCap)(nil)
+
+// NewBoxOwnerCap creates a new BoxOwnerCap
+func NewBoxOwnerCap(rng io.Reader) (*BoxOwnerCap, error) {
+	o := BoxOwnerCap{}
+	sk, pk, err := ed25519.NewKeypair(rng) // S_R, P_R
+	if err != nil {
+		panic(err)
+	}
+	o.rootPrivateKey = sk
+	o.rootPublicKey = pk
+	o.firstMessageBoxIndex, err = NewMessageBoxIndex(rng)
+	if err != nil {
+		return nil, err
+	}
+	return &o, nil
+}
+
+// UniversalReadCap returns our UniversalReadCap
+func (o *BoxOwnerCap) UniversalReadCap() *UniversalReadCap {
+	ret := UniversalReadCap{}
+	ret.rootPublicKey = o.rootPublicKey
+	// NB: o is the firstIndex that we know about/can read,
+	// not necessarily the first index in the conversation:
+	ret.firstMessageBoxIndex = o.firstMessageBoxIndex
+	//o.universalReadSecret = owner.UniversalCap(readCapString)
+	return &ret
+}
 
 // MarshalBinary returns a binary blob of the BoxOwnerCap type.
 // Only serialize the rootPrivateKey. We do not serialize the rootPublicKey
@@ -345,22 +377,6 @@ func (o *BoxOwnerCap) UnmarshalBinary(data []byte) error {
 	return nil
 }
 
-// NewBoxOwnerCap creates a new BoxOwnerCap
-func NewBoxOwnerCap(rng io.Reader) (*BoxOwnerCap, error) {
-	o := BoxOwnerCap{}
-	sk, pk, err := ed25519.NewKeypair(rng) // S_R, P_R
-	if err != nil {
-		panic(err)
-	}
-	o.rootPrivateKey = sk
-	o.rootPublicKey = pk
-	o.firstMessageBoxIndex, err = NewMessageBoxIndex(rng)
-	if err != nil {
-		return nil, err
-	}
-	return &o, nil
-}
-
 // UniversalReadCap is a universal read capability can be used to compute BACAP boxes
 // and decrypt their message payloads for indices >= firstMessageBoxIndex
 type UniversalReadCap struct {
@@ -369,19 +385,29 @@ type UniversalReadCap struct {
 	firstMessageBoxIndex *MessageBoxIndex
 }
 
-func NewEmptyUniversalReadCap() *UniversalReadCap {
-	return &UniversalReadCap{
-		rootPublicKey:        new(ed25519.PublicKey),
-		firstMessageBoxIndex: new(MessageBoxIndex),
-	}
-}
-
 // UniversalReadCapSize is the size in bytes of the UniversalReadCap struct type.
 const UniversalReadCapSize = 32 + MessageBoxIndexSize
 
 // ensure we implement encoding.BinaryMarshaler/BinaryUmarshaler
 var _ encoding.BinaryMarshaler = (*UniversalReadCap)(nil)
 var _ encoding.BinaryUnmarshaler = (*UniversalReadCap)(nil)
+
+func newEmptyUniversalReadCap() *UniversalReadCap {
+	return &UniversalReadCap{
+		rootPublicKey:        new(ed25519.PublicKey),
+		firstMessageBoxIndex: new(MessageBoxIndex),
+	}
+}
+
+// UniversalReadCapFromBinary deserialize the read cap from a blob or return an error.
+func UniversalReadCapFromBinary(data []byte) (*UniversalReadCap, error) {
+	cap := newEmptyUniversalReadCap()
+	err := cap.UnmarshalBinary(data)
+	if err != nil {
+		return nil, err
+	}
+	return cap, nil
+}
 
 // MarshalBinary returns a binary blob of the given type.
 func (u *UniversalReadCap) MarshalBinary() ([]byte, error) {
@@ -413,22 +439,6 @@ func (u *UniversalReadCap) UnmarshalBinary(data []byte) error {
 		return err
 	}
 	return nil
-}
-
-// UniversalReadCap returns our UniversalReadCap
-func (owner *BoxOwnerCap) UniversalReadCap() *UniversalReadCap {
-	o := UniversalReadCap{}
-	o.rootPublicKey = owner.rootPublicKey
-	// NB: o is the firstIndex that we know about/can read,
-	// not necessarily the first index in the conversation:
-	o.firstMessageBoxIndex = owner.firstMessageBoxIndex
-	//o.universalReadSecret = owner.UniversalCap(readCapString)
-	return &o
-}
-
-// DeriveMessageBoxID derives the blinded public key, the mailbox ID, given the root public key.
-func (mbIdx *MessageBoxIndex) DeriveMessageBoxID(rootPublicKey *ed25519.PublicKey) *ed25519.PublicKey {
-	return rootPublicKey.Blind(mbIdx.CurBlindingFactor[:])
 }
 
 // warn about accidental copying of these as they have mutable state:
