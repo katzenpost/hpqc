@@ -37,11 +37,9 @@ Using our generic NIKE, KEM and Signature scheme interfaces helps you achieve cr
 
 ## Using existing NIKE schemes
 
-NIKE schemes API docs:
-https://pkg.go.dev/github.com/katzenpost/hpqc/nike/schemes
+NIKE schemes API docs: https://pkg.go.dev/github.com/katzenpost/hpqc/nike/schemes
 
-NIKE interfaces docs; each NIKE implements three interfaces, Scheme, PublicKey and PrivateKey interfaces which are documented here:
-https://pkg.go.dev/github.com/katzenpost/hpqc/nike
+NIKE interfaces docs; each NIKE implements three interfaces, Scheme, PublicKey and PrivateKey interfaces which are documented here: https://pkg.go.dev/github.com/katzenpost/hpqc/nike
 
 
 If you want to get started with one of our many existing NIKE schemes, you can reference NIKE schemes by name like so:
@@ -77,8 +75,7 @@ func doCryptoStuff() {
 }
 ```
 
-Generic cryptographic interfaces means that if your double ratchet is already using the NIKE interfaces,
-then it's trivial to upgrade it to use a hybrid NIKE which appeases the exact same interfaces:
+Generic cryptographic interfaces means that if your double ratchet is already using the NIKE interfaces, then it's trivial to upgrade it to use a hybrid NIKE which appeases the exact same interfaces:
 
 ```golang
 import (
@@ -97,15 +94,12 @@ var CTIDH1024X25519 nike.Scheme = &hybrid.Scheme{
 
 ## Using existing KEM Schemes
 
-KEM schemes API docs:
-https://pkg.go.dev/github.com/katzenpost/hpqc/kem/schemes
+KEM schemes API docs: https://pkg.go.dev/github.com/katzenpost/hpqc/kem/schemes
 
-KEM interfaces docs; each KEM implements three interfaces,
-Scheme, PublicKey and PrivateKey interfaces which are documented here:
+KEM interfaces docs; each KEM implements three interfaces, Scheme, PublicKey and PrivateKey interfaces which are documented here:
 https://pkg.go.dev/github.com/katzenpost/hpqc/kem
 
-If you want to get started with one of our many existing KEM
-schemes, you can reference KEM schemes by name like so:
+If you want to get started with one of our many existing KEM schemes, you can reference KEM schemes by name like so:
 
 ```golang
 import (
@@ -153,15 +147,12 @@ func encryptMessage(publicKey kem.PublicKey, scheme kem.Scheme, message []byte) 
 
 ## Using existing Signature Schemes schemes
 
-Signature schemes API docs:
-https://pkg.go.dev/github.com/katzenpost/hpqc/sign/schemes
+Signature schemes API docs: https://pkg.go.dev/github.com/katzenpost/hpqc/sign/schemes
 
-Singature interfaces docs; each signature scheme implements three interfaces,
-Scheme, PublicKey and PrivateKey interfaces which are documented here:
-https://pkg.go.dev/github.com/katzenpost/hpqc/sign
+Singature interfaces docs; each signature scheme implements three interfaces, Scheme, PublicKey and PrivateKey interfaces which are documented here:
+https://pkg.go.dev/github.com/katzenpost/hpqc/sign 
 
-If you want to get started with one of our existing signature
-schemes, you can reference signature schemes by name like so:
+If you want to get started with one of our existing signature schemes, you can reference signature schemes by name like so:
 
 ```golang
 import (
@@ -203,7 +194,7 @@ var Ed25519Sphincs = hybrid.New("Ed25519 Sphincs+", ed25519.Scheme(), sphincsplu
 
 ## NIKE to KEM adapter and KEM combiner
 
-Our "NIKE to KEM adapter" uses an ad hoc hashed ElGamal construction. This construction in pseudo code is:
+Any NIKE primitive can be used as a KEM to be used in combination with KEM primitives. Our "NIKE to KEM adapter" uses an ad hoc hashed ElGamal construction. The construction in pseudo code:
 
 ```
 func ENCAPSULATE(their_pubkey publickey) ([]byte, []byte) {
@@ -246,10 +237,7 @@ var kemScheme kem.Scheme = combiner.New(
 ```
 
 
-The [KEM Combiners paper](https://eprint.iacr.org/2018/024.pdf) makes the observation that if a KEM combiner is not security preserving then the
-resulting hybrid KEM will not have IND-CCA2 security if one of the composing KEMs does not have IND-CCA2 security. Likewise the paper
-points out that when using a security preserving KEM combiner, if only one of the composing KEMs has IND-CCA2 security then the resulting
-hybrid KEM will have IND-CCA2 security.
+The [KEM Combiners paper](https://eprint.iacr.org/2018/024.pdf) makes the observation that if a KEM combiner is not security preserving then the resulting hybrid KEM will not have IND-CCA2 security if one of the composing KEMs does not have IND-CCA2 security. Likewise the paper points out that when using a security preserving KEM combiner, if only one of the composing KEMs has IND-CCA2 security then the resulting hybrid KEM will have IND-CCA2 security.
 
 Our KEM combiner uses the split PRF design for an arbitrary number of kems, here shown with only three, in pseudo code:
 
@@ -267,19 +255,12 @@ You can read more about BACAP  in section 4 of our paper: https://arxiv.org/abs/
 
 ## The PQ NIKE: CTIDH via highctidh
 
-This library makes available the post quantum NIKE (non-interactive key exchange) known as [CTIDH](https://ctidh.isogeny.org/)
-via CGO bindings. However these CGO bindings are now being maintained by the highctidh fork: https://codeberg.org/vula/highctidh.git
-That having been said, if you are going to use CTIDH you'll want to read the highctidh README; 
-here we reproduce some of the notes about the golang cgo bindings:
+This library makes available the post quantum NIKE (non-interactive key exchange) known as [CTIDH](https://ctidh.isogeny.org/) via CGO bindings. However these CGO bindings are now being maintained by the highctidh fork: https://codeberg.org/vula/highctidh.git That having been said, if you are going to use CTIDH you'll want to read the highctidh README; here we reproduce some of the notes about the golang cgo bindings:
 
 
 ### musl libc and cgo
 
-The Golang bindings are compatable with musl libc for field sizes 511
-and 512 without any configuration. For field sizes of 1024 and 2048,
-Golang users building with musl libc will need to set an environment
-variable to increase the default stack size at build time. The stack
-size should be a multiple of the page size.
+The Golang bindings are compatable with musl libc for field sizes 511 and 512 without any configuration. For field sizes of 1024 and 2048, Golang users building with musl libc will need to set an environment variable to increase the default stack size at build time. The stack size should be a multiple of the page size. 
 
 For GNU/Linux:
 
@@ -298,12 +279,16 @@ CGO_LDFLAGS: -Wl,-stack_size,0x1F40000
 
 | NIKE: Non-Interactive Key Exchange |
 |:---:|
-* Classical Diffiehellman
-* X25519
-* X448
-* CTIDH511, CTIDH512, CTIDH1024, CTIDH2048
-* CTIDH512X25519, CTIDH512X448, CTIDH1024X25519, CTIDH1024X448, CTIDH2048X448
-* X25519_NOBS_CSIDH-512
+
+| Primitive | HPQC name | security |
+|  --------  |  -------  | -------  | 
+| Classical Diffie-Hellman | "DH4096_RFC3526" | classic |
+| X25519 | "X25519" | classic |
+| X448 | "X448" | classic |
+| Implementations of CTIDH | "ctidh511", "ctidh512", "ctidh1024", "ctidh2048" | post-quantum | 
+| hybrid of CSIDH and X25519 | "NOBS_CSIDH-X25519 " | hybrid |
+|hybrids of CTIDH with X25519 | "CTIDH511-X25519", "CTIDH512-X25519", "CTIDH1024-X25519" | hybrid |
+| hybrids of CTIDH with X448 | "CTIDH512-X448", "CTIDH1024-X448", "CTIDH2048-X448"| hybrid |
 
 | KEM: Key Encapsulation Methods |
 |:---:|
@@ -347,24 +332,24 @@ CGO_LDFLAGS: -Wl,-stack_size,0x1F40000
 
 | SIGN: Cryptographic Signature Schemes |
 |:---:|
-* ed25519
-* ed448
-* ed25519_Sphincs+shake-256f
-* ed448_Sphincs+shake-256f
-* ed25519_dilithium2
-* ed25519_dilithium3
+
+
+| Primitive | HPQC name | security |
+|  --------  |  -------  |  -------  |
+| Ed25519 | "ed25519" | classic |
+| Ed448 | "ed448" | classic |
+| Sphincs+shake-256f | "Sphincs+" | post-quantum |
+| hybrids of Sphincs+ and ECC | "Ed25519 Sphincs+", "Ed448-Sphincs+" | hybrid |
+|hybrids of Dilithium 2 and 3 with Ed25519 | "eddilithium2", "eddilithium3" | hybrid |
 
 
 ## Warning
 
-This cryptography library has not had any security review.
-It should be considered experimental.
+This cryptography library has not had any external security review. It should be considered experimental.
 
 ## Acknowledgements
 
-This library was inspired by Cloudflare's `circl` cryptography library.
-HPQC uses the same set of interfaces as circl for signature schemes and
-for KEM schemes.
+This library was inspired by Cloudflare's `circl` cryptography library. HPQC uses the same set of interfaces as circl for signature schemes and for KEM schemes.
 
 ## licensing
 
