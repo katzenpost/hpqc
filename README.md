@@ -27,9 +27,9 @@ NIKE  is what we usually think about when we say "Diffie-Hellman" public key exc
 
 The key to understanding and using this cryptography library is to review the `Scheme` interfaces, for NIKE, KEM and signature schemes, as well as the BACAP API:
 
-* NIKE Scheme: https://pkg.go.dev/github.com/katzenpost/hpqc@v0.0.44/nike#Scheme
-* KEM Scheme: https://pkg.go.dev/github.com/katzenpost/hpqc@v0.0.44/kem#Scheme
-* signature schemes' Scheme: https://pkg.go.dev/github.com/katzenpost/hpqc@v0.0.44/sign#Scheme
+* NIKE Scheme: https://pkg.go.dev/github.com/katzenpost/hpqc@v0.0.52/nike#Scheme
+* KEM Scheme: https://pkg.go.dev/github.com/katzenpost/hpqc@v0.0.52/kem#Scheme
+* signature schemes' Scheme: https://pkg.go.dev/github.com/katzenpost/hpqc@v0.0.52/sign#Scheme
 * BACAP API documentation: https://pkg.go.dev/github.com/katzenpost/hpqc@v0.0.52/bacap
 
 Using our generic NIKE, KEM and Signature scheme interfaces helps you achieve cryptographic code agility which makes it easy to switch between cryptographic primitives.
