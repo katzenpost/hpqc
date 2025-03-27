@@ -35,7 +35,7 @@ The key to understanding and using this cryptography library is to review the `S
 Using our generic NIKE, KEM and Signature scheme interfaces helps you achieve cryptographic code agility which makes it easy to switch between cryptographic primitives.
 
 
-## Using existing NIKE schemes
+## Using existing NIKE Schemes
 
 NIKE schemes API docs: https://pkg.go.dev/github.com/katzenpost/hpqc/nike/schemes
 
@@ -92,6 +92,8 @@ var CTIDH1024X25519 nike.Scheme = &hybrid.Scheme{
 }
 ```
 
+A list of implemented NIKEs can be found towards the end of this document.
+
 ## Using existing KEM Schemes
 
 KEM schemes API docs: https://pkg.go.dev/github.com/katzenpost/hpqc/kem/schemes
@@ -144,8 +146,9 @@ func encryptMessage(publicKey kem.PublicKey, scheme kem.Scheme, message []byte) 
 }
 ```
 
+A list of implemented KEMs can be found towards the end of this document.
 
-## Using existing Signature Schemes schemes
+## Using existing signature schemes' Schemes
 
 Signature schemes API docs: https://pkg.go.dev/github.com/katzenpost/hpqc/sign/schemes
 
@@ -192,9 +195,12 @@ import (
 var Ed25519Sphincs = hybrid.New("Ed25519 Sphincs+", ed25519.Scheme(), sphincsplus.Scheme())
 ```
 
+
+A list of implemented signature schemes can be found towards the end of this document.
+
 ## NIKE to KEM adapter and KEM combiner
 
-Any NIKE primitive can be used as a KEM to be used in combination with KEM primitives. Our "NIKE to KEM adapter" uses an ad hoc hashed ElGamal construction. The construction in pseudo code:
+Any NIKE primitive can be turned into a KEM to be used in combination with KEM primitives. Our "NIKE to KEM adapter" uses an ad hoc hashed ElGamal construction. The construction in pseudo code:
 
 ```
 func ENCAPSULATE(their_pubkey publickey) ([]byte, []byte) {
@@ -249,13 +255,20 @@ func SplitPRF(ss1, ss2, ss3, cct1, cct2, cct3 []byte) []byte {
 ```
 
 
+## MKEM
+
+The [MKEM package](https://pkg.go.dev/github.com/katzenpost/hpqc@v0.0.53/kem/mkem) is an efficient multiparty encryption scheme. You can pass it any NIKE scheme.
+
+
+
+
 ## BACAP
 
 You can read more about BACAP  in section 4 of our paper: https://arxiv.org/abs/2501.02933
 
 ## The PQ NIKE: CTIDH via highctidh
 
-This library makes available the post quantum NIKE (non-interactive key exchange) known as [CTIDH](https://ctidh.isogeny.org/) via CGO bindings. However these CGO bindings are now being maintained by the highctidh fork: https://codeberg.org/vula/highctidh.git That having been said, if you are going to use CTIDH you'll want to read the highctidh README; here we reproduce some of the notes about the golang cgo bindings:
+This library includes the post quantum NIKE (non-interactive key exchange) known as [CTIDH](https://ctidh.isogeny.org/) via CGO bindings. However these CGO bindings are now being maintained by the highctidh fork: https://codeberg.org/vula/highctidh.git If you are going to use CTIDH you'll want to read the highctidh README; below we reproduce some of the notes about the golang cgo bindings.
 
 
 ### musl libc and cgo
@@ -274,7 +287,7 @@ CGO_LDFLAGS: -Wl,-stack_size,0x1F40000
 ```
 
 
-## cryptographic primitives
+## Cryptographic Primitives
 
 
 | NIKE: Non-Interactive Key Exchange |
@@ -290,45 +303,28 @@ CGO_LDFLAGS: -Wl,-stack_size,0x1F40000
 |hybrids of CTIDH with X25519 | "CTIDH511-X25519", "CTIDH512-X25519", "CTIDH1024-X25519" | hybrid |
 | hybrids of CTIDH with X448 | "CTIDH512-X448", "CTIDH1024-X448", "CTIDH2048-X448"| hybrid |
 
-| KEM: Key Encapsulation Methods |
+__________
+
+| KEM: Key Encapsulation Mechanism |
 |:---:|
-* X25519
-* X448
-* CTIDH511
-* CTIDH512
-* CTIDH1024
-* CTIDH2048
-* CTIDH512-X25519
-* CTIDH1024-X448
-* MLKEM-768
-* Xwing
-* NTRUPrime (sntrup4591761)
-* frodo640shake
-* Kyber768-X25519
-* MLKEM768-X25519
-* MLKEM768-X448
-* FrodoKEM-640-SHAKE-X448
-* sntrup4591761-X448
-* mceliece348864
-* mceliece348864f
-* mceliece460896
-* mceliece460896f
-* mceliece6688128
-* mceliece6688128f
-* mceliece6960119
-* mceliece6960119f
-* mceliece8192128
-* mceliece8192128f
-* mceliece348864-X25519
-* mceliece348864f-X25519
-* mceliece460896-X25519
-* mceliece460896f-X25519
-* mceliece6688128-X25519
-* mceliece6688128f-X25519
-* mceliece6960119-X25519
-* mceliece6960119f-X25519
-* mceliece8192128-X25519
-* mceliece8192128f-X25519
+
+
+| Primitive | HPQC name | security |
+|  --------  |  -------  | -------  | 
+| ML-KEM-768| "MLKEM768" | post-quantum |
+| XWING is a hybrid primitive that pre-combines ML-KEM-768 and X25519. Due to [security properties](https://eprint.iacr.org/2018/024) of our combiner, we also implement our own combination of the two below.| "XWING" | hybrid |
+| The sntrup4591761 version of the NTRU cryptosystem. | "NTRUPrime"  | post-quantum |
+| FrodoKEM-640-SHAKE |"FrodoKEM-640-SHAKE"| post-quantum|
+| Various forms of the McEliece cryptosystem| "mceliece348864", "mceliece348864f", "mceliece460896", "mceliece460896f", "mceliece6688128", "mceliece6688128f", "mceliece6960119", "mceliece6960119f", "mceliece8192128", "mceliece8192128f" | post-quantum|
+|A hybrid of ML-KEM-768 and X25519. The [KEM Combiners paper](https://eprint.iacr.org/2018/024.pdf) is the reason we implemented our own combination in addition to including XWING. |"MLKEM768-X25519"| hybrid |
+|A hybrid of ML-KEM-768 and X448|"MLKEM768-X448"| hybrid |
+|A hybrid of FrodoKEM-640-SHAKE and X448|"FrodoKEM-640-SHAKE-X448"| hybrid |
+|A hybrid of NTRU and X448| "sntrup4591761-X448"| hybrid |
+|Hybrids of the McEliece primitives and X25519| "mceliece348864-X25519", "mceliece348864f-X25519", "mceliece460896-X25519", "mceliece460896f-X25519", "mceliece6688128-X25519", "mceliece6688128f-X25519", "mceliece6960119-X25519", "mceliece6960119f-X25519", "mceliece8192128-X25519", "mceliece8192128f-X25519" | hybrid|
+
+As well as all of the NIKE schemes through the KEM adapter, and any combinations of the above through the combiner.
+
+____________
 
 | SIGN: Cryptographic Signature Schemes |
 |:---:|
