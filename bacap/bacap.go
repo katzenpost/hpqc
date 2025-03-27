@@ -209,6 +209,38 @@ func (m *MessageBoxIndex) BoxIDForContext(cap *UniversalReadCap, ctx []byte) *ed
 	return cap.rootPublicKey.Blind(kICtx[:]) // Produce M_i^ctx = P_R * K_i
 }
 
+// SignCiphertextForContext signs the given ciphertext with the
+// blinded private key. It also returns the appropriate blinded public
+// key which can verify the signature. In our paper that's called the
+// Box ID. This method is provided along VerifyCiphertextForContext
+// such that you can use BACAP with an alternate encryption scheme.
+// BACAP's default encryption scheme uses AES GCM SIV.
+func (m *MessageBoxIndex) SignCiphertextForContext(owner *BoxOwnerCap, ctx []byte, ciphertext []byte) (mICtx [32]byte, sICtx []byte) {
+	kICtx := m.deriveKForContext(ctx)
+	mICtx = *(*[32]byte)(owner.rootPublicKey.Blind(kICtx[:]).Bytes())
+
+	// derive blinded private key specific to box index + context and sign the GCM-SIV ciphertext:
+	SICtx := owner.rootPrivateKey.Blind(kICtx[:])
+	sICtx = SICtx.Sign(ciphertext)
+	return // Produce M_i^ctx and s_i^ctx
+}
+
+// VerifyCiphertextForContext veridies the given ciphertext using the
+// given box ID which is a public key. This method is provided along
+// SignCiphertextForContext above, so that you can use BACAP with an
+// alternate encryption scheme. BACAP's default encryption scheme
+// uses AES GCM SIV.
+func (m *MessageBoxIndex) VerifyCiphertextForContext(box [32]byte, ctx []byte, ciphertext []byte, sig []byte) (ok bool, err error) {
+	var boxPk ed25519.PublicKey
+	if err = boxPk.FromBytes(box[:]); err != nil {
+		return
+	}
+	if false == boxPk.Verify(sig, ciphertext) {
+		return false, errors.New("signature verification failed")
+	}
+	return true, nil
+}
+
 // EncryptForContext encrypts the given plaintext. The given BoxOwnerCap type and context
 // are used here in the encryption key derivation.
 func (m *MessageBoxIndex) EncryptForContext(owner *BoxOwnerCap, ctx []byte, plaintext []byte) (mICtx [32]byte, cICtx []byte, sICtx []byte) {
