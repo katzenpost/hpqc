@@ -264,7 +264,11 @@ The [MKEM package](https://pkg.go.dev/github.com/katzenpost/hpqc@v0.0.53/kem/mke
 
 ## BACAP
 
-You can read more about BACAP  in section 4 of our paper: https://arxiv.org/abs/2501.02933
+BACAP is a cryptographic protocol that we are very proud of and you can read more about it in section 4 of our paper: https://arxiv.org/abs/2501.02933. The main author of BACAP is @threebithacker. It can be used for a wide range of capability management applications. 
+
+One example, that we are implementing in our group chat protocol, is for multi-client messaging. It allows us to deterministically derive a sequence of key pairs using blinding. It is built upon the Ed25519 signature scheme, and relies on its properties throughout the design. It enables participants to derive a sequence of public-key values and corresponding encryption keys for independent, single-use capabilities using shared symmetric keys.
+
+In the context of a messaging system, the protocol is used by Alice to send an infinite sequence of messages to Bob, one per box (public key in the sequence), with Bob using a separate, second instance of the protocol to send messages to Alice. Alice will use a root private key to derive a root public key for Bob. The root key and a CSPRNG instantiated from recursive KDF applications are then used to obtain a sequence of context-specific values for exercising and verifying a capability. A context value ctx, which is a hash of a universally public value, will be used as additional input. It can, for simplicity, be a hash of the name of the storage network, or can be bound to a specific period of time, e.g., the long epoch SRV published by the Katzenpost directories at regular intervals, similar to how Tor uses its SRV in onion services. The context value makes it safe to unlinkably relocate messages to a different network. The BACAP API is described in the library’s documentation: https://pkg.go.dev/github.com/katzenpost/hpqc/bacap
 
 ## The PQ NIKE: CTIDH via highctidh
 
