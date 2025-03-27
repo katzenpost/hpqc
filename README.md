@@ -9,70 +9,72 @@
 
 
 
-## hybrid post quantum cryptography
+## Hybrid Post Quantum Cryptography
 
-hpqc is a golang cryptography library. hpqc is used by the Katzenpost mixnet.
-The theme of the library is hybrid post quantum cryptographic constructions, namely:
+This library contains Golang implementations of leading quantum-resistant cryptographic primitives, popular and time-tested classical primitives, hybrid primitives that combine the strength of both, and ways to combine them all according to your needs. It also includes BACAP (blinding-and-capability) scheme, an orginal cryptographic protocol with a wide range of applications, including constructing anonymous messaging systems.
 
-* hybrid KEMs (key encapsulation mechanism)
-* hybrid NIKEs (non-interactive key exchange)
-* hybrid signature schemes
+hpqc is used by the Katzenpost mixnet and published under the AGPLv3.0 licence
 
-* BACAP: Another unique contribution of this libray is BACAP, our Blinded Cryptographic Capability system
-which is very useful for constructing anonymous messaging systems. Read more about it in section 4
-of our paper: https://arxiv.org/abs/2501.02933
-and read our BACAP API documentation, here: https://pkg.go.dev/github.com/katzenpost/hpqc@v0.0.52/bacap
+This library is divided into four parts:
+
+* NIKE (non-interactive key exchange) encryption
+* KEM (key encapsulation mechanism) encryption
+* signature schemes
+* BACAP 
+
+NIKE  is what we usually think about when we say "Diffie-Hellman" public key exchange. It means you can find someone's public key, encrypt a message to them, and they will decrypt it with a separate private key. By contrast, KEM is a way to use symmetric-key cryptography primitives in a way that is functionally similar to public-key cryptography, by encoding the secret keys with a public key cryptography scheme that may not we suitable for universal use, but is suitable for encrypting keys. 
 
 
-The key to understanding and using this cryptography library is to review the `Scheme` interfaces,
-for KEM, NIKE and signature schemes:
+The key to understanding and using this cryptography library is to review the `Scheme` interfaces, for NIKE, KEM and signature schemes, as well as the BACAP API:
 
-* KEM Scheme: https://pkg.go.dev/github.com/katzenpost/hpqc@v0.0.44/kem#Scheme
 * NIKE Scheme: https://pkg.go.dev/github.com/katzenpost/hpqc@v0.0.44/nike#Scheme
-* Signature Scheme: https://pkg.go.dev/github.com/katzenpost/hpqc@v0.0.44/sign#Scheme
+* KEM Scheme: https://pkg.go.dev/github.com/katzenpost/hpqc@v0.0.44/kem#Scheme
+* signature schemes' Scheme: https://pkg.go.dev/github.com/katzenpost/hpqc@v0.0.44/sign#Scheme
+* BACAP API documentation: https://pkg.go.dev/github.com/katzenpost/hpqc@v0.0.52/bacap
 
-Using our generic NIKE, KEM and Signature scheme interfaces helps you achieve cryptographic code agility
-which makes it easy to change cryptographic primitives:
+Using our generic NIKE, KEM and Signature scheme interfaces helps you achieve cryptographic code agility which makes it easy to switch between cryptographic primitives.
 
-```golang
-import "github.com/katzenpost/hpqc/kem"
 
-func encryptMessage(publicKey kem.PublicKey, scheme kem.Scheme, message []byte) {
-        ct, ss, err := scheme.Encapsulate(publicKey)
-		if err != nil {
-		        panic(err)
-		}
-		// ...
-}
-```
+## Using existing NIKE schemes
 
-* a "NIKE to KEM adapter" which uses an ad hoc hashed elgamal construction.
-  The following example code snippet demonstrates how our NIKE to KEM adapter
-  satisfies the KEM interfaces and thus can be combined with other KEMs.
+NIKE schemes API docs:
+https://pkg.go.dev/github.com/katzenpost/hpqc/nike/schemes
 
-* Securely combine any number of NIKEs and KEMs together into a hybrid KEM:
+NIKE interfaces docs; each NIKE implements three interfaces, Scheme, PublicKey and PrivateKey interfaces which are documented here:
+https://pkg.go.dev/github.com/katzenpost/hpqc/nike
+
+
+If you want to get started with one of our many existing NIKE schemes, you can reference NIKE schemes by name like so:
 
 ```golang
 import (
-	"github.com/katzenpost/hpqc/kem"
-	"github.com/katzenpost/hpqc/kem/adapter"
-	"github.com/katzenpost/hpqc/kem/combiner"
-	"github.com/katzenpost/hpqc/kem/hybrid"
-	"github.com/katzenpost/hpqc/kem/mlkem768"
-	"github.com/katzenpost/circl/kem/frodo/frodo640shake"
-	"github.com/katzenpost/hpqc/nike/x448"
-	"github.com/katzenpost/hpqc/nike/ctidh/ctidh1024"
+	"github.com/katzenpost/hpqc/nike/schemes"
+	"github.com/katzenpost/hpqc/nike"
 )
 
-var kemScheme kem.Scheme = combiner.New(
-		"MLKEM768-Frodo640Shake-CTIDH1024-X448",
-		[]kem.Scheme{
-		    mlkem768.Scheme(),
-			frodo640shake.Scheme(),
-			adapter.FromNIKE(ctidh1024.Scheme()),
-			adapter.FromNIKE(x448.Scheme(rand.Reader)),
-		},
-)
+
+func doCryptoStuff() {
+	scheme := schemes.ByName("X25519")
+	if scheme == nil {
+		panic("NIKE scheme not found")
+	}
+
+	alicePubKey, alicePrivKey, err := scheme.GenerateKeyPair()
+	if err != nil {
+		panic(err)
+	}
+
+	bobPubKey, bobPrivKey, err := scheme.GenerateKeyPair()
+	if err != nil {
+		panic(err)
+	}
+
+	aliceSharedSecret := scheme.DeriveSecret(alicePrivKey, bobPubKey)
+	bobSharedSecret := scheme.DeriveSecret(bobPrivKey, alicePubKey)
+	
+	// do stuff with shared secrets.
+	// aliceSharedSecret is equal to bobSharedSecret
+}
 ```
 
 Generic cryptographic interfaces means that if your double ratchet is already using the NIKE interfaces,
@@ -91,18 +93,6 @@ var CTIDH1024X25519 nike.Scheme = &hybrid.Scheme{
 	second: ctidh1024.Scheme(),
 	first:  x25519.Scheme(rand.Reader),
 }
-```
-
-* generic hybrid signature scheme, combines any two signature schemes into one
-
-```golang
-import (
-	"github.com/katzenpost/hpqc/sign/hybrid"
-	"github.com/katzenpost/hpqc/sign/ed25519"
-	"github.com/katzenpost/hpqc/sign/sphincsplus"
-)
-
-var Ed25519Sphincs = hybrid.New("Ed25519 Sphincs+", ed25519.Scheme(), sphincsplus.Scheme())
 ```
 
 ## Using existing KEM Schemes
@@ -148,49 +138,15 @@ func doCryptoStuff() {
 	// do stuff with sharedSecret2 which is equal to sharedSecret
 }
 ```
-
-
-## Using existing NIKE schemes
-
-NIKE schemes API docs:
-https://pkg.go.dev/github.com/katzenpost/hpqc/nike/schemes
-
-NIKE interfaces docs; each NIKE implements three interfaces,
-Scheme, PublicKey and PrivateKey interfaces which are documented here:
-https://pkg.go.dev/github.com/katzenpost/hpqc/nike
-
-
-If you want to get started with one of our many existing NIKE
-schemes, you can reference NIKE schemes by name like so:
-
 ```golang
-import (
-	"github.com/katzenpost/hpqc/nike/schemes"
-	"github.com/katzenpost/hpqc/nike"
-)
+import "github.com/katzenpost/hpqc/kem"
 
-
-func doCryptoStuff() {
-	scheme := schemes.ByName("X25519")
-	if scheme == nil {
-		panic("NIKE scheme not found")
-	}
-
-	alicePubKey, alicePrivKey, err := scheme.GenerateKeyPair()
-	if err != nil {
-		panic(err)
-	}
-
-	bobPubKey, bobPrivKey, err := scheme.GenerateKeyPair()
-	if err != nil {
-		panic(err)
-	}
-
-	aliceSharedSecret := scheme.DeriveSecret(alicePrivKey, bobPubKey)
-	bobSharedSecret := scheme.DeriveSecret(bobPrivKey, alicePubKey)
-	
-	// do stuff with shared secrets.
-	// aliceSharedSecret is equal to bobSharedSecret
+func encryptMessage(publicKey kem.PublicKey, scheme kem.Scheme, message []byte) {
+        ct, ss, err := scheme.Encapsulate(publicKey)
+		if err != nil {
+		        panic(err)
+		}
+		// ...
 }
 ```
 
@@ -233,10 +189,21 @@ func doCryptoStuff(message []byte) {
 }
 ```
 
+Generic hybrid signature scheme, combines any two signature schemes into one
 
-## NIKE to KEM adapter
+```golang
+import (
+	"github.com/katzenpost/hpqc/sign/hybrid"
+	"github.com/katzenpost/hpqc/sign/ed25519"
+	"github.com/katzenpost/hpqc/sign/sphincsplus"
+)
 
-Our ad hoc hashed elgamal construction for adapting any NIKE to a KEM is, in pseudo code:
+var Ed25519Sphincs = hybrid.New("Ed25519 Sphincs+", ed25519.Scheme(), sphincsplus.Scheme())
+```
+
+## NIKE to KEM adapter and KEM combiner
+
+Our "NIKE to KEM adapter" uses an ad hoc hashed ElGamal construction. This construction in pseudo code is:
 
 ```
 func ENCAPSULATE(their_pubkey publickey) ([]byte, []byte) {
@@ -253,20 +220,38 @@ func DECAPSULATE(my_privkey, their_pubkey) []byte {
 }
 ```
 
+The following code demonstrates the use of both the adapter and the combiner into a hybrid KEM:
+
+```golang
+import (
+	"github.com/katzenpost/hpqc/kem"
+	"github.com/katzenpost/hpqc/kem/adapter"
+	"github.com/katzenpost/hpqc/kem/combiner"
+	"github.com/katzenpost/hpqc/kem/hybrid"
+	"github.com/katzenpost/hpqc/kem/mlkem768"
+	"github.com/katzenpost/circl/kem/frodo/frodo640shake"
+	"github.com/katzenpost/hpqc/nike/x448"
+	"github.com/katzenpost/hpqc/nike/ctidh/ctidh1024"
+)
+
+var kemScheme kem.Scheme = combiner.New(
+		"MLKEM768-Frodo640Shake-CTIDH1024-X448",
+		[]kem.Scheme{
+		    mlkem768.Scheme(),
+			frodo640shake.Scheme(),
+			adapter.FromNIKE(ctidh1024.Scheme()),
+			adapter.FromNIKE(x448.Scheme(rand.Reader)),
+		},
+)
+```
 
 
-## KEM Combiner
-
-The [KEM Combiners paper](https://eprint.iacr.org/2018/024.pdf) makes the
-observation that if a KEM combiner is not security preserving then the
-resulting hybrid KEM will not have IND-CCA2 security if one of the
-composing KEMs does not have IND-CCA2 security. Likewise the paper
-points out that when using a security preserving KEM combiner, if only
-one of the composing KEMs has IND-CCA2 security then the resulting
+The [KEM Combiners paper](https://eprint.iacr.org/2018/024.pdf) makes the observation that if a KEM combiner is not security preserving then the
+resulting hybrid KEM will not have IND-CCA2 security if one of the composing KEMs does not have IND-CCA2 security. Likewise the paper
+points out that when using a security preserving KEM combiner, if only one of the composing KEMs has IND-CCA2 security then the resulting
 hybrid KEM will have IND-CCA2 security.
 
-Our KEM combiner uses the split PRF design for an arbitrary number
-of kems, here shown with only three, in pseudo code:
+Our KEM combiner uses the split PRF design for an arbitrary number of kems, here shown with only three, in pseudo code:
 
 ```
 func SplitPRF(ss1, ss2, ss3, cct1, cct2, cct3 []byte) []byte {
@@ -275,6 +260,10 @@ func SplitPRF(ss1, ss2, ss3, cct1, cct2, cct3 []byte) []byte {
 }
 ```
 
+
+## BACAP
+
+You can read more about BACAP  in section 4 of our paper: https://arxiv.org/abs/2501.02933
 
 ## The PQ NIKE: CTIDH via highctidh
 
