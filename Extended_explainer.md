@@ -8,8 +8,17 @@
 [![CI](https://github.com/katzenpost/hpqc/actions/workflows/go.yml/badge.svg)](https://github.com/katzenpost/hpqc/actions/workflows/go.yml)
 
 
+## What is Hybrid Post Quantum Cryptography?
 
-## Hybrid Post Quantum Cryptography
+The spectre of decryption by quantum computers has loomed large over most of the cryptography we use today for decades. It hasn't materialized yet, but advances are being made quickly with both large tech corporations and public research making quick advancements as of 2025.
+
+Functional quantum decryption would threaten our way of life - expose most of the world communication and connection information, shatter banking security and collapse most of the world's cryptocurrencies. The cryptography primitives we have been using for decades - most of it based on either Elliptic Curve Cryptography or RSA - have done a tremendous job in the absence of this technology, however, and cannot be so easily discounted. For one, no one has managed to break it without a quantum computers for all this time. But most of the algorithms considered to be quantum-resistant are new and haven't gone through this kind of trial by fire. 
+
+This touches on a very important point. It is very rare to have cryptography that we know for sure cannot be in the future broken with some new clever math. Some that are rooted in entropy laws - like one-time pads - can hold up to such standard. But they are not efficient. For anything that is realistic to use in multiple settings, we rely on the fact that "well, no one broke it yet." So on one hand we have the classic cryptograhy that withstood decades of researchers trying to break it by classical means, and on the other hand we have the new post-quantum cryptography that has not yet been broken with quantum algorithms.
+
+For best security, we combine the two and refer to the resulting encryption as "hybrid." We apply one type of primitive first, and then the other. The Hybrid Post-Quantum Cryptography library is here to help you do just that.
+
+## What is this Library?
 
 This library contains Golang implementations of leading quantum-resistant cryptographic primitives, popular and time-tested classical primitives, hybrid primitives that combine the strength of both, and ways to combine them all according to your needs. It also includes BACAP (blinding-and-capability) scheme, an orginal cryptographic protocol with a wide range of applications, including constructing anonymous messaging systems.
 
@@ -22,7 +31,7 @@ This library is divided into four parts:
 * signature schemes
 * BACAP 
 
-NIKE  is what we usually think about when we say "Diffie-Hellman" public key exchange. It means you can find someone's public key, encrypt a message to them, and they will decrypt it with a separate private key. By contrast, KEM is a way to use symmetric-key cryptography primitives in a way that is functionally similar to public-key cryptography, by encoding the secret keys with a public key cryptography scheme that may not we suitable for universal use, but is suitable for encrypting keys. 
+NIKE  is what we usually think about when we say "Diffie-Hellman" public key exchange. It means you can find someone's public key, encrypt a message to them, and they will decrypt it with a separate private key. By contrast, KEM is a way to use symmetric-key cryptography primitives in a way that is functionally similar to public-key cryptography. It is a way to take a secret key and encrypt it with another type of public key, send it to the contact and subsequently use it in communication. The advantage of that is that the encapsulation can happen with a public key encryption scheme that may not be suitable for universal use, but works for  encrypting secret keys. In our case, we use the ElGamal encryption system. Most of the quantum-resistant cryptography that has been established works directly as symmetric-key cryptosystems. Among the exceptions are systems based on supersingular isogeny key exchange. Some of these primitives are vulnerable to a [key recovery attack](https://eprint.iacr.org/2022/975.pdf). However, CSIDH and CTIDH are primitives of this type that have not been broken so far, and therefore we include them in the HPQC.
 
 
 The key to understanding and using this cryptography library is to review the `Scheme` interfaces, for NIKE, KEM and signature schemes, as well as the BACAP API:
@@ -38,6 +47,15 @@ The library includes many of these primitives, listed towards the end of this do
 * A NIKE to KEM adapter, for using any NIKE primitive as a KEM to be combined with other KEMs.
 * A KEM combiner, to combine multiple primitives for better security properties.
 * An MKEM interface to use any NIKE primitive as a multiparty KEM.
+
+
+## BACAP
+
+BACAP is a cryptographic protocol that we are very proud of and you can read more about it in section 4 of our paper: https://arxiv.org/abs/2501.02933. The main author of BACAP is @threebithacker. It can be used for a wide range of capability management applications. 
+
+One example, that we are implementing in our group chat protocol, is for multi-client messaging. It allows us to deterministically derive a sequence of key pairs using blinding. It is built upon the Ed25519 signature scheme, and relies on its properties throughout the design. It enables participants to derive a sequence of public-key values and corresponding encryption keys for independent, single-use capabilities using shared symmetric keys.
+
+In the context of a messaging system, the protocol is used by Alice to send an infinite sequence of messages to Bob, one per box (public key in the sequence), with Bob using a separate, second instance of the protocol to send messages to Alice. Alice will use a root private key to derive a root public key for Bob. The root key and a CSPRNG instantiated from recursive KDF applications are then used to obtain a sequence of context-specific values for exercising and verifying a capability. A context value ctx, which is a hash of a universally public value, will be used as additional input. It can, for simplicity, be a hash of the name of the storage network, or can be bound to a specific period of time, e.g., the long epoch SRV published by the Katzenpost directories at regular intervals, similar to how Tor uses its SRV in onion services. The context value makes it safe to unlinkably relocate messages to a different network. The BACAP API is described in the library’s documentation: https://pkg.go.dev/github.com/katzenpost/hpqc/bacap
 
 
 ## Using existing NIKE Schemes
@@ -101,10 +119,10 @@ A list of implemented NIKEs can be found towards the end of this document.
 
 ## Using existing KEM Schemes
 
+KEM schemes API docs: https://pkg.go.dev/github.com/katzenpost/hpqc/kem/schemes
+
 KEM interfaces docs; each KEM implements three interfaces, Scheme, PublicKey and PrivateKey interfaces which are documented here:
 https://pkg.go.dev/github.com/katzenpost/hpqc/kem
-
-KEM schemes API docs: https://pkg.go.dev/github.com/katzenpost/hpqc/kem/schemes
 
 If you want to get started with one of our many existing KEM schemes, you can reference KEM schemes by name like so:
 
@@ -267,13 +285,6 @@ The [MKEM package](https://pkg.go.dev/github.com/katzenpost/hpqc@v0.0.53/kem/mke
 
 
 
-## BACAP
-
-BACAP is a cryptographic protocol that we are very proud of and you can read more about it in section 4 of our paper: https://arxiv.org/abs/2501.02933. The main author of BACAP is @threebithacker. It can be used for a wide range of capability management applications. 
-
-One example, that we are implementing in our group chat protocol, is for multi-client messaging. It allows us to deterministically derive a sequence of key pairs using blinding. It is built upon the Ed25519 signature scheme, and relies on its properties throughout the design. It enables participants to derive a sequence of public-key values and corresponding encryption keys for independent, single-use capabilities using shared symmetric keys.
-
-In the context of a messaging system, the protocol is used by Alice to send an infinite sequence of messages to Bob, one per box (public key in the sequence), with Bob using a separate, second instance of the protocol to send messages to Alice. Alice will use a root private key to derive a root public key for Bob. The root key and a CSPRNG instantiated from recursive KDF applications are then used to obtain a sequence of context-specific values for exercising and verifying a capability. A context value ctx, which is a hash of a universally public value, will be used as additional input. It can, for simplicity, be a hash of the name of the storage network, or can be bound to a specific period of time, e.g., the long epoch SRV published by the Katzenpost directories at regular intervals, similar to how Tor uses its SRV in onion services. The context value makes it safe to unlinkably relocate messages to a different network. The BACAP API is described in the library’s documentation: https://pkg.go.dev/github.com/katzenpost/hpqc/bacap
 
 ## The PQ NIKE: CTIDH via highctidh
 
