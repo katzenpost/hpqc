@@ -461,6 +461,7 @@ func (u *UniversalReadCap) UnmarshalBinary(data []byte) error {
 	if len(data) != UniversalReadCapSize {
 		return errors.New("invalid UniversalReadCap binary size")
 	}
+	u.rootPublicKey = new(ed25519.PublicKey)
 	err := u.rootPublicKey.FromBytes(data[:32])
 	if err != nil {
 		return err
