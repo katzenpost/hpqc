@@ -1,4 +1,4 @@
-// SPDX-FileCopyrightText: © 2025 Katzenpost dev team
+// SPDX-FileCopyrightText: © 2025 Threebit Hacker
 // SPDX-License-Identifier: AGPL-3.0-only
 
 // Package bacap provides the Blinded Cryptographic Capability system (BACAP).
@@ -215,7 +215,7 @@ func (m *MessageBoxIndex) BoxIDForContext(cap *UniversalReadCap, ctx []byte) *ed
 // Box ID. This method is provided along VerifyCiphertextForContext
 // such that you can use BACAP with an alternate encryption scheme.
 // BACAP's default encryption scheme uses AES GCM SIV.
-func (m *MessageBoxIndex) SignCiphertextForContext(owner *BoxOwnerCap, ctx []byte, ciphertext []byte) (mICtx [32]byte, sICtx []byte) {
+func (m *MessageBoxIndex) SignBox(owner *BoxOwnerCap, ctx []byte, ciphertext []byte) (mICtx [32]byte, sICtx []byte) {
 	kICtx := m.deriveKForContext(ctx)
 	mICtx = *(*[32]byte)(owner.rootPublicKey.Blind(kICtx[:]).Bytes())
 
@@ -230,7 +230,7 @@ func (m *MessageBoxIndex) SignCiphertextForContext(owner *BoxOwnerCap, ctx []byt
 // SignCiphertextForContext above, so that you can use BACAP with an
 // alternate encryption scheme. BACAP's default encryption scheme
 // uses AES GCM SIV.
-func (m *MessageBoxIndex) VerifyCiphertextForContext(box [32]byte, ctx []byte, ciphertext []byte, sig []byte) (ok bool, err error) {
+func (m *MessageBoxIndex) VerifyBox(box [32]byte, ciphertext []byte, sig []byte) (ok bool, err error) {
 	var boxPk ed25519.PublicKey
 	if err = boxPk.FromBytes(box[:]); err != nil {
 		return
