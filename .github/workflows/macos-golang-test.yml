@@ -38,10 +38,10 @@ jobs:
           go build -v ./...
 
       - name: Golang test
+        env:
+          CGO_LDFLAGS: -Wl,-stack_size,0x1F40000
         shell: bash
         run: |
           export HIGHCTIDH_PORTABLE=1
           export CGO_ENABLED=1
           go test -v ./...
-	env:
-	    CGO_LDFLAGS: -Wl,-stack_size,0x1F40000
