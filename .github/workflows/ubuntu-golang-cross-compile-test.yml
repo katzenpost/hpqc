@@ -22,16 +22,14 @@ jobs:
         go-version: ${{ matrix.go-version }}
     - name: Display Go version
       run: go version
-
     - name: Install Golang deps
       run: sudo ./misc/install-debian-go-deps-by-arch.sh ${{ matrix.ARCH }}
-
-      - name: Install Go (from go.mod)
-        uses: actions/setup-go@v4
-        with:
-          go-version-file: go.mod
-          check-latest: true
-      - name: Run tests
-        run: go test -v ./...
-	env:
-	    CGO_LDFLAGS: -Wl,-z,stack-size=0x1F40000
+    - name: Install Go (from go.mod)
+      uses: actions/setup-go@v4
+      with:
+        go-version-file: go.mod
+        check-latest: true
+    - name: Run tests
+      run: go test -v ./...
+      env:
+        CGO_LDFLAGS: -Wl,-z,stack-size=0x1F40000

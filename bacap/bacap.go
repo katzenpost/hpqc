@@ -398,6 +398,7 @@ func (o *BoxOwnerCap) UnmarshalBinary(data []byte) error {
 	if len(data) != BoxOwnerCapSize {
 		return errors.New("invalid BoxOwnerCap binary size")
 	}
+	o.rootPrivateKey = new(ed25519.PrivateKey)
 	err := o.rootPrivateKey.FromBytes(data[:64])
 	if err != nil {
 		return err
@@ -461,6 +462,7 @@ func (u *UniversalReadCap) UnmarshalBinary(data []byte) error {
 	if len(data) != UniversalReadCapSize {
 		return errors.New("invalid UniversalReadCap binary size")
 	}
+	u.rootPublicKey = new(ed25519.PublicKey)
 	err := u.rootPublicKey.FromBytes(data[:32])
 	if err != nil {
 		return err
