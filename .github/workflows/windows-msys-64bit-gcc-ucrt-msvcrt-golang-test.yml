@@ -10,7 +10,7 @@ jobs:
         OS: ["windows-2022"]
         CC: ["gcc"]
         ENVIRONMENT: ["UCRT64", "MINGW64"] # https://www.msys2.org/docs/environments/
-        go-version: ["1.22.x"]
+        go-version: ["1.23.0"]
       fail-fast: false
     steps:
       - uses: actions/checkout@v4
