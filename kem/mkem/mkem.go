@@ -83,7 +83,7 @@ func (s *Scheme) DecryptEnvelope(privkey nike.PrivateKey, pubkey nike.PublicKey,
 	return plaintext, nil
 }
 
-func (s *Scheme) Encapsulate(keys []nike.PublicKey, payload []byte) (nike.PrivateKey, []byte) {
+func (s *Scheme) Encapsulate(keys []nike.PublicKey, payload []byte) (nike.PrivateKey, *Ciphertext) {
 	ephPub, ephPriv, err := s.nike.GenerateKeyPair()
 	if err != nil {
 		panic(err)
@@ -111,22 +111,17 @@ func (s *Scheme) Encapsulate(keys []nike.PublicKey, payload []byte) (nike.Privat
 		DEKCiphertexts:     outCiphertexts,
 		Envelope:           ciphertext,
 	}
-	return ephPriv, c.Marshal()
+	return ephPriv, c
 }
 
-func (s *Scheme) Decapsulate(privkey nike.PrivateKey, ciphertext []byte) ([]byte, error) {
-	c, err := CiphertextFromBytes(s, ciphertext)
-	if err != nil {
-		return nil, err
-	}
-
-	ephSecret := hash.Sum256(s.nike.DeriveSecret(privkey, c.EphemeralPublicKey))
-	for i := 0; i < len(c.DEKCiphertexts); i++ {
-		msgKey, err := s.decrypt(ephSecret[:], c.DEKCiphertexts[i])
+func (s *Scheme) Decapsulate(privkey nike.PrivateKey, ciphertext *Ciphertext) ([]byte, error) {
+	ephSecret := hash.Sum256(s.nike.DeriveSecret(privkey, ciphertext.EphemeralPublicKey))
+	for i := 0; i < len(ciphertext.DEKCiphertexts); i++ {
+		msgKey, err := s.decrypt(ephSecret[:], ciphertext.DEKCiphertexts[i])
 		if err != nil {
 			continue
 		}
-		return s.decrypt(msgKey, c.Envelope)
+		return s.decrypt(msgKey, ciphertext.Envelope)
 	}
 	return nil, errors.New("failed to trial decrypt")
 }
