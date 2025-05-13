@@ -36,7 +36,7 @@ func TestCiphertextMarshaling(t *testing.T) {
 }
 
 func TestMKEMCorrectness(t *testing.T) {
-	nikeScheme := schemes.ByName("CTIDH512-X448")
+	nikeScheme := schemes.ByName("CTIDH1024-X25519")
 	s := NewScheme(nikeScheme)
 
 	replica1pub, replica1priv, err := s.GenerateKeyPair()
@@ -51,24 +51,19 @@ func TestMKEMCorrectness(t *testing.T) {
 
 	_, ciphertext := s.Encapsulate([]nike.PublicKey{replica1pub, replica2pub}, secret)
 
-	ciphertext2, err := CiphertextFromBytes(s, ciphertext)
-	require.NoError(t, err)
-	blob2 := ciphertext2.Marshal()
-	require.Equal(t, ciphertext, blob2)
-
-	secret1, err := s.Decapsulate(replica1priv, blob2)
+	secret1, err := s.Decapsulate(replica1priv, ciphertext)
 	require.NoError(t, err)
 
 	require.Equal(t, secret, secret1)
 
-	secret2, err := s.Decapsulate(replica2priv, blob2)
+	secret2, err := s.Decapsulate(replica2priv, ciphertext)
 	require.NoError(t, err)
 
 	require.Equal(t, secret, secret2)
 }
 
 func TestMKEMProtocol(t *testing.T) {
-	nikeScheme := schemes.ByName("CTIDH512-X448")
+	nikeScheme := schemes.ByName("CTIDH1024-X25519")
 	s := NewScheme(nikeScheme)
 
 	// replicas create their keys and publish them
@@ -81,16 +76,14 @@ func TestMKEMProtocol(t *testing.T) {
 	request := make([]byte, 32)
 	_, err = rand.Reader.Read(request)
 	require.NoError(t, err)
-	privKey1, envelopeRaw := s.Encapsulate([]nike.PublicKey{replica1pub, replica2pub}, request)
-	envelope1, err := CiphertextFromBytes(s, envelopeRaw)
-	require.NoError(t, err)
+	privKey1, envelope := s.Encapsulate([]nike.PublicKey{replica1pub, replica2pub}, request)
 
 	// replica decrypts message from client
-	request1, err := s.Decapsulate(replica1priv, envelopeRaw)
+	request1, err := s.Decapsulate(replica1priv, envelope)
 	require.NoError(t, err)
 	require.Equal(t, request1, request)
 	replyPayload := []byte("hello")
-	reply1 := s.EnvelopeReply(replica1priv, envelope1.EphemeralPublicKey, replyPayload)
+	reply1 := s.EnvelopeReply(replica1priv, envelope.EphemeralPublicKey, replyPayload)
 
 	// client decrypts reply from replica
 	plaintext, err := s.DecryptEnvelope(privKey1, replica1pub, reply1)
