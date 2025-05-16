@@ -58,7 +58,7 @@ func (s *Scheme) decrypt(key []byte, ciphertext []byte) ([]byte, error) {
 	return aead.Open(nil, nonce, ciphertext, nil)
 }
 
-func (s *Scheme) EnvelopeReply(privkey nike.PrivateKey, pubkey nike.PublicKey, plaintext []byte) []byte {
+func (s *Scheme) EnvelopeReply(privkey nike.PrivateKey, pubkey nike.PublicKey, plaintext []byte) *Ciphertext {
 	secret := hash.Sum256(s.nike.DeriveSecret(privkey, pubkey))
 	ciphertext := s.encrypt(secret[:], plaintext)
 	c := &Ciphertext{
@@ -66,17 +66,12 @@ func (s *Scheme) EnvelopeReply(privkey nike.PrivateKey, pubkey nike.PublicKey, p
 		DEKCiphertexts:     nil,
 		Envelope:           ciphertext,
 	}
-	return c.Marshal()
+	return c
 }
 
-func (s *Scheme) DecryptEnvelope(privkey nike.PrivateKey, pubkey nike.PublicKey, ciphertext []byte) ([]byte, error) {
-	c, err := CiphertextFromBytes(s, ciphertext)
-	if err != nil {
-		return nil, err
-	}
-
+func (s *Scheme) DecryptEnvelope(privkey nike.PrivateKey, pubkey nike.PublicKey, envelope []byte) ([]byte, error) {
 	secret := hash.Sum256(s.nike.DeriveSecret(privkey, pubkey))
-	plaintext, err := s.decrypt(secret[:], c.Envelope)
+	plaintext, err := s.decrypt(secret[:], envelope)
 	if err != nil {
 		return nil, err
 	}

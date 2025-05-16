@@ -86,7 +86,7 @@ func TestMKEMProtocol(t *testing.T) {
 	reply1 := s.EnvelopeReply(replica1priv, envelope.EphemeralPublicKey, replyPayload)
 
 	// client decrypts reply from replica
-	plaintext, err := s.DecryptEnvelope(privKey1, replica1pub, reply1)
+	plaintext, err := s.DecryptEnvelope(privKey1, replica1pub, reply1.Envelope)
 	require.NoError(t, err)
 
 	require.Equal(t, replyPayload, plaintext)
