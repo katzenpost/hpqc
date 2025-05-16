@@ -67,26 +67,48 @@ func TestMKEMProtocol(t *testing.T) {
 	s := NewScheme(nikeScheme)
 
 	// replicas create their keys and publish them
-	replica1pub, replica1priv, err := s.GenerateKeyPair()
+	replica0pub, replica0priv, err := s.GenerateKeyPair()
 	require.NoError(t, err)
-	replica2pub, _, err := s.GenerateKeyPair()
+	replica1pub, replica1priv, err := s.GenerateKeyPair()
 	require.NoError(t, err)
 
 	// client to replica
-	request := make([]byte, 32)
+	request := make([]byte, 31)
 	_, err = rand.Reader.Read(request)
 	require.NoError(t, err)
-	privKey1, envelope := s.Encapsulate([]nike.PublicKey{replica1pub, replica2pub}, request)
+	privKey0, envelope := s.Encapsulate([]nike.PublicKey{replica0pub, replica1pub}, request)
 
-	// replica decrypts message from client
-	request1, err := s.Decapsulate(replica1priv, envelope)
+	ct0 := &Ciphertext{
+		EphemeralPublicKey: envelope.EphemeralPublicKey,
+		DEKCiphertexts:     [][]byte{envelope.DEKCiphertexts[0]},
+		Envelope:           envelope.Envelope,
+	}
+
+	ct1 := &Ciphertext{
+		EphemeralPublicKey: envelope.EphemeralPublicKey,
+		DEKCiphertexts:     [][]byte{envelope.DEKCiphertexts[1]},
+		Envelope:           envelope.Envelope,
+	}
+
+	// replica0 decrypts message from client
+	request0, err := s.Decapsulate(replica0priv, ct0)
+	require.NoError(t, err)
+	require.Equal(t, request0, request)
+	// XXX require.Equal(t, len(ct0.DEKCiphertexts[0]), DEKSize)
+
+	// replica1 decrypts message from client
+	request1, err := s.Decapsulate(replica1priv, ct1)
 	require.NoError(t, err)
 	require.Equal(t, request1, request)
+
+	request1, err = s.Decapsulate(replica1priv, ct0)
+	require.Error(t, err)
+
 	replyPayload := []byte("hello")
-	reply1 := s.EnvelopeReply(replica1priv, envelope.EphemeralPublicKey, replyPayload)
+	reply0 := s.EnvelopeReply(replica0priv, envelope.EphemeralPublicKey, replyPayload)
 
 	// client decrypts reply from replica
-	plaintext, err := s.DecryptEnvelope(privKey1, replica1pub, reply1.Envelope)
+	plaintext, err := s.DecryptEnvelope(privKey0, replica0pub, reply0.Envelope)
 	require.NoError(t, err)
 
 	require.Equal(t, replyPayload, plaintext)
