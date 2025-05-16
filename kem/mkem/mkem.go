@@ -14,6 +14,10 @@ import (
 	"github.com/katzenpost/hpqc/nike"
 )
 
+// DEKSize indicates the size in bytes of the DEK
+// within our Ciphertext type in it's DEKCiphertexts field.
+const DEKSize = 60
+
 // Scheme is an MKEM scheme.
 type Scheme struct {
 	nike nike.Scheme
@@ -99,6 +103,9 @@ func (s *Scheme) Encapsulate(keys []nike.PublicKey, payload []byte) (nike.Privat
 	outCiphertexts := make([][]byte, len(secrets))
 	for i := 0; i < len(secrets); i++ {
 		outCiphertexts[i] = s.encrypt(secrets[i][:], msgKey)
+		if len(outCiphertexts[i]) != DEKSize {
+			panic("invalid ciphertext size")
+		}
 	}
 
 	c := &Ciphertext{
