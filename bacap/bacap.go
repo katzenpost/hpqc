@@ -78,8 +78,16 @@ import (
 	"github.com/katzenpost/hpqc/util"
 )
 
-// MessageBoxIndexSize is the size in bytes of one MessageBoxIndex struct.
-const MessageBoxIndexSize = 8 + 32 + 32 + 32
+const (
+	// MessageBoxIndexSize is the size in bytes of one MessageBoxIndex struct.
+	MessageBoxIndexSize = 8 + 32 + 32 + 32
+
+	// BoxIDSize is the size in bytes of our Box IDs.
+	BoxIDSize = ed25519.PublicKeySize
+
+	// SignatureSize is the size in bytes of our signatures.
+	SignatureSize = ed25519.SignatureSize
+)
 
 // MessageBoxIndex type encapsulates all the various low level cryptographic operations
 // such as progressing the HKDF hash object states, encryption/decryption
@@ -230,7 +238,7 @@ func (m *MessageBoxIndex) SignBox(owner *BoxOwnerCap, ctx []byte, ciphertext []b
 // SignCiphertextForContext above, so that you can use BACAP with an
 // alternate encryption scheme. BACAP's default encryption scheme
 // uses AES GCM SIV.
-func (m *MessageBoxIndex) VerifyBox(box [32]byte, ciphertext []byte, sig []byte) (ok bool, err error) {
+func (m *MessageBoxIndex) VerifyBox(box [BoxIDSize]byte, ciphertext []byte, sig []byte) (ok bool, err error) {
 	var boxPk ed25519.PublicKey
 	if err = boxPk.FromBytes(box[:]); err != nil {
 		return
@@ -263,7 +271,7 @@ func (m *MessageBoxIndex) EncryptForContext(owner *BoxOwnerCap, ctx []byte, plai
 
 // DecryptForContext decrypts the given ciphertext and verifies the given signature
 // using a key derives from the context and other cryptographic materials.
-func (m *MessageBoxIndex) DecryptForContext(box [32]byte, ctx []byte, ciphertext []byte, sig []byte) (plaintext []byte, err error) {
+func (m *MessageBoxIndex) DecryptForContext(box [BoxIDSize]byte, ctx []byte, ciphertext []byte, sig []byte) (plaintext []byte, err error) {
 	var boxPk ed25519.PublicKey
 	if err = boxPk.FromBytes(box[:]); err != nil {
 		return
@@ -345,7 +353,7 @@ type BoxOwnerCap struct {
 
 // BoxOwnerCapSize is the size in bytes of a serialized BoxOwnerCap
 // not counting it's rootPublicKey field.
-const BoxOwnerCapSize = 64 + MessageBoxIndexSize
+const BoxOwnerCapSize = ed25519.PrivateKeySize + MessageBoxIndexSize
 
 // ensure we implement encoding.BinaryMarshaler/BinaryUmarshaler
 var _ encoding.BinaryMarshaler = (*BoxOwnerCap)(nil)
@@ -420,7 +428,7 @@ type UniversalReadCap struct {
 }
 
 // UniversalReadCapSize is the size in bytes of the UniversalReadCap struct type.
-const UniversalReadCapSize = 32 + MessageBoxIndexSize
+const UniversalReadCapSize = ed25519.PublicKeySize + MessageBoxIndexSize
 
 // ensure we implement encoding.BinaryMarshaler/BinaryUmarshaler
 var _ encoding.BinaryMarshaler = (*UniversalReadCap)(nil)
