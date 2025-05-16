@@ -100,9 +100,10 @@ func (s *Scheme) Encapsulate(keys []nike.PublicKey, payload []byte) (nike.Privat
 	}
 	ciphertext := s.encrypt(msgKey, payload)
 
-	outCiphertexts := make([][]byte, len(secrets))
+	outCiphertexts := make([]*[DEKSize]byte, len(secrets))
 	for i := 0; i < len(secrets); i++ {
-		outCiphertexts[i] = s.encrypt(secrets[i][:], msgKey)
+		outCiphertexts[i] = &[DEKSize]byte{}
+		copy(outCiphertexts[i][:], s.encrypt(secrets[i][:], msgKey))
 		if len(outCiphertexts[i]) != DEKSize {
 			panic("invalid ciphertext size")
 		}
@@ -119,7 +120,7 @@ func (s *Scheme) Encapsulate(keys []nike.PublicKey, payload []byte) (nike.Privat
 func (s *Scheme) Decapsulate(privkey nike.PrivateKey, ciphertext *Ciphertext) ([]byte, error) {
 	ephSecret := hash.Sum256(s.nike.DeriveSecret(privkey, ciphertext.EphemeralPublicKey))
 	for i := 0; i < len(ciphertext.DEKCiphertexts); i++ {
-		msgKey, err := s.decrypt(ephSecret[:], ciphertext.DEKCiphertexts[i])
+		msgKey, err := s.decrypt(ephSecret[:], ciphertext.DEKCiphertexts[i][:])
 		if err != nil {
 			continue
 		}
