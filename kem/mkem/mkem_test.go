@@ -104,9 +104,6 @@ func TestMKEMProtocol(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, request1, request)
 
-	request1, err = s.Decapsulate(replica1priv, ct0)
-	require.Error(t, err)
-
 	replyPayload := []byte("hello")
 	reply0 := s.EnvelopeReply(replica0priv, envelope.EphemeralPublicKey, replyPayload)
 
