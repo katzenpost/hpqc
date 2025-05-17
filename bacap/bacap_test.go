@@ -215,7 +215,7 @@ func TestStatefulReaderWriter(t *testing.T) {
 		// Reader retrieves the next expected box ID
 		expectedBoxID, err := reader.NextBoxID()
 		require.NoError(t, err)
-		require.Equal(t, expectedBoxID.Bytes(), boxID[:])
+		require.Equal(t, expectedBoxID[:], boxID[:])
 
 		// Reader decrypts the received message
 		sig := [64]byte{}

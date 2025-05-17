@@ -518,7 +518,7 @@ func NewStatefulReader(urcap *UniversalReadCap, ctx []byte) (*StatefulReader, er
 }
 
 // ReadNext gets the next box ID to read.
-func (sr *StatefulReader) NextBoxID() (*ed25519.PublicKey, error) {
+func (sr *StatefulReader) NextBoxID() (*[BoxIDSize]byte, error) {
 	if sr.nextIndex == nil {
 		tmp, err := sr.lastInboxRead.NextIndex()
 		if err != nil {
@@ -530,11 +530,13 @@ func (sr *StatefulReader) NextBoxID() (*ed25519.PublicKey, error) {
 		return nil, errors.New("next context is nil")
 	}
 	nextBox := sr.nextIndex.BoxIDForContext(sr.urcap, sr.ctx)
-	return nextBox, nil
+	nextBoxID := &[BoxIDSize]byte{}
+	copy(nextBoxID[:], nextBox.Bytes())
+	return nextBoxID, nil
 }
 
 // ParseReply advances state if reading was successful.
-func (sr *StatefulReader) DecryptNext(ctx []byte, box [32]byte, ciphertext []byte, sig [64]byte) ([]byte, error) {
+func (sr *StatefulReader) DecryptNext(ctx []byte, box [BoxIDSize]byte, ciphertext []byte, sig [SignatureSize]byte) ([]byte, error) {
 	if util.CtIsZero(box[:]) {
 		return nil, errors.New("empty box, no message received")
 	}
@@ -598,9 +600,9 @@ func (sw *StatefulWriter) NextBoxID() (*ed25519.PublicKey, error) {
 }
 
 // EncryptNext encrypts a message, advancing state after success.
-func (sw *StatefulWriter) EncryptNext(plaintext []byte) (boxID [32]byte, ciphertext []byte, sig []byte, err error) {
+func (sw *StatefulWriter) EncryptNext(plaintext []byte) (boxID [BoxIDSize]byte, ciphertext []byte, sig []byte, err error) {
 	if sw.nextIndex == nil {
-		return [32]byte{}, nil, nil, errors.New("next index is nil")
+		return [BoxIDSize]byte{}, nil, nil, errors.New("next index is nil")
 	}
 
 	// Encrypt the message
@@ -610,7 +612,7 @@ func (sw *StatefulWriter) EncryptNext(plaintext []byte) (boxID [32]byte, ciphert
 	sw.lastOutboxIdx = sw.nextIndex
 	sw.nextIndex, err = sw.lastOutboxIdx.NextIndex()
 	if err != nil {
-		return [32]byte{}, nil, nil, err
+		return [BoxIDSize]byte{}, nil, nil, err
 	}
 	return
 }
