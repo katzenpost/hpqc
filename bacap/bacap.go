@@ -73,6 +73,7 @@ import (
 	"golang.org/x/crypto/hkdf"
 
 	"github.com/agl/gcmsiv"
+	"github.com/fxamacker/cbor/v2"
 
 	"github.com/katzenpost/hpqc/sign/ed25519"
 	"github.com/katzenpost/hpqc/util"
@@ -109,6 +110,15 @@ type MessageBoxIndex struct {
 // ensure we implement encoding.BinaryMarshaler/BinaryUmarshaler
 var _ encoding.BinaryMarshaler = (*MessageBoxIndex)(nil)
 var _ encoding.BinaryUnmarshaler = (*MessageBoxIndex)(nil)
+
+func NewEmptyMessageBoxIndex() *MessageBoxIndex {
+	return &MessageBoxIndex{
+		Idx64:             0,
+		CurBlindingFactor: [32]byte{},
+		CurEncryptionKey:  [32]byte{},
+		HKDFState:         [32]byte{},
+	}
+}
 
 // NewMessageBoxIndex returns a new MessageBoxIndex
 func NewMessageBoxIndex(rng io.Reader) (*MessageBoxIndex, error) {
@@ -375,6 +385,14 @@ func NewBoxOwnerCap(rng io.Reader) (*BoxOwnerCap, error) {
 	return &o, nil
 }
 
+func NewEmptyBoxOwnerCap() *BoxOwnerCap {
+	return &BoxOwnerCap{
+		rootPrivateKey:       new(ed25519.PrivateKey),
+		rootPublicKey:        new(ed25519.PublicKey),
+		firstMessageBoxIndex: NewEmptyMessageBoxIndex(),
+	}
+}
+
 // UniversalReadCap returns our UniversalReadCap
 func (o *BoxOwnerCap) UniversalReadCap() *UniversalReadCap {
 	ret := UniversalReadCap{}
@@ -434,16 +452,16 @@ const UniversalReadCapSize = ed25519.PublicKeySize + MessageBoxIndexSize
 var _ encoding.BinaryMarshaler = (*UniversalReadCap)(nil)
 var _ encoding.BinaryUnmarshaler = (*UniversalReadCap)(nil)
 
-func newEmptyUniversalReadCap() *UniversalReadCap {
+func NewEmptyUniversalReadCap() *UniversalReadCap {
 	return &UniversalReadCap{
 		rootPublicKey:        new(ed25519.PublicKey),
-		firstMessageBoxIndex: new(MessageBoxIndex),
+		firstMessageBoxIndex: NewEmptyMessageBoxIndex(),
 	}
 }
 
 // UniversalReadCapFromBinary deserialize the read cap from a blob or return an error.
 func UniversalReadCapFromBinary(data []byte) (*UniversalReadCap, error) {
-	cap := newEmptyUniversalReadCap()
+	cap := NewEmptyUniversalReadCap()
 	err := cap.UnmarshalBinary(data)
 	if err != nil {
 		return nil, err
@@ -492,10 +510,10 @@ func (*noCopy) Unlock() {}
 // StatefulReader is a helper type with mutable state for sequential reading
 type StatefulReader struct {
 	noCopy        noCopy
-	urcap         *UniversalReadCap
-	lastInboxRead *MessageBoxIndex
-	nextIndex     *MessageBoxIndex
-	ctx           []byte
+	Urcap         *UniversalReadCap
+	LastInboxRead *MessageBoxIndex
+	NextIndex     *MessageBoxIndex
+	Ctx           []byte
 }
 
 // NewStatefulReader initializes a StatefulReader for the given UniversalReadCap and context.
@@ -509,27 +527,51 @@ func NewStatefulReader(urcap *UniversalReadCap, ctx []byte) (*StatefulReader, er
 	copy(ctxCopy, ctx)
 
 	sr := &StatefulReader{
-		urcap:         urcap,
-		ctx:           ctxCopy,
-		lastInboxRead: urcap.firstMessageBoxIndex,
-		nextIndex:     urcap.firstMessageBoxIndex,
+		Urcap:         urcap,
+		Ctx:           ctxCopy,
+		LastInboxRead: urcap.firstMessageBoxIndex,
+		NextIndex:     urcap.firstMessageBoxIndex,
 	}
 	return sr, nil
 }
 
+// NewStatefulReaderFromBinary initializes a StatefulReader from a CBOR blob.
+func NewStatefulReaderFromBinary(data []byte) (*StatefulReader, error) {
+	sr := &StatefulReader{
+		Urcap:         NewEmptyUniversalReadCap(),
+		LastInboxRead: NewEmptyMessageBoxIndex(),
+		NextIndex:     NewEmptyMessageBoxIndex(),
+		Ctx:           []byte{},
+	}
+	err := sr.unmarshal(data)
+	if err != nil {
+		return nil, err
+	}
+	return sr, nil
+}
+
+// Marshal uses a CBOR blob to serialize into the StatefulReader.
+func (sr *StatefulReader) Marshal() ([]byte, error) {
+	return cbor.Marshal(sr)
+}
+
+func (sr *StatefulReader) unmarshal(b []byte) error {
+	return cbor.Unmarshal(b, sr)
+}
+
 // ReadNext gets the next box ID to read.
 func (sr *StatefulReader) NextBoxID() (*[BoxIDSize]byte, error) {
-	if sr.nextIndex == nil {
-		tmp, err := sr.lastInboxRead.NextIndex()
+	if sr.NextIndex == nil {
+		tmp, err := sr.LastInboxRead.NextIndex()
 		if err != nil {
 			return nil, err
 		}
-		sr.nextIndex = tmp
+		sr.NextIndex = tmp
 	}
-	if sr.ctx == nil {
+	if sr.Ctx == nil {
 		return nil, errors.New("next context is nil")
 	}
-	nextBox := sr.nextIndex.BoxIDForContext(sr.urcap, sr.ctx)
+	nextBox := sr.NextIndex.BoxIDForContext(sr.Urcap, sr.Ctx)
 	nextBoxID := &[BoxIDSize]byte{}
 	copy(nextBoxID[:], nextBox.Bytes())
 	return nextBoxID, nil
@@ -540,33 +582,33 @@ func (sr *StatefulReader) DecryptNext(ctx []byte, box [BoxIDSize]byte, ciphertex
 	if util.CtIsZero(box[:]) {
 		return nil, errors.New("empty box, no message received")
 	}
-	if sr.nextIndex == nil {
+	if sr.NextIndex == nil {
 		return nil, errors.New("next index is nil, cannot parse reply")
 	}
-	nextboxPubKey := sr.nextIndex.BoxIDForContext(sr.urcap, sr.ctx)
+	nextboxPubKey := sr.NextIndex.BoxIDForContext(sr.Urcap, sr.Ctx)
 	if !bytes.Equal(box[:], nextboxPubKey.Bytes()) {
 		return nil, errors.New("reply does not match expected box ID")
 	}
-	plaintext, err := sr.nextIndex.DecryptForContext(box, ctx, ciphertext, sig[:])
+	plaintext, err := sr.NextIndex.DecryptForContext(box, ctx, ciphertext, sig[:])
 	if err != nil {
 		return nil, err
 	}
-	sr.lastInboxRead = sr.nextIndex
-	tmp, err := sr.nextIndex.NextIndex()
+	sr.LastInboxRead = sr.NextIndex
+	tmp, err := sr.NextIndex.NextIndex()
 	if err != nil {
 		return nil, err
 	}
-	sr.nextIndex = tmp
+	sr.NextIndex = tmp
 	return plaintext, nil
 }
 
 // StatefulWriter maintains sequential state for encrypting messages.
 type StatefulWriter struct {
 	noCopy        noCopy
-	owner         *BoxOwnerCap
-	lastOutboxIdx *MessageBoxIndex
-	nextIndex     *MessageBoxIndex
-	ctx           []byte
+	Owner         *BoxOwnerCap
+	LastOutboxIdx *MessageBoxIndex
+	NextIndex     *MessageBoxIndex
+	Ctx           []byte
 }
 
 // NewStatefulWriter initializes a StatefulWriter for the given owner and context.
@@ -580,37 +622,61 @@ func NewStatefulWriter(owner *BoxOwnerCap, ctx []byte) (*StatefulWriter, error) 
 	copy(ctxCopy, ctx)
 
 	sw := &StatefulWriter{
-		owner:         owner,
-		ctx:           ctxCopy,
-		lastOutboxIdx: nil,                        // No messages written yet
-		nextIndex:     owner.firstMessageBoxIndex, // Start at firstMessage boxIndex (not skipping)
+		Owner:         owner,
+		Ctx:           ctxCopy,
+		LastOutboxIdx: nil,                        // No messages written yet
+		NextIndex:     owner.firstMessageBoxIndex, // Start at firstMessage boxIndex (not skipping)
 	}
 	return sw, nil
 }
 
+func NewStatefulWriterFromBinary(data []byte) (*StatefulWriter, error) {
+	sw := &StatefulWriter{
+		Owner:         NewEmptyBoxOwnerCap(),
+		LastOutboxIdx: NewEmptyMessageBoxIndex(),
+		NextIndex:     NewEmptyMessageBoxIndex(),
+		Ctx:           []byte{},
+	}
+	err := sw.unmarshal(data)
+	if err != nil {
+		return nil, err
+	}
+	return sw, nil
+}
+
+// Marshal uses a CBOR blob to serialize into the StatefulWriter.
+func (sw *StatefulWriter) Marshal() ([]byte, error) {
+	return cbor.Marshal(sw)
+}
+
+// Unmarshal uses a CBOR blob to deserialize into the StatefulWriter.
+func (sw *StatefulWriter) unmarshal(b []byte) error {
+	return cbor.Unmarshal(b, sw)
+}
+
 // NextBoxID returns the next mailbox ID for writing.
 func (sw *StatefulWriter) NextBoxID() (*ed25519.PublicKey, error) {
-	if sw.nextIndex == nil {
+	if sw.NextIndex == nil {
 		return nil, errors.New("next index is nil")
 	}
-	if sw.ctx == nil {
+	if sw.Ctx == nil {
 		return nil, errors.New("ctx is nil")
 	}
-	return sw.nextIndex.BoxIDForContext(sw.owner.UniversalReadCap(), sw.ctx), nil
+	return sw.NextIndex.BoxIDForContext(sw.Owner.UniversalReadCap(), sw.Ctx), nil
 }
 
 // EncryptNext encrypts a message, advancing state after success.
 func (sw *StatefulWriter) EncryptNext(plaintext []byte) (boxID [BoxIDSize]byte, ciphertext []byte, sig []byte, err error) {
-	if sw.nextIndex == nil {
+	if sw.NextIndex == nil {
 		return [BoxIDSize]byte{}, nil, nil, errors.New("next index is nil")
 	}
 
 	// Encrypt the message
-	boxID, ciphertext, sig = sw.nextIndex.EncryptForContext(sw.owner, sw.ctx, plaintext)
+	boxID, ciphertext, sig = sw.NextIndex.EncryptForContext(sw.Owner, sw.Ctx, plaintext)
 
 	// Advance the state
-	sw.lastOutboxIdx = sw.nextIndex
-	sw.nextIndex, err = sw.lastOutboxIdx.NextIndex()
+	sw.LastOutboxIdx = sw.NextIndex
+	sw.NextIndex, err = sw.LastOutboxIdx.NextIndex()
 	if err != nil {
 		return [BoxIDSize]byte{}, nil, nil, err
 	}

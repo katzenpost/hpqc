@@ -16,6 +16,46 @@ import (
 	"github.com/katzenpost/hpqc/util"
 )
 
+func TestMarshalUnmarshalStatefulReader(t *testing.T) {
+	t.Parallel()
+
+	ctx := []byte("test-session")
+	owner, err := NewBoxOwnerCap(rand.Reader)
+	require.NoError(t, err)
+
+	uread := owner.UniversalReadCap()
+
+	reader, err := NewStatefulReader(uread, ctx)
+	require.NoError(t, err)
+
+	blob, err := reader.Marshal()
+	require.NoError(t, err)
+
+	reader2, err := NewStatefulReaderFromBinary(blob)
+	require.NoError(t, err)
+
+	require.Equal(t, reader, reader2)
+}
+
+func TestMarshalUnmarshalStatefulWriter(t *testing.T) {
+	t.Parallel()
+
+	ctx := []byte("test-session")
+	owner, err := NewBoxOwnerCap(rand.Reader)
+	require.NoError(t, err)
+
+	writer, err := NewStatefulWriter(owner, ctx)
+	require.NoError(t, err)
+
+	blob, err := writer.Marshal()
+	require.NoError(t, err)
+
+	writer2, err := NewStatefulWriterFromBinary(blob)
+	require.NoError(t, err)
+
+	require.Equal(t, writer, writer2)
+}
+
 // Check that advancing mailbox states:
 // - increment Idx by 1
 // - changes CurBlindingFactor
@@ -336,7 +376,7 @@ func TestStatefulReader_Failures(t *testing.T) {
 
 	reader, _ := NewStatefulReader(urcap, []byte("test"))
 
-	reader.ctx = nil
+	reader.Ctx = nil
 	_, err = reader.NextBoxID()
 	require.Error(t, err, "expected error when ctx is nil")
 
@@ -361,12 +401,12 @@ func TestStatefulWriter_Failures(t *testing.T) {
 	writer, _ := NewStatefulWriter(owner, []byte("test"))
 
 	// Missing nextIndex
-	writer.nextIndex = nil
+	writer.NextIndex = nil
 	_, err = writer.NextBoxID()
 	require.Error(t, err, "expected error when nextIndex is nil")
 
 	// Encrypt with nil nextIndex
-	writer.nextIndex = nil
+	writer.NextIndex = nil
 	_, _, _, err = writer.EncryptNext([]byte("message"))
 	require.Error(t, err, "expected error when nextIndex is nil during EncryptNext")
 }
@@ -381,17 +421,17 @@ func TestStatefulWriter_NextBoxID_Failures(t *testing.T) {
 	writer, err := NewStatefulWriter(owner, []byte("test"))
 	require.NoError(t, err)
 
-	writer.ctx = nil
+	writer.Ctx = nil
 	_, err = writer.NextBoxID()
 	require.Error(t, err)
 
-	writer.nextIndex = nil
+	writer.NextIndex = nil
 
 	_, err = writer.NextBoxID()
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "next index is nil")
 
-	writer.ctx = nil
+	writer.Ctx = nil
 	_, err = writer.NextBoxID()
 	require.Error(t, err)
 
@@ -410,7 +450,7 @@ func TestStatefulWriter_EncryptNext_Failures(t *testing.T) {
 	// Test case: EncryptNext fails when nextIndex is nil
 	writer, err := NewStatefulWriter(owner, []byte("test"))
 	require.NoError(t, err)
-	writer.nextIndex = nil
+	writer.NextIndex = nil
 
 	_, _, _, err = writer.EncryptNext([]byte("message"))
 	require.Error(t, err)
@@ -421,7 +461,7 @@ func TestStatefulWriter_EncryptNext_Failures(t *testing.T) {
 	require.NoError(t, err)
 
 	// Simulate failure in NextIndex
-	writer.nextIndex = &MessageBoxIndex{Idx64: ^uint64(0)} // Max uint64, next would overflow
+	writer.NextIndex = &MessageBoxIndex{Idx64: ^uint64(0)} // Max uint64, next would overflow
 	_, _, _, err = writer.EncryptNext([]byte("message"))
 	require.Error(t, err)
 }
@@ -438,7 +478,7 @@ func TestStatefulReader_DecryptNext_Failures(t *testing.T) {
 	require.NoError(t, err)
 
 	// Generate a valid box ID for comparison
-	validBoxID := reader.nextIndex.BoxIDForContext(uread, ctx)
+	validBoxID := reader.NextIndex.BoxIDForContext(uread, ctx)
 	require.NotNil(t, validBoxID)
 
 	// Mock encrypted message and signature
@@ -451,7 +491,7 @@ func TestStatefulReader_DecryptNext_Failures(t *testing.T) {
 	require.Contains(t, err.Error(), "empty box, no message received")
 
 	// Failure case: nextIndex is nil
-	reader.nextIndex = nil
+	reader.NextIndex = nil
 	_, err = reader.DecryptNext(ctx, [32]byte(validBoxID.Bytes()), ciphertext, sig)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "next index is nil, cannot parse reply")
@@ -472,7 +512,7 @@ func TestStatefulReader_DecryptNext_Failures(t *testing.T) {
 	require.Error(t, err)
 
 	// Failure case: NextIndex fails (simulate max uint64 overflow)
-	reader.nextIndex.Idx64 = ^uint64(0) // Max uint64, next will overflow
+	reader.NextIndex.Idx64 = ^uint64(0) // Max uint64, next will overflow
 	_, err = reader.DecryptNext(ctx, [32]byte(validBoxID.Bytes()), ciphertext, sig)
 	require.Error(t, err)
 }
@@ -489,9 +529,9 @@ func TestStatefulReader_NextBoxID_Failure_NextIndex(t *testing.T) {
 	require.NoError(t, err)
 
 	// Simulate failure in NextIndex
-	reader.lastInboxRead.Idx64 = ^uint64(0) // Max uint64, next would overflow
+	reader.LastInboxRead.Idx64 = ^uint64(0) // Max uint64, next would overflow
 
-	reader.nextIndex = nil
+	reader.NextIndex = nil
 	_, err = reader.NextBoxID()
 	require.Error(t, err)
 }
