@@ -583,17 +583,27 @@ func (sr *StatefulReader) unmarshal(b []byte) error {
 
 // ReadNext gets the next box ID to read.
 func (sr *StatefulReader) NextBoxID() (*[BoxIDSize]byte, error) {
-	if sr.NextIndex == nil {
+	if sr.Ctx == nil {
+		return nil, errors.New("next context is nil")
+	}
+
+	// Determine the current next index without mutating state
+	var nextIndex *MessageBoxIndex
+	if sr.NextIndex != nil {
+		nextIndex = sr.NextIndex
+	} else {
+		// Fallback: compute next index from LastInboxRead
+		if sr.LastInboxRead == nil {
+			return nil, errors.New("both NextIndex and LastInboxRead are nil")
+		}
 		tmp, err := sr.LastInboxRead.NextIndex()
 		if err != nil {
 			return nil, err
 		}
-		sr.NextIndex = tmp
+		nextIndex = tmp
 	}
-	if sr.Ctx == nil {
-		return nil, errors.New("next context is nil")
-	}
-	nextBox := sr.NextIndex.BoxIDForContext(sr.Urcap, sr.Ctx)
+
+	nextBox := nextIndex.BoxIDForContext(sr.Urcap, sr.Ctx)
 	nextBoxID := &[BoxIDSize]byte{}
 	copy(nextBoxID[:], nextBox.Bytes())
 	return nextBoxID, nil
