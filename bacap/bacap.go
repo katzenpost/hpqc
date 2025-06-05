@@ -547,6 +547,19 @@ func NewStatefulReaderFromBinary(data []byte) (*StatefulReader, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// Validate deserialized state
+	if sr.Urcap == nil {
+		return nil, errors.New("deserialized StatefulReader has nil Urcap")
+	}
+	if sr.LastInboxRead == nil {
+		return nil, errors.New("deserialized StatefulReader has nil LastInboxRead")
+	}
+	if sr.Ctx == nil {
+		return nil, errors.New("deserialized StatefulReader has nil Ctx")
+	}
+	// Note: NextIndex can be nil (will be computed from LastInboxRead when needed)
+
 	return sr, nil
 }
 
