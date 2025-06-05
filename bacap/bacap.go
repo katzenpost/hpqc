@@ -518,6 +518,9 @@ type StatefulReader struct {
 
 // NewStatefulReader initializes a StatefulReader for the given UniversalReadCap and context.
 func NewStatefulReader(urcap *UniversalReadCap, ctx []byte) (*StatefulReader, error) {
+	if urcap == nil {
+		return nil, errors.New("urcap is nil")
+	}
 	if ctx == nil {
 		return nil, errors.New("ctx is nil")
 	}
