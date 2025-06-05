@@ -726,11 +726,15 @@ func (sw *StatefulWriter) EncryptNext(plaintext []byte) (boxID [BoxIDSize]byte, 
 	// Encrypt the message
 	boxID, ciphertext, sig = sw.NextIndex.EncryptForContext(sw.Owner, sw.Ctx, plaintext)
 
-	// Advance the state
-	sw.LastOutboxIdx = sw.NextIndex
-	sw.NextIndex, err = sw.LastOutboxIdx.NextIndex()
+	// Compute the next index before modifying state
+	nextIndex, err := sw.NextIndex.NextIndex()
 	if err != nil {
 		return [BoxIDSize]byte{}, nil, nil, err
 	}
+
+	// Only modify state after all operations have succeeded
+	sw.LastOutboxIdx = sw.NextIndex
+	sw.NextIndex = nextIndex
+
 	return
 }
