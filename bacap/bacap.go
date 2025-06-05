@@ -540,6 +540,12 @@ func NewStatefulReader(urcap *UniversalReadCap, ctx []byte) (*StatefulReader, er
 
 // NewStatefulReaderFromBinary initializes a StatefulReader from a CBOR blob.
 func NewStatefulReaderFromBinary(data []byte) (*StatefulReader, error) {
+	if data == nil {
+		return nil, errors.New("data is nil")
+	}
+	if len(data) == 0 {
+		return nil, errors.New("data is empty")
+	}
 	sr := &StatefulReader{
 		Urcap:         NewEmptyUniversalReadCap(),
 		LastInboxRead: NewEmptyMessageBoxIndex(),
