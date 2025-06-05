@@ -589,16 +589,23 @@ func (sr *StatefulReader) DecryptNext(ctx []byte, box [BoxIDSize]byte, ciphertex
 	if !bytes.Equal(box[:], nextboxPubKey.Bytes()) {
 		return nil, errors.New("reply does not match expected box ID")
 	}
+
+	// Perform all operations that can fail before modifying any state
 	plaintext, err := sr.NextIndex.DecryptForContext(box, ctx, ciphertext, sig[:])
 	if err != nil {
 		return nil, err
 	}
-	sr.LastInboxRead = sr.NextIndex
-	tmp, err := sr.NextIndex.NextIndex()
+
+	// Compute the next index before modifying state
+	nextIndex, err := sr.NextIndex.NextIndex()
 	if err != nil {
 		return nil, err
 	}
-	sr.NextIndex = tmp
+
+	// Only modify state after all operations have succeeded
+	sr.LastInboxRead = sr.NextIndex
+	sr.NextIndex = nextIndex
+
 	return plaintext, nil
 }
 
