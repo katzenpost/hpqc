@@ -680,6 +680,19 @@ func NewStatefulWriterFromBinary(data []byte) (*StatefulWriter, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// Validate deserialized state
+	if sw.Owner == nil {
+		return nil, errors.New("deserialized StatefulWriter has nil Owner")
+	}
+	if sw.NextIndex == nil {
+		return nil, errors.New("deserialized StatefulWriter has nil NextIndex")
+	}
+	if sw.Ctx == nil {
+		return nil, errors.New("deserialized StatefulWriter has nil Ctx")
+	}
+	// Note: LastOutboxIdx can be nil (no messages written yet)
+
 	return sw, nil
 }
 
