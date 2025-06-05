@@ -518,6 +518,9 @@ type StatefulReader struct {
 
 // NewStatefulReader initializes a StatefulReader for the given UniversalReadCap and context.
 func NewStatefulReader(urcap *UniversalReadCap, ctx []byte) (*StatefulReader, error) {
+	if urcap == nil {
+		return nil, errors.New("urcap is nil")
+	}
 	if ctx == nil {
 		return nil, errors.New("ctx is nil")
 	}
@@ -537,6 +540,12 @@ func NewStatefulReader(urcap *UniversalReadCap, ctx []byte) (*StatefulReader, er
 
 // NewStatefulReaderFromBinary initializes a StatefulReader from a CBOR blob.
 func NewStatefulReaderFromBinary(data []byte) (*StatefulReader, error) {
+	if data == nil {
+		return nil, errors.New("data is nil")
+	}
+	if len(data) == 0 {
+		return nil, errors.New("data is empty")
+	}
 	sr := &StatefulReader{
 		Urcap:         NewEmptyUniversalReadCap(),
 		LastInboxRead: NewEmptyMessageBoxIndex(),
@@ -547,6 +556,19 @@ func NewStatefulReaderFromBinary(data []byte) (*StatefulReader, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// Validate deserialized state
+	if sr.Urcap == nil {
+		return nil, errors.New("deserialized StatefulReader has nil Urcap")
+	}
+	if sr.LastInboxRead == nil {
+		return nil, errors.New("deserialized StatefulReader has nil LastInboxRead")
+	}
+	if sr.Ctx == nil {
+		return nil, errors.New("deserialized StatefulReader has nil Ctx")
+	}
+	// Note: NextIndex can be nil (will be computed from LastInboxRead when needed)
+
 	return sr, nil
 }
 
@@ -561,17 +583,27 @@ func (sr *StatefulReader) unmarshal(b []byte) error {
 
 // ReadNext gets the next box ID to read.
 func (sr *StatefulReader) NextBoxID() (*[BoxIDSize]byte, error) {
-	if sr.NextIndex == nil {
+	if sr.Ctx == nil {
+		return nil, errors.New("next context is nil")
+	}
+
+	// Determine the current next index without mutating state
+	var nextIndex *MessageBoxIndex
+	if sr.NextIndex != nil {
+		nextIndex = sr.NextIndex
+	} else {
+		// Fallback: compute next index from LastInboxRead
+		if sr.LastInboxRead == nil {
+			return nil, errors.New("both NextIndex and LastInboxRead are nil")
+		}
 		tmp, err := sr.LastInboxRead.NextIndex()
 		if err != nil {
 			return nil, err
 		}
-		sr.NextIndex = tmp
+		nextIndex = tmp
 	}
-	if sr.Ctx == nil {
-		return nil, errors.New("next context is nil")
-	}
-	nextBox := sr.NextIndex.BoxIDForContext(sr.Urcap, sr.Ctx)
+
+	nextBox := nextIndex.BoxIDForContext(sr.Urcap, sr.Ctx)
 	nextBoxID := &[BoxIDSize]byte{}
 	copy(nextBoxID[:], nextBox.Bytes())
 	return nextBoxID, nil
@@ -648,6 +680,19 @@ func NewStatefulWriterFromBinary(data []byte) (*StatefulWriter, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// Validate deserialized state
+	if sw.Owner == nil {
+		return nil, errors.New("deserialized StatefulWriter has nil Owner")
+	}
+	if sw.NextIndex == nil {
+		return nil, errors.New("deserialized StatefulWriter has nil NextIndex")
+	}
+	if sw.Ctx == nil {
+		return nil, errors.New("deserialized StatefulWriter has nil Ctx")
+	}
+	// Note: LastOutboxIdx can be nil (no messages written yet)
+
 	return sw, nil
 }
 
@@ -681,11 +726,15 @@ func (sw *StatefulWriter) EncryptNext(plaintext []byte) (boxID [BoxIDSize]byte, 
 	// Encrypt the message
 	boxID, ciphertext, sig = sw.NextIndex.EncryptForContext(sw.Owner, sw.Ctx, plaintext)
 
-	// Advance the state
-	sw.LastOutboxIdx = sw.NextIndex
-	sw.NextIndex, err = sw.LastOutboxIdx.NextIndex()
+	// Compute the next index before modifying state
+	nextIndex, err := sw.NextIndex.NextIndex()
 	if err != nil {
 		return [BoxIDSize]byte{}, nil, nil, err
 	}
+
+	// Only modify state after all operations have succeeded
+	sw.LastOutboxIdx = sw.NextIndex
+	sw.NextIndex = nextIndex
+
 	return
 }
