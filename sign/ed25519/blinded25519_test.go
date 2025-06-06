@@ -201,6 +201,7 @@ func TestUnblind(t *testing.T) {
 	assert := assert.New(t)
 	test_seed := time.Now().UnixNano()
 	rng := rand.New(rand.NewSource(test_seed))
+	t.Logf("TestUnblind test_seed: %d", test_seed)
 
 	originalO, _, err := NewKeypair(rng)
 	require.NoError(t, err, "NewKeypair(1)")
@@ -224,4 +225,41 @@ func TestUnblind(t *testing.T) {
 	assert.Equal(f1_blind_secret, unblinded)
 	reblinded := unblinded.Blind(factor2)
 	assert.Equal(f2_sk, reblinded)
+}
+
+// TestUnblindSpecificSeed tests a specific seed that was previously failing
+// This serves as a regression test for the "invalid scalar encoding" issue
+func TestUnblindSpecificSeed(t *testing.T) {
+	t.Parallel()
+
+	assert := assert.New(t)
+	test_seed := int64(1749190701254958036)
+	rng := rand.New(rand.NewSource(test_seed))
+	t.Logf("TestUnblindSpecificSeed test_seed: %d", test_seed)
+
+	originalO, _, err := NewKeypair(rng)
+	require.NoError(t, err, "NewKeypair failed for seed %d", test_seed)
+	assert.Equal(true, CheckPublicKey(originalO.PublicKey()))
+
+	factor := make([]byte, BlindFactorSize)
+	_, err = rng.Read(factor[:])
+	require.NoError(t, err, "Failed to read factor for seed %d", test_seed)
+
+	factor2 := make([]byte, BlindFactorSize)
+	_, err = rng.Read(factor2[:])
+	require.NoError(t, err, "Failed to read factor2 for seed %d", test_seed)
+
+	// Test that blinded public+private keys match:
+	f1_blind_secret := originalO.Blind(factor)
+	f1_blind_public := originalO.PublicKey().Blind(factor)
+	assert.Equal(f1_blind_secret.Identity(), f1_blind_public.Bytes(), "Identity mismatch for seed %d", test_seed)
+
+	f2_sk := f1_blind_secret.Blind(factor2)
+
+	// This is the operation that was failing with "invalid scalar encoding"
+	unblinded := f2_sk.Unblind(factor2)
+	assert.Equal(f1_blind_secret, unblinded, "Unblind result mismatch for seed %d", test_seed)
+
+	reblinded := unblinded.Blind(factor2)
+	assert.Equal(f2_sk, reblinded, "Reblind result mismatch for seed %d", test_seed)
 }
