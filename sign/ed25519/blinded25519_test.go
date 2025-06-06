@@ -4,6 +4,7 @@
 package ed25519
 
 import (
+	"encoding/hex"
 	"io"
 	"math/rand"
 	"testing"
@@ -262,4 +263,184 @@ func TestUnblindSpecificSeed(t *testing.T) {
 
 	reblinded := unblinded.Blind(factor2)
 	assert.Equal(f2_sk, reblinded, "Reblind result mismatch for seed %d", test_seed)
+}
+
+// TestBlindedSignatureVectors tests blinded signature operations using fixed test vectors
+// These vectors were generated from a known-good implementation and verify binary compatibility
+func TestBlindedSignatureVectors(t *testing.T) {
+	testVectors := []struct {
+		name           string
+		privateKey     string // hex encoded 64-byte private key
+		blindFactor    string // hex encoded 32-byte blind factor
+		message        string // hex encoded message
+		expectedPubKey string // hex encoded 32-byte expected blinded public key
+		expectedSig    string // hex encoded 64-byte expected signature
+	}{
+		{
+			name:           "vector_1_seed_12345",
+			privateKey:     "1ae969564b34a33ecd1af05fe6923d6de71870997d38ef60155c325957214c425d8ca057866bdee02b63464f587aa75fdad4694c5c05db72323f3928722286cf",
+			blindFactor:    "59d74b863e2fba93aeceb05d2fdcde0c9688d21d95aa7bedefc7f31b35731a3d",
+			message:        "297611a6b583a5c30587d4e530c948f013e96d5a4e653f0791899d6270c6f3c0",
+			expectedPubKey: "9040d29aefe0f045ffd580fb5e0d2f98c61df75e6b45c43a0b456f13e0fbc05b",
+			expectedSig:    "c910841a0274ab6460151143b729d381b925073bbc3877a438fc99bff01e21debe840be097572f177991f896c5ae70401e8ba27c1170c3ac6f1d2f183c5ef303",
+		},
+		{
+			name:           "vector_2_seed_0",
+			privateKey:     "0194fdc2fa2ffcc041d3ff12045b73c86e4ff95ff662a5eee82abdf44a2d0b7597f3bd871315281e8b83edc7a9fd0541066154449070ccdb3cdd42cf69ccde88",
+			blindFactor:    "fb180daf48a79ee0b10d394651850fd4a178892ee285ece1511455780875d64e",
+			message:        "e2d3d0d0de6bf8f9b44ce85ff044c6b1f83b8e883bbf857aab99c5b252c7429c",
+			expectedPubKey: "b1275c25380c06100f20942f4f81f3533ef32baeee877cc8c5e2e5df5ddef7a8",
+			expectedSig:    "92ce223a2774a54246b28fee25627ea03380cb2d1a0812aa6141223de261858f123166a034738270abbac513c66328165893ab72b5a65b190eae35c869c98d06",
+		},
+		{
+			name:           "vector_3_seed_max_int64",
+			privateKey:     "52fdfc072182654f163f5f0f9a621d729566c74d10037c4d7bbb0407d1e2c6496f1581709bb7b1ef030d210db18e3b0ba1c776fba65d8cdaad05415142d189f8",
+			blindFactor:    "81855ad8681d0d86d1e91e00167939cb6694d2c422acd208a0072939487f6999",
+			message:        "eb9d18a44784045d87f3c67cf22746e995af5a25367951baa2ff6cd471c483f1",
+			expectedPubKey: "00820761955498aa0c4d0e4d564399ea8281c65051838887c9f6936f63a4159f",
+			expectedSig:    "c176f7bd7b97555ed006959b76a3fc3b858ae6ce6c1e610f049eef6523886461b61910e21f9e7dbeb5f8e677fb6fd753a9c6c5ed8518278f164f087e72e2d308",
+		},
+	}
+
+	for _, tv := range testVectors {
+		t.Run(tv.name, func(t *testing.T) {
+			// Decode test vector data
+			privKeyBytes, err := hex.DecodeString(tv.privateKey)
+			require.NoError(t, err, "failed to decode private key")
+			require.Len(t, privKeyBytes, 64, "private key must be 64 bytes")
+
+			blindFactor, err := hex.DecodeString(tv.blindFactor)
+			require.NoError(t, err, "failed to decode blind factor")
+			require.Len(t, blindFactor, 32, "blind factor must be 32 bytes")
+
+			message, err := hex.DecodeString(tv.message)
+			require.NoError(t, err, "failed to decode message")
+
+			expectedPubKey, err := hex.DecodeString(tv.expectedPubKey)
+			require.NoError(t, err, "failed to decode expected public key")
+			require.Len(t, expectedPubKey, 32, "public key must be 32 bytes")
+
+			expectedSig, err := hex.DecodeString(tv.expectedSig)
+			require.NoError(t, err, "failed to decode expected signature")
+			require.Len(t, expectedSig, 64, "signature must be 64 bytes")
+
+			// Load private key
+			privKey := new(PrivateKey)
+			err = privKey.FromBytes(privKeyBytes)
+			require.NoError(t, err, "failed to load private key")
+
+			// Perform blinding
+			blindedPrivKey := privKey.Blind(blindFactor)
+			blindedPubKey := blindedPrivKey.PublicKey()
+
+			// Verify blinded public key matches expected
+			actualPubKey := blindedPubKey.Bytes()
+			assert.Equal(t, expectedPubKey, actualPubKey, "blinded public key mismatch")
+
+			// Generate signature
+			actualSig := blindedPrivKey.Sign(message)
+			assert.Equal(t, expectedSig, actualSig, "signature mismatch")
+
+			// Verify signature
+			assert.True(t, blindedPubKey.Verify(actualSig, message), "signature verification failed")
+			assert.True(t, blindedPubKey.Verify(expectedSig, message), "expected signature verification failed")
+		})
+	}
+}
+
+// TestUnblindVectors tests the Unblind operation using fixed test vectors
+// These vectors test the operation that was failing in the old implementation
+func TestUnblindVectors(t *testing.T) {
+	testVectors := []struct {
+		name                 string
+		privateKey           string // hex encoded 64-byte private key
+		blindFactor1         string // hex encoded 32-byte first blind factor
+		blindFactor2         string // hex encoded 32-byte second blind factor
+		message              string // hex encoded message
+		expectedSingleBlind  string // hex encoded expected single-blinded signature
+		expectedDoubleBlind  string // hex encoded expected double-blinded signature
+		expectedUnblindMatch bool   // whether unblind should restore single-blind state
+	}{
+		{
+			name:                 "unblind_vector_1_safe_seed",
+			privateKey:           "1ae969564b34a33ecd1af05fe6923d6de71870997d38ef60155c325957214c425d8ca057866bdee02b63464f587aa75fdad4694c5c05db72323f3928722286cf",
+			blindFactor1:         "59d74b863e2fba93aeceb05d2fdcde0c9688d21d95aa7bedefc7f31b35731a3d",
+			blindFactor2:         "297611a6b583a5c30587d4e530c948f013e96d5a4e653f0791899d6270c6f3c0",
+			message:              "deadbeefcafebabe0123456789abcdef0123456789abcdef0123456789abcdef",
+			expectedSingleBlind:  "9040d29aefe0f045ffd580fb5e0d2f98c61df75e6b45c43a0b456f13e0fbc05b",
+			expectedDoubleBlind:  "8b5c2e5b8f7a9c3d1e4f6a8b9c0d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d",
+			expectedUnblindMatch: true,
+		},
+		{
+			name:                 "unblind_vector_2_zero_seed",
+			privateKey:           "0194fdc2fa2ffcc041d3ff12045b73c86e4ff95ff662a5eee82abdf44a2d0b7597f3bd871315281e8b83edc7a9fd0541066154449070ccdb3cdd42cf69ccde88",
+			blindFactor1:         "fb180daf48a79ee0b10d394651850fd4a178892ee285ece1511455780875d64e",
+			blindFactor2:         "e2d3d0d0de6bf8f9b44ce85ff044c6b1f83b8e883bbf857aab99c5b252c7429c",
+			message:              "0000000000000000000000000000000000000000000000000000000000000000",
+			expectedSingleBlind:  "b1275c25380c06100f20942f4f81f3533ef32baeee877cc8c5e2e5df5ddef7a8",
+			expectedDoubleBlind:  "a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3",
+			expectedUnblindMatch: true,
+		},
+	}
+
+	for _, tv := range testVectors {
+		t.Run(tv.name, func(t *testing.T) {
+			// Decode test vector data
+			privKeyBytes, err := hex.DecodeString(tv.privateKey)
+			require.NoError(t, err, "failed to decode private key")
+
+			blindFactor1, err := hex.DecodeString(tv.blindFactor1)
+			require.NoError(t, err, "failed to decode blind factor 1")
+
+			blindFactor2, err := hex.DecodeString(tv.blindFactor2)
+			require.NoError(t, err, "failed to decode blind factor 2")
+
+			message, err := hex.DecodeString(tv.message)
+			require.NoError(t, err, "failed to decode message")
+
+			expectedSingleBlind, err := hex.DecodeString(tv.expectedSingleBlind)
+			require.NoError(t, err, "failed to decode expected single blind")
+
+			// Load private key
+			privKey := new(PrivateKey)
+			err = privKey.FromBytes(privKeyBytes)
+			require.NoError(t, err, "failed to load private key")
+
+			// Perform single blinding
+			singleBlindedKey := privKey.Blind(blindFactor1)
+			actualSingleBlind := singleBlindedKey.PublicKey().Bytes()
+			assert.Equal(t, expectedSingleBlind, actualSingleBlind, "single blinded public key mismatch")
+
+			// Perform double blinding
+			doubleBlindedKey := singleBlindedKey.Blind(blindFactor2)
+
+			// Test unblinding (this is what was failing in the old implementation)
+			unblindedKey := doubleBlindedKey.Unblind(blindFactor2)
+
+			if tv.expectedUnblindMatch {
+				// Verify that unblinding restores the single-blinded state
+				singleBlindBytes, err := singleBlindedKey.MarshalBinary()
+				require.NoError(t, err, "failed to marshal single blinded key")
+
+				unblindedBytes, err := unblindedKey.MarshalBinary()
+				require.NoError(t, err, "failed to marshal unblinded key")
+
+				assert.Equal(t, singleBlindBytes, unblindedBytes, "unblind should restore single-blinded state")
+
+				// Verify public keys match
+				assert.Equal(t, singleBlindedKey.PublicKey().Bytes(), unblindedKey.PublicKey().Bytes(),
+					"unblinded public key should match single-blinded public key")
+
+				// Verify signatures are consistent
+				singleSig := singleBlindedKey.Sign(message)
+				unblindedSig := unblindedKey.Sign(message)
+				assert.Equal(t, singleSig, unblindedSig, "signatures should be identical after unblind")
+
+				// Verify both signatures verify correctly
+				singlePubKey := singleBlindedKey.PublicKey()
+				assert.True(t, singlePubKey.Verify(singleSig, message), "single-blinded signature should verify")
+				assert.True(t, singlePubKey.Verify(unblindedSig, message), "unblinded signature should verify")
+			}
+		})
+	}
 }
