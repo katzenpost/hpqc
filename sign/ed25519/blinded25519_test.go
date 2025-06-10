@@ -6,7 +6,6 @@ package ed25519
 import (
 	"encoding/hex"
 	"io"
-	"math/rand"
 	"testing"
 	"testing/quick"
 	"time"
@@ -14,6 +13,8 @@ import (
 	"filippo.io/edwards25519"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/katzenpost/hpqc/rand"
 )
 
 func bothWork(assertx *assert.Assertions, t require.TestingT, rng io.Reader) bool {
