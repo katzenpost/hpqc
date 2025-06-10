@@ -188,7 +188,8 @@ func TestBlinding(t *testing.T) {
 	t.Parallel()
 	assertx := assert.New(t)
 	test_seed := time.Now().UnixNano()
-	rng := rand.New(rand.NewSource(test_seed))
+	rng := rand.NewMath()
+	rng.Seed(test_seed)
 	t.Log("TestBlinding test_seed", test_seed)
 	config := &quick.Config{Rand: rng}
 	assert_bothwork := func() bool { return bothWork(assertx, t, rng) }
@@ -202,7 +203,8 @@ func TestUnblind(t *testing.T) {
 
 	assert := assert.New(t)
 	test_seed := time.Now().UnixNano()
-	rng := rand.New(rand.NewSource(test_seed))
+	rng := rand.NewMath()
+	rng.Seed(test_seed)
 	t.Logf("TestUnblind test_seed: %d", test_seed)
 
 	originalO, _, err := NewKeypair(rng)
@@ -236,7 +238,8 @@ func TestUnblindSpecificSeed(t *testing.T) {
 
 	assert := assert.New(t)
 	test_seed := int64(1749190701254958036)
-	rng := rand.New(rand.NewSource(test_seed))
+	rng := rand.NewMath()
+	rng.Seed(test_seed)
 	t.Logf("TestUnblindSpecificSeed test_seed: %d", test_seed)
 
 	originalO, _, err := NewKeypair(rng)
