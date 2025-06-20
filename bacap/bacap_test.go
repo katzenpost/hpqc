@@ -20,10 +20,10 @@ func TestMarshalUnmarshalStatefulReader(t *testing.T) {
 	t.Parallel()
 
 	ctx := []byte("test-session")
-	owner, err := NewBoxOwnerCap(rand.Reader)
+	owner, err := NewWriteCap(rand.Reader)
 	require.NoError(t, err)
 
-	uread := owner.UniversalReadCap()
+	uread := owner.ReadCap()
 
 	reader, err := NewStatefulReader(uread, ctx)
 	require.NoError(t, err)
@@ -31,7 +31,7 @@ func TestMarshalUnmarshalStatefulReader(t *testing.T) {
 	blob, err := reader.Marshal()
 	require.NoError(t, err)
 
-	reader2, err := NewStatefulReaderFromBinary(blob)
+	reader2, err := NewStatefulReaderFromBytes(blob)
 	require.NoError(t, err)
 
 	require.Equal(t, reader, reader2)
@@ -41,7 +41,7 @@ func TestMarshalUnmarshalStatefulWriter(t *testing.T) {
 	t.Parallel()
 
 	ctx := []byte("test-session")
-	owner, err := NewBoxOwnerCap(rand.Reader)
+	owner, err := NewWriteCap(rand.Reader)
 	require.NoError(t, err)
 
 	writer, err := NewStatefulWriter(owner, ctx)
@@ -50,7 +50,7 @@ func TestMarshalUnmarshalStatefulWriter(t *testing.T) {
 	blob, err := writer.Marshal()
 	require.NoError(t, err)
 
-	writer2, err := NewStatefulWriterFromBinary(blob)
+	writer2, err := NewStatefulWriterFromBytes(blob)
 	require.NoError(t, err)
 
 	require.Equal(t, writer, writer2)
@@ -141,20 +141,20 @@ func TestAdvanceIndex(t *testing.T) {
 func TestReadCap(t *testing.T) {
 	t.Parallel()
 
-	owner, err := NewBoxOwnerCap(rand.Reader)
+	owner, err := NewWriteCap(rand.Reader)
 	require.NoError(t, err)
 
 	blob, err := owner.MarshalBinary()
 	require.NoError(t, err)
-	owner2, _ := NewBoxOwnerCap(rand.Reader)
+	owner2, _ := NewWriteCap(rand.Reader)
 	err = owner2.UnmarshalBinary(blob)
 	require.NoError(t, err)
 
-	uread := owner.UniversalReadCap()
+	uread := owner.ReadCap()
 
 	blob, err = uread.MarshalBinary()
 	require.NoError(t, err)
-	_, err = UniversalReadCapFromBinary(blob)
+	_, err = ReadCapFromBytes(blob)
 	require.NoError(t, err)
 
 	require.Equal(t, owner.firstMessageBoxIndex.Idx64, uread.firstMessageBoxIndex.Idx64)
@@ -170,9 +170,9 @@ func TestReadCap(t *testing.T) {
 func TestMake1000(t *testing.T) {
 	t.Parallel()
 
-	owner, err := NewBoxOwnerCap(rand.Reader)
+	owner, err := NewWriteCap(rand.Reader)
 	require.NoError(t, err)
-	uread := owner.UniversalReadCap()
+	uread := owner.ReadCap()
 	mb_cur := uread.firstMessageBoxIndex
 	for i := 0; i < 1000; i++ {
 		mb_cur, err = mb_cur.NextIndex()
@@ -188,9 +188,9 @@ func TestEncryptDecrypt(t *testing.T) {
 	ctx1 := []byte("ctx1")
 	ctx2 := []byte("ctx2")
 
-	owner, err := NewBoxOwnerCap(rand.Reader)
+	owner, err := NewWriteCap(rand.Reader)
 	require.NoError(t, err)
-	uread := owner.UniversalReadCap()
+	uread := owner.ReadCap()
 
 	boxCurrent := uread.firstMessageBoxIndex
 	for i := 0; i < 3; i++ {
@@ -226,10 +226,10 @@ func TestStatefulReaderWriter(t *testing.T) {
 	t.Parallel()
 
 	ctx := []byte("test-session")
-	owner, err := NewBoxOwnerCap(rand.Reader)
+	owner, err := NewWriteCap(rand.Reader)
 	require.NoError(t, err)
 
-	uread := owner.UniversalReadCap()
+	uread := owner.ReadCap()
 
 	writer, err := NewStatefulWriter(owner, ctx)
 	require.NoError(t, err)
@@ -322,7 +322,7 @@ func TestMessageBoxIndex_UnmarshalBinary_Failures(t *testing.T) {
 func TestBoxOwnerCap_UnmarshalBinary_Failures(t *testing.T) {
 	t.Parallel()
 
-	var o BoxOwnerCap
+	var o WriteCap
 
 	// Invalid size
 	err := o.UnmarshalBinary([]byte{})
@@ -330,15 +330,15 @@ func TestBoxOwnerCap_UnmarshalBinary_Failures(t *testing.T) {
 	require.Contains(t, err.Error(), "invalid BoxOwnerCap binary size")
 }
 
-func TestUniversalReadCap_UnmarshalBinary_Failures(t *testing.T) {
+func TestReadCap_UnmarshalBinary_Failures(t *testing.T) {
 	t.Parallel()
 
-	var u UniversalReadCap
+	var u ReadCap
 
 	// Invalid size
 	err := u.UnmarshalBinary([]byte{})
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "invalid UniversalReadCap binary size")
+	require.Contains(t, err.Error(), "invalid ReadCap binary size")
 }
 
 func TestMessageBoxIndex_AdvanceIndexTo_Failures(t *testing.T) {
@@ -366,9 +366,9 @@ func TestMessageBoxIndex_DeriveMessageBoxID_Failures(t *testing.T) {
 func TestStatefulReader_Failures(t *testing.T) {
 	t.Parallel()
 
-	ownercap, err := NewBoxOwnerCap(rand.Reader)
+	ownercap, err := NewWriteCap(rand.Reader)
 	require.NoError(t, err)
-	urcap := ownercap.UniversalReadCap()
+	urcap := ownercap.ReadCap()
 
 	// Missing context
 	_, err = NewStatefulReader(urcap, nil)
@@ -388,7 +388,7 @@ func TestStatefulReader_Failures(t *testing.T) {
 func TestStatefulWriter_Failures(t *testing.T) {
 	t.Parallel()
 
-	owner := &BoxOwnerCap{
+	owner := &WriteCap{
 		rootPrivateKey:       new(ed25519.PrivateKey),
 		rootPublicKey:        new(ed25519.PublicKey),
 		firstMessageBoxIndex: &MessageBoxIndex{},
@@ -414,7 +414,7 @@ func TestStatefulWriter_Failures(t *testing.T) {
 func TestStatefulWriter_NextBoxID_Failures(t *testing.T) {
 	t.Parallel()
 
-	owner, err := NewBoxOwnerCap(rand.Reader)
+	owner, err := NewWriteCap(rand.Reader)
 	require.NoError(t, err)
 
 	// Test case: NextBoxID fails when nextIndex is nil
@@ -444,7 +444,7 @@ func TestStatefulWriter_NextBoxID_Failures(t *testing.T) {
 func TestStatefulWriter_EncryptNext_Failures(t *testing.T) {
 	t.Parallel()
 
-	owner, err := NewBoxOwnerCap(rand.Reader)
+	owner, err := NewWriteCap(rand.Reader)
 	require.NoError(t, err)
 
 	// Test case: EncryptNext fails when nextIndex is nil
@@ -470,10 +470,10 @@ func TestStatefulReader_DecryptNext_Failures(t *testing.T) {
 	t.Parallel()
 
 	ctx := []byte("test-session")
-	owner, err := NewBoxOwnerCap(rand.Reader)
+	owner, err := NewWriteCap(rand.Reader)
 	require.NoError(t, err)
 
-	uread := owner.UniversalReadCap()
+	uread := owner.ReadCap()
 	reader, err := NewStatefulReader(uread, ctx)
 	require.NoError(t, err)
 
@@ -521,10 +521,10 @@ func TestStatefulReader_NextBoxID_Failure_NextIndex(t *testing.T) {
 	t.Parallel()
 
 	ctx := []byte("test-session")
-	owner, err := NewBoxOwnerCap(rand.Reader)
+	owner, err := NewWriteCap(rand.Reader)
 	require.NoError(t, err)
 
-	uread := owner.UniversalReadCap()
+	uread := owner.ReadCap()
 	reader, err := NewStatefulReader(uread, ctx)
 	require.NoError(t, err)
 
@@ -536,11 +536,11 @@ func TestStatefulReader_NextBoxID_Failure_NextIndex(t *testing.T) {
 	require.Error(t, err)
 }
 
-func TestUniversalReadCapFromBinary_Failures(t *testing.T) {
+func TestReadCapFromBytes_Failures(t *testing.T) {
 	t.Parallel()
 
 	// Failure case: Input data is too short
-	_, err := UniversalReadCapFromBinary([]byte{})
+	_, err := ReadCapFromBytes([]byte{})
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "invalid UniversalReadCap binary size")
+	require.Contains(t, err.Error(), "invalid ReadCap binary size")
 }
