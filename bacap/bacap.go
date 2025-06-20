@@ -112,10 +112,13 @@ var _ encoding.BinaryMarshaler = (*MessageBoxIndex)(nil)
 var _ encoding.BinaryUnmarshaler = (*MessageBoxIndex)(nil)
 
 // NewEmptyMessageBoxIndexFromBytes returns a new MessageBoxIndex from a binary blob.
-func NewEmptyMessageBoxIndexFromBytes(b []byte) *MessageBoxIndex {
+func NewEmptyMessageBoxIndexFromBytes(b []byte) (*MessageBoxIndex, error) {
 	m := NewEmptyMessageBoxIndex()
-	m.UnmarshalBinary(b)
-	return m
+	err := m.UnmarshalBinary(b)
+	if err != nil {
+		return nil, err
+	}
+	return m, nil
 }
 
 // NewEmptyMessageBoxIndex returns an empty MessageBoxIndex which can be used
@@ -559,6 +562,9 @@ func NewStatefulReader(urcap *ReadCap, ctx []byte) (*StatefulReader, error) {
 }
 
 // NewStatefulReaderWithIndex initializes a StatefulReader with a specific next index.
+// Note: This creates a reader that starts from the given nextIndex, with LastInboxRead set to nil.
+// This means the reader has no history of previously read messages, which is appropriate for
+// scenarios where you're resuming from a known checkpoint or starting fresh from a specific index.
 func NewStatefulReaderWithIndex(urcap *ReadCap, ctx []byte, nextIndex *MessageBoxIndex) (*StatefulReader, error) {
 	if urcap == nil {
 		return nil, errors.New("urcap is nil")
@@ -574,8 +580,9 @@ func NewStatefulReaderWithIndex(urcap *ReadCap, ctx []byte, nextIndex *MessageBo
 	ctxCopy := make([]byte, len(ctx))
 	copy(ctxCopy, ctx)
 
-	// For a new reader with a specific next index, LastInboxRead should be nil
-	// or the previous index if available
+	// For a new reader with a specific next index, LastInboxRead is set to nil
+	// to indicate that this reader instance has no history of previously read messages.
+	// This is semantically correct for resuming from a checkpoint or starting fresh.
 	sr := &StatefulReader{
 		Rcap:          urcap,
 		Ctx:           ctxCopy,

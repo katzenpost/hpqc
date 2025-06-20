@@ -436,7 +436,7 @@ func TestStatefulWriter_NextBoxID_Failures(t *testing.T) {
 	require.Error(t, err)
 
 	// Test case: NextBoxID fails when ctx is nil
-	writer, err = NewStatefulWriter(owner, nil)
+	_, err = NewStatefulWriter(owner, nil)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "ctx is nil")
 }
@@ -543,4 +543,101 @@ func TestReadCapFromBytes_Failures(t *testing.T) {
 	_, err := ReadCapFromBytes([]byte{})
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "invalid ReadCap binary size")
+}
+
+func TestNewEmptyMessageBoxIndexFromBytes_ErrorHandling(t *testing.T) {
+	t.Parallel()
+
+	// Test successful case
+	validIndex := NewEmptyMessageBoxIndex()
+	validIndex.Idx64 = 42
+	validIndex.CurBlindingFactor = [32]byte{1, 2, 3}
+	validIndex.CurEncryptionKey = [32]byte{4, 5, 6}
+	validIndex.HKDFState = [32]byte{7, 8, 9}
+
+	data, err := validIndex.MarshalBinary()
+	require.NoError(t, err)
+
+	result, err := NewEmptyMessageBoxIndexFromBytes(data)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.Equal(t, validIndex.Idx64, result.Idx64)
+	require.Equal(t, validIndex.CurBlindingFactor, result.CurBlindingFactor)
+	require.Equal(t, validIndex.CurEncryptionKey, result.CurEncryptionKey)
+	require.Equal(t, validIndex.HKDFState, result.HKDFState)
+
+	// Test error case: invalid data size
+	_, err = NewEmptyMessageBoxIndexFromBytes([]byte{1, 2, 3})
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "invalid MessageBoxIndex binary size")
+
+	// Test error case: empty data
+	_, err = NewEmptyMessageBoxIndexFromBytes([]byte{})
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "invalid MessageBoxIndex binary size")
+
+	// Test error case: nil data
+	_, err = NewEmptyMessageBoxIndexFromBytes(nil)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "invalid MessageBoxIndex binary size")
+}
+
+func TestNewStatefulReaderWithIndex_StateConsistency(t *testing.T) {
+	t.Parallel()
+
+	ctx := []byte("test-session")
+	owner, err := NewWriteCap(rand.Reader)
+	require.NoError(t, err)
+
+	uread := owner.ReadCap()
+
+	// Create a specific index to start from (advance from the first index)
+	startIndex, err := uread.firstMessageBoxIndex.NextIndex()
+	require.NoError(t, err)
+	startIndex, err = startIndex.NextIndex()
+	require.NoError(t, err)
+
+	// Create reader with specific index
+	reader, err := NewStatefulReaderWithIndex(uread, ctx, startIndex)
+	require.NoError(t, err)
+
+	// Verify NextBoxID works correctly even with nil LastInboxRead
+	boxID, err := reader.NextBoxID()
+	require.NoError(t, err)
+	require.NotNil(t, boxID)
+
+	// This is the intended behavior: LastInboxRead is nil because this reader instance
+	// has no history of previously read messages. It's starting fresh from the given index.
+	// This is semantically correct for resuming from a checkpoint.
+	require.Nil(t, reader.LastInboxRead)
+	require.NotNil(t, reader.NextIndex)
+	// Verify the index is what we expect (original + 2)
+	require.Equal(t, uread.firstMessageBoxIndex.Idx64+2, reader.NextIndex.Idx64)
+
+	// Verify that after reading a message, LastInboxRead gets properly set
+	// First, let's create a writer to generate a message
+	writer, err := NewStatefulWriter(owner, ctx)
+	require.NoError(t, err)
+
+	// Advance writer to the same index as our reader
+	for writer.NextIndex.Idx64 < reader.NextIndex.Idx64 {
+		err = writer.AdvanceState()
+		require.NoError(t, err)
+	}
+
+	// Generate a message
+	plaintext := []byte("test message")
+	boxID2, ciphertext, sig, err := writer.EncryptNext(plaintext)
+	require.NoError(t, err)
+
+	// Now decrypt with our reader
+	var sigArray [SignatureSize]byte
+	copy(sigArray[:], sig)
+	decrypted, err := reader.DecryptNext(ctx, boxID2, ciphertext, sigArray)
+	require.NoError(t, err)
+	require.Equal(t, plaintext, decrypted)
+
+	// After successful decryption, LastInboxRead should now be set
+	require.NotNil(t, reader.LastInboxRead)
+	require.Equal(t, startIndex.Idx64, reader.LastInboxRead.Idx64)
 }
