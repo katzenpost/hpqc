@@ -90,8 +90,9 @@ const (
 	SignatureSize = ed25519.SignatureSize
 
 	// Error message constants
-	errNextIndexIsNil                 = "next index is nil"
-	errNextIndexIsNilCannotParseReply = "next index is nil, cannot parse reply"
+	errNextIndexIsNil                   = "next index is nil"
+	errNextIndexIsNilCannotParseReply   = "next index is nil, cannot parse reply"
+	errInvalidMessageBoxIndexBinarySize = "invalid MessageBoxIndex binary size"
 )
 
 // MessageBoxIndex type encapsulates all the various low level cryptographic operations
@@ -204,7 +205,7 @@ func (m *MessageBoxIndex) MarshalBinary() ([]byte, error) {
 // or it returns an error.
 func (m *MessageBoxIndex) UnmarshalBinary(data []byte) error {
 	if len(data) != MessageBoxIndexSize {
-		return errors.New("invalid MessageBoxIndex binary size")
+		return errors.New(errInvalidMessageBoxIndexBinarySize)
 	}
 	m.Idx64 = binary.LittleEndian.Uint64(data[:8])
 	copy(m.CurBlindingFactor[:], data[8:40])

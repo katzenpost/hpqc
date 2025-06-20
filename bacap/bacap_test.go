@@ -316,7 +316,7 @@ func TestMessageBoxIndexUnmarshalBinaryFailures(t *testing.T) {
 	// Invalid size
 	err := m.UnmarshalBinary([]byte{})
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "invalid MessageBoxIndex binary size")
+	require.Contains(t, err.Error(), errInvalidMessageBoxIndexBinarySize)
 }
 
 func TestBoxOwnerCapUnmarshalBinaryFailures(t *testing.T) {
@@ -569,17 +569,17 @@ func TestNewEmptyMessageBoxIndexFromBytesErrorHandling(t *testing.T) {
 	// Test error case: invalid data size
 	_, err = NewEmptyMessageBoxIndexFromBytes([]byte{1, 2, 3})
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "invalid MessageBoxIndex binary size")
+	require.Contains(t, err.Error(), errInvalidMessageBoxIndexBinarySize)
 
 	// Test error case: empty data
 	_, err = NewEmptyMessageBoxIndexFromBytes([]byte{})
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "invalid MessageBoxIndex binary size")
+	require.Contains(t, err.Error(), errInvalidMessageBoxIndexBinarySize)
 
 	// Test error case: nil data
 	_, err = NewEmptyMessageBoxIndexFromBytes(nil)
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "invalid MessageBoxIndex binary size")
+	require.Contains(t, err.Error(), errInvalidMessageBoxIndexBinarySize)
 }
 
 func TestNewStatefulReaderWithIndexStateConsistency(t *testing.T) {
