@@ -38,11 +38,11 @@
 //
 // Two Capability types:
 //
-// 1. UniversalReadCap: The Universal Read Capability allows the bearer
+// 1. ReadCap: The Read Capability allows the bearer
 // to generate an infinite sequence of verification and decryption keys
 // for message boxes in a deterministic sequence.
 //
-// 2. BoxOwnerCap: The Message Box Owner Capability allows the bearer to
+// 2. WriteCap: The Write Capability allows the bearer to
 // generate an infinite sequence of signing and encryption keys for
 // messages boxes in a deterministic sequence.
 //
@@ -88,6 +88,11 @@ const (
 
 	// SignatureSize is the size in bytes of our signatures.
 	SignatureSize = ed25519.SignatureSize
+
+	// Error message constants
+	errNextIndexIsNil                   = "next index is nil"
+	errNextIndexIsNilCannotParseReply   = "next index is nil, cannot parse reply"
+	errInvalidMessageBoxIndexBinarySize = "invalid MessageBoxIndex binary size"
 )
 
 // MessageBoxIndex type encapsulates all the various low level cryptographic operations
@@ -111,6 +116,18 @@ type MessageBoxIndex struct {
 var _ encoding.BinaryMarshaler = (*MessageBoxIndex)(nil)
 var _ encoding.BinaryUnmarshaler = (*MessageBoxIndex)(nil)
 
+// NewEmptyMessageBoxIndexFromBytes returns a new MessageBoxIndex from a binary blob.
+func NewEmptyMessageBoxIndexFromBytes(b []byte) (*MessageBoxIndex, error) {
+	m := NewEmptyMessageBoxIndex()
+	err := m.UnmarshalBinary(b)
+	if err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+// NewEmptyMessageBoxIndex returns an empty MessageBoxIndex which can be used
+// with the UnmarshalBinary method.
 func NewEmptyMessageBoxIndex() *MessageBoxIndex {
 	return &MessageBoxIndex{
 		Idx64:             0,
@@ -188,7 +205,7 @@ func (m *MessageBoxIndex) MarshalBinary() ([]byte, error) {
 // or it returns an error.
 func (m *MessageBoxIndex) UnmarshalBinary(data []byte) error {
 	if len(data) != MessageBoxIndexSize {
-		return errors.New("invalid MessageBoxIndex binary size")
+		return errors.New(errInvalidMessageBoxIndexBinarySize)
 	}
 	m.Idx64 = binary.LittleEndian.Uint64(data[:8])
 	copy(m.CurBlindingFactor[:], data[8:40])
@@ -221,8 +238,8 @@ func (m *MessageBoxIndex) deriveKForContext(ctx []byte) (kICtx [32]byte) {
 	return
 }
 
-// BoxIDForContext returns a new box ID given a universal read cap and a cryptographic context.
-func (m *MessageBoxIndex) BoxIDForContext(cap *UniversalReadCap, ctx []byte) *ed25519.PublicKey {
+// BoxIDForContext returns a new box ID given a read cap and a cryptographic context.
+func (m *MessageBoxIndex) BoxIDForContext(cap *ReadCap, ctx []byte) *ed25519.PublicKey {
 	kICtx := m.deriveKForContext(ctx)
 	return cap.rootPublicKey.Blind(kICtx[:]) // Produce M_i^ctx = P_R * K_i
 }
@@ -233,7 +250,7 @@ func (m *MessageBoxIndex) BoxIDForContext(cap *UniversalReadCap, ctx []byte) *ed
 // Box ID. This method is provided along VerifyCiphertextForContext
 // such that you can use BACAP with an alternate encryption scheme.
 // BACAP's default encryption scheme uses AES GCM SIV.
-func (m *MessageBoxIndex) SignBox(owner *BoxOwnerCap, ctx []byte, ciphertext []byte) (mICtx [32]byte, sICtx []byte) {
+func (m *MessageBoxIndex) SignBox(owner *WriteCap, ctx []byte, ciphertext []byte) (mICtx [32]byte, sICtx []byte) {
 	kICtx := m.deriveKForContext(ctx)
 	mICtx = *(*[32]byte)(owner.rootPublicKey.Blind(kICtx[:]).Bytes())
 
@@ -261,7 +278,7 @@ func (m *MessageBoxIndex) VerifyBox(box [BoxIDSize]byte, ciphertext []byte, sig 
 
 // EncryptForContext encrypts the given plaintext. The given BoxOwnerCap type and context
 // are used here in the encryption key derivation.
-func (m *MessageBoxIndex) EncryptForContext(owner *BoxOwnerCap, ctx []byte, plaintext []byte) (mICtx [32]byte, cICtx []byte, sICtx []byte) {
+func (m *MessageBoxIndex) EncryptForContext(owner *WriteCap, ctx []byte, plaintext []byte) (mICtx [32]byte, cICtx []byte, sICtx []byte) {
 	kICtx := m.deriveKForContext(ctx)
 	mICtx = *(*[32]byte)(owner.rootPublicKey.Blind(kICtx[:]).Bytes())
 	eICtx := m.deriveEForContext(ctx)
@@ -349,9 +366,9 @@ func (m *MessageBoxIndex) DeriveMessageBoxID(rootPublicKey *ed25519.PublicKey) *
 	return rootPublicKey.Blind(m.CurBlindingFactor[:])
 }
 
-// BoxOwnerCap is used by the creator of the message box. It encapsulates
+// WriteCap is used by the creator of the message box. It encapsulates
 // private key material.
-type BoxOwnerCap struct {
+type WriteCap struct {
 	// on-disk:
 	rootPrivateKey *ed25519.PrivateKey
 
@@ -361,17 +378,17 @@ type BoxOwnerCap struct {
 	firstMessageBoxIndex *MessageBoxIndex
 }
 
-// BoxOwnerCapSize is the size in bytes of a serialized BoxOwnerCap
+// WriteCapSize is the size in bytes of a serialized BoxOwnerCap
 // not counting it's rootPublicKey field.
-const BoxOwnerCapSize = ed25519.PrivateKeySize + MessageBoxIndexSize
+const WriteCapSize = ed25519.PrivateKeySize + MessageBoxIndexSize
 
 // ensure we implement encoding.BinaryMarshaler/BinaryUmarshaler
-var _ encoding.BinaryMarshaler = (*BoxOwnerCap)(nil)
-var _ encoding.BinaryUnmarshaler = (*BoxOwnerCap)(nil)
+var _ encoding.BinaryMarshaler = (*WriteCap)(nil)
+var _ encoding.BinaryUnmarshaler = (*WriteCap)(nil)
 
-// NewBoxOwnerCap creates a new BoxOwnerCap
-func NewBoxOwnerCap(rng io.Reader) (*BoxOwnerCap, error) {
-	o := BoxOwnerCap{}
+// NewWriteCap creates a new BoxOwnerCap
+func NewWriteCap(rng io.Reader) (*WriteCap, error) {
+	o := WriteCap{}
 	sk, pk, err := ed25519.NewKeypair(rng) // S_R, P_R
 	if err != nil {
 		panic(err)
@@ -385,29 +402,40 @@ func NewBoxOwnerCap(rng io.Reader) (*BoxOwnerCap, error) {
 	return &o, nil
 }
 
-func NewEmptyBoxOwnerCap() *BoxOwnerCap {
-	return &BoxOwnerCap{
+// NewWriteCapFromBytes deserializes a blob into a WriteCap type.
+func NewWriteCapFromBytes(data []byte) (*WriteCap, error) {
+	cap := NewEmptyWriteCap()
+	err := cap.UnmarshalBinary(data)
+	if err != nil {
+		return nil, err
+	}
+	return cap, nil
+}
+
+// NewEmptyWriteCap returns an empty WriteCap which is can be used
+// with the UnmarshalBinary method.
+func NewEmptyWriteCap() *WriteCap {
+	return &WriteCap{
 		rootPrivateKey:       new(ed25519.PrivateKey),
 		rootPublicKey:        new(ed25519.PublicKey),
 		firstMessageBoxIndex: NewEmptyMessageBoxIndex(),
 	}
 }
 
-// UniversalReadCap returns our UniversalReadCap
-func (o *BoxOwnerCap) UniversalReadCap() *UniversalReadCap {
-	ret := UniversalReadCap{}
+// ReadCap returns our ReadCap
+func (o *WriteCap) ReadCap() *ReadCap {
+	ret := ReadCap{}
 	ret.rootPublicKey = o.rootPublicKey
 	// NB: o is the firstIndex that we know about/can read,
 	// not necessarily the first index in the conversation:
 	ret.firstMessageBoxIndex = o.firstMessageBoxIndex
-	//o.universalReadSecret = owner.UniversalCap(readCapString)
 	return &ret
 }
 
 // MarshalBinary returns a binary blob of the BoxOwnerCap type.
 // Only serialize the rootPrivateKey. We do not serialize the rootPublicKey
 // because it can be derived from the private key.
-func (o *BoxOwnerCap) MarshalBinary() ([]byte, error) {
+func (o *WriteCap) MarshalBinary() ([]byte, error) {
 	var buf bytes.Buffer
 	if _, err := buf.Write(o.rootPrivateKey.Bytes()); err != nil {
 		return nil, err
@@ -420,8 +448,8 @@ func (o *BoxOwnerCap) MarshalBinary() ([]byte, error) {
 
 // UnmarshalBinary deserializes a blob into the given type.
 // Here we derive our public key from the given private key.
-func (o *BoxOwnerCap) UnmarshalBinary(data []byte) error {
-	if len(data) != BoxOwnerCapSize {
+func (o *WriteCap) UnmarshalBinary(data []byte) error {
+	if len(data) != WriteCapSize {
 		return errors.New("invalid BoxOwnerCap binary size")
 	}
 	o.rootPrivateKey = new(ed25519.PrivateKey)
@@ -437,31 +465,31 @@ func (o *BoxOwnerCap) UnmarshalBinary(data []byte) error {
 	return nil
 }
 
-// UniversalReadCap is a universal read capability can be used to compute BACAP boxes
+// ReadCap is a read capability can be used to compute BACAP boxes
 // and decrypt their message payloads for indices >= firstMessageBoxIndex
-type UniversalReadCap struct {
+type ReadCap struct {
 	rootPublicKey *ed25519.PublicKey
 
 	firstMessageBoxIndex *MessageBoxIndex
 }
 
-// UniversalReadCapSize is the size in bytes of the UniversalReadCap struct type.
-const UniversalReadCapSize = ed25519.PublicKeySize + MessageBoxIndexSize
+// ReadCapSize is the size in bytes of the ReadCap struct type.
+const ReadCapSize = ed25519.PublicKeySize + MessageBoxIndexSize
 
 // ensure we implement encoding.BinaryMarshaler/BinaryUmarshaler
-var _ encoding.BinaryMarshaler = (*UniversalReadCap)(nil)
-var _ encoding.BinaryUnmarshaler = (*UniversalReadCap)(nil)
+var _ encoding.BinaryMarshaler = (*ReadCap)(nil)
+var _ encoding.BinaryUnmarshaler = (*ReadCap)(nil)
 
-func NewEmptyUniversalReadCap() *UniversalReadCap {
-	return &UniversalReadCap{
+func NewEmptyReadCap() *ReadCap {
+	return &ReadCap{
 		rootPublicKey:        new(ed25519.PublicKey),
 		firstMessageBoxIndex: NewEmptyMessageBoxIndex(),
 	}
 }
 
-// UniversalReadCapFromBinary deserialize the read cap from a blob or return an error.
-func UniversalReadCapFromBinary(data []byte) (*UniversalReadCap, error) {
-	cap := NewEmptyUniversalReadCap()
+// ReadCapFromBytes deserialize the read cap from a blob or return an error.
+func ReadCapFromBytes(data []byte) (*ReadCap, error) {
+	cap := NewEmptyReadCap()
 	err := cap.UnmarshalBinary(data)
 	if err != nil {
 		return nil, err
@@ -470,7 +498,7 @@ func UniversalReadCapFromBinary(data []byte) (*UniversalReadCap, error) {
 }
 
 // MarshalBinary returns a binary blob of the given type.
-func (u *UniversalReadCap) MarshalBinary() ([]byte, error) {
+func (u *ReadCap) MarshalBinary() ([]byte, error) {
 	var buf bytes.Buffer
 	if _, err := buf.Write(u.rootPublicKey.Bytes()); err != nil {
 		return nil, err
@@ -484,9 +512,9 @@ func (u *UniversalReadCap) MarshalBinary() ([]byte, error) {
 }
 
 // UnmarshalBinary populates our types fields from the given binary blob.
-func (u *UniversalReadCap) UnmarshalBinary(data []byte) error {
-	if len(data) != UniversalReadCapSize {
-		return errors.New("invalid UniversalReadCap binary size")
+func (u *ReadCap) UnmarshalBinary(data []byte) error {
+	if len(data) != ReadCapSize {
+		return errors.New("invalid ReadCap binary size")
 	}
 	u.rootPublicKey = new(ed25519.PublicKey)
 	err := u.rootPublicKey.FromBytes(data[:32])
@@ -510,14 +538,14 @@ func (*noCopy) Unlock() {}
 // StatefulReader is a helper type with mutable state for sequential reading
 type StatefulReader struct {
 	noCopy        noCopy
-	Urcap         *UniversalReadCap
+	Rcap          *ReadCap
 	LastInboxRead *MessageBoxIndex
 	NextIndex     *MessageBoxIndex
 	Ctx           []byte
 }
 
-// NewStatefulReader initializes a StatefulReader for the given UniversalReadCap and context.
-func NewStatefulReader(urcap *UniversalReadCap, ctx []byte) (*StatefulReader, error) {
+// NewStatefulReader initializes a StatefulReader for the given ReadCap and context.
+func NewStatefulReader(urcap *ReadCap, ctx []byte) (*StatefulReader, error) {
 	if urcap == nil {
 		return nil, errors.New("urcap is nil")
 	}
@@ -530,7 +558,7 @@ func NewStatefulReader(urcap *UniversalReadCap, ctx []byte) (*StatefulReader, er
 	copy(ctxCopy, ctx)
 
 	sr := &StatefulReader{
-		Urcap:         urcap,
+		Rcap:          urcap,
 		Ctx:           ctxCopy,
 		LastInboxRead: urcap.firstMessageBoxIndex,
 		NextIndex:     urcap.firstMessageBoxIndex,
@@ -538,8 +566,39 @@ func NewStatefulReader(urcap *UniversalReadCap, ctx []byte) (*StatefulReader, er
 	return sr, nil
 }
 
-// NewStatefulReaderFromBinary initializes a StatefulReader from a CBOR blob.
-func NewStatefulReaderFromBinary(data []byte) (*StatefulReader, error) {
+// NewStatefulReaderWithIndex initializes a StatefulReader with a specific next index.
+// Note: This creates a reader that starts from the given nextIndex, with LastInboxRead set to nil.
+// This means the reader has no history of previously read messages, which is appropriate for
+// scenarios where you're resuming from a known checkpoint or starting fresh from a specific index.
+func NewStatefulReaderWithIndex(urcap *ReadCap, ctx []byte, nextIndex *MessageBoxIndex) (*StatefulReader, error) {
+	if urcap == nil {
+		return nil, errors.New("urcap is nil")
+	}
+	if ctx == nil {
+		return nil, errors.New("ctx is nil")
+	}
+	if nextIndex == nil {
+		return nil, errors.New("nextIndex is nil")
+	}
+
+	// Make a copy of ctx to prevent modification outside this struct
+	ctxCopy := make([]byte, len(ctx))
+	copy(ctxCopy, ctx)
+
+	// For a new reader with a specific next index, LastInboxRead is set to nil
+	// to indicate that this reader instance has no history of previously read messages.
+	// This is semantically correct for resuming from a checkpoint or starting fresh.
+	sr := &StatefulReader{
+		Rcap:          urcap,
+		Ctx:           ctxCopy,
+		LastInboxRead: nil,       // No messages read yet with this instance
+		NextIndex:     nextIndex, // Set NextIndex to the provided index
+	}
+	return sr, nil
+}
+
+// NewStatefulReaderFromBytes initializes a StatefulReader from a CBOR blob.
+func NewStatefulReaderFromBytes(data []byte) (*StatefulReader, error) {
 	if data == nil {
 		return nil, errors.New("data is nil")
 	}
@@ -547,7 +606,7 @@ func NewStatefulReaderFromBinary(data []byte) (*StatefulReader, error) {
 		return nil, errors.New("data is empty")
 	}
 	sr := &StatefulReader{
-		Urcap:         NewEmptyUniversalReadCap(),
+		Rcap:          NewEmptyReadCap(),
 		LastInboxRead: NewEmptyMessageBoxIndex(),
 		NextIndex:     NewEmptyMessageBoxIndex(),
 		Ctx:           []byte{},
@@ -558,7 +617,7 @@ func NewStatefulReaderFromBinary(data []byte) (*StatefulReader, error) {
 	}
 
 	// Validate deserialized state
-	if sr.Urcap == nil {
+	if sr.Rcap == nil {
 		return nil, errors.New("deserialized StatefulReader has nil Urcap")
 	}
 	if sr.LastInboxRead == nil {
@@ -603,10 +662,25 @@ func (sr *StatefulReader) NextBoxID() (*[BoxIDSize]byte, error) {
 		nextIndex = tmp
 	}
 
-	nextBox := nextIndex.BoxIDForContext(sr.Urcap, sr.Ctx)
+	nextBox := nextIndex.BoxIDForContext(sr.Rcap, sr.Ctx)
 	nextBoxID := &[BoxIDSize]byte{}
 	copy(nextBoxID[:], nextBox.Bytes())
 	return nextBoxID, nil
+}
+
+// GetNextMessageIndex returns what the next MessageBoxIndex will be after advancing state.
+// This does NOT advance state - it's used for crash consistency planning.
+func (sr *StatefulReader) GetNextMessageIndex() (*MessageBoxIndex, error) {
+	if sr.NextIndex == nil {
+		return nil, errors.New(errNextIndexIsNil)
+	}
+	return sr.NextIndex.NextIndex()
+}
+
+// GetCurrentMessageIndex returns the current MessageBoxIndex.
+// This is the index that will be used for the next read.
+func (sr *StatefulReader) GetCurrentMessageIndex() *MessageBoxIndex {
+	return sr.NextIndex
 }
 
 // ParseReply advances state if reading was successful.
@@ -615,9 +689,9 @@ func (sr *StatefulReader) DecryptNext(ctx []byte, box [BoxIDSize]byte, ciphertex
 		return nil, errors.New("empty box, no message received")
 	}
 	if sr.NextIndex == nil {
-		return nil, errors.New("next index is nil, cannot parse reply")
+		return nil, errors.New(errNextIndexIsNilCannotParseReply)
 	}
-	nextboxPubKey := sr.NextIndex.BoxIDForContext(sr.Urcap, sr.Ctx)
+	nextboxPubKey := sr.NextIndex.BoxIDForContext(sr.Rcap, sr.Ctx)
 	if !bytes.Equal(box[:], nextboxPubKey.Bytes()) {
 		return nil, errors.New("reply does not match expected box ID")
 	}
@@ -644,14 +718,14 @@ func (sr *StatefulReader) DecryptNext(ctx []byte, box [BoxIDSize]byte, ciphertex
 // StatefulWriter maintains sequential state for encrypting messages.
 type StatefulWriter struct {
 	noCopy        noCopy
-	Owner         *BoxOwnerCap
+	Wcap          *WriteCap
 	LastOutboxIdx *MessageBoxIndex
 	NextIndex     *MessageBoxIndex
 	Ctx           []byte
 }
 
 // NewStatefulWriter initializes a StatefulWriter for the given owner and context.
-func NewStatefulWriter(owner *BoxOwnerCap, ctx []byte) (*StatefulWriter, error) {
+func NewStatefulWriter(owner *WriteCap, ctx []byte) (*StatefulWriter, error) {
 	if ctx == nil {
 		return nil, errors.New("ctx is nil")
 	}
@@ -661,7 +735,7 @@ func NewStatefulWriter(owner *BoxOwnerCap, ctx []byte) (*StatefulWriter, error) 
 	copy(ctxCopy, ctx)
 
 	sw := &StatefulWriter{
-		Owner:         owner,
+		Wcap:          owner,
 		Ctx:           ctxCopy,
 		LastOutboxIdx: nil,                        // No messages written yet
 		NextIndex:     owner.firstMessageBoxIndex, // Start at firstMessage boxIndex (not skipping)
@@ -669,9 +743,34 @@ func NewStatefulWriter(owner *BoxOwnerCap, ctx []byte) (*StatefulWriter, error) 
 	return sw, nil
 }
 
-func NewStatefulWriterFromBinary(data []byte) (*StatefulWriter, error) {
+// NewStatefulWriterWithIndex initializes a StatefulWriter with a specific next index.
+func NewStatefulWriterWithIndex(owner *WriteCap, ctx []byte, nextIndex *MessageBoxIndex) (*StatefulWriter, error) {
+	if owner == nil {
+		return nil, errors.New("owner is nil")
+	}
+	if ctx == nil {
+		return nil, errors.New("ctx is nil")
+	}
+	if nextIndex == nil {
+		return nil, errors.New("nextIndex is nil")
+	}
+
+	// Make a copy of ctx to prevent modification outside this struct
+	ctxCopy := make([]byte, len(ctx))
+	copy(ctxCopy, ctx)
+
 	sw := &StatefulWriter{
-		Owner:         NewEmptyBoxOwnerCap(),
+		Wcap:          owner,
+		Ctx:           ctxCopy,
+		LastOutboxIdx: nil,       // No messages written yet with this instance
+		NextIndex:     nextIndex, // Start at the provided index
+	}
+	return sw, nil
+}
+
+func NewStatefulWriterFromBytes(data []byte) (*StatefulWriter, error) {
+	sw := &StatefulWriter{
+		Wcap:          NewEmptyWriteCap(),
 		LastOutboxIdx: NewEmptyMessageBoxIndex(),
 		NextIndex:     NewEmptyMessageBoxIndex(),
 		Ctx:           []byte{},
@@ -682,7 +781,7 @@ func NewStatefulWriterFromBinary(data []byte) (*StatefulWriter, error) {
 	}
 
 	// Validate deserialized state
-	if sw.Owner == nil {
+	if sw.Wcap == nil {
 		return nil, errors.New("deserialized StatefulWriter has nil Owner")
 	}
 	if sw.NextIndex == nil {
@@ -709,32 +808,67 @@ func (sw *StatefulWriter) unmarshal(b []byte) error {
 // NextBoxID returns the next mailbox ID for writing.
 func (sw *StatefulWriter) NextBoxID() (*ed25519.PublicKey, error) {
 	if sw.NextIndex == nil {
-		return nil, errors.New("next index is nil")
+		return nil, errors.New(errNextIndexIsNil)
 	}
 	if sw.Ctx == nil {
 		return nil, errors.New("ctx is nil")
 	}
-	return sw.NextIndex.BoxIDForContext(sw.Owner.UniversalReadCap(), sw.Ctx), nil
+	return sw.NextIndex.BoxIDForContext(sw.Wcap.ReadCap(), sw.Ctx), nil
+}
+
+// GetNextMessageIndex returns what the next MessageBoxIndex will be after advancing state.
+// This does NOT advance state - it's used for crash consistency planning.
+func (sw *StatefulWriter) GetNextMessageIndex() (*MessageBoxIndex, error) {
+	if sw.NextIndex == nil {
+		return nil, errors.New(errNextIndexIsNil)
+	}
+	return sw.NextIndex.NextIndex()
+}
+
+// GetCurrentMessageIndex returns the current MessageBoxIndex.
+// This is the index that will be used for the next message.
+func (sw *StatefulWriter) GetCurrentMessageIndex() *MessageBoxIndex {
+	return sw.NextIndex
+}
+
+// PrepareNext encrypts a message WITHOUT advancing state.
+// This allows for deferred state advancement until courier acknowledgment.
+func (sw *StatefulWriter) PrepareNext(plaintext []byte) (boxID [BoxIDSize]byte, ciphertext []byte, sig []byte, err error) {
+	if sw.NextIndex == nil {
+		return [BoxIDSize]byte{}, nil, nil, errors.New(errNextIndexIsNil)
+	}
+
+	// Encrypt the message without advancing state
+	boxID, ciphertext, sig = sw.NextIndex.EncryptForContext(sw.Wcap, sw.Ctx, plaintext)
+	return
+}
+
+// AdvanceState advances the writer state to the next index.
+// This should be called only after courier acknowledgment.
+func (sw *StatefulWriter) AdvanceState() error {
+	if sw.NextIndex == nil {
+		return errors.New(errNextIndexIsNil)
+	}
+
+	// Compute the next index
+	nextIndex, err := sw.NextIndex.NextIndex()
+	if err != nil {
+		return err
+	}
+
+	// Advance state
+	sw.LastOutboxIdx = sw.NextIndex
+	sw.NextIndex = nextIndex
+	return nil
 }
 
 // EncryptNext encrypts a message, advancing state after success.
+// This is the original method that immediately advances state.
 func (sw *StatefulWriter) EncryptNext(plaintext []byte) (boxID [BoxIDSize]byte, ciphertext []byte, sig []byte, err error) {
-	if sw.NextIndex == nil {
-		return [BoxIDSize]byte{}, nil, nil, errors.New("next index is nil")
-	}
-
-	// Encrypt the message
-	boxID, ciphertext, sig = sw.NextIndex.EncryptForContext(sw.Owner, sw.Ctx, plaintext)
-
-	// Compute the next index before modifying state
-	nextIndex, err := sw.NextIndex.NextIndex()
+	boxID, ciphertext, sig, err = sw.PrepareNext(plaintext)
 	if err != nil {
-		return [BoxIDSize]byte{}, nil, nil, err
+		return
 	}
-
-	// Only modify state after all operations have succeeded
-	sw.LastOutboxIdx = sw.NextIndex
-	sw.NextIndex = nextIndex
-
+	err = sw.AdvanceState()
 	return
 }
