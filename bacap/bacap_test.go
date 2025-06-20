@@ -294,7 +294,7 @@ func catchPanic(f func()) (err error) {
 	return nil
 }
 
-func TestNewMessageBoxIndex_Failures(t *testing.T) {
+func TestNewMessageBoxIndexFailures(t *testing.T) {
 	t.Parallel()
 
 	// Fail on HKDFState read (expect panic)
@@ -308,7 +308,7 @@ func TestNewMessageBoxIndex_Failures(t *testing.T) {
 	require.Error(t, err, "expected panic when rng fails on idx64B")
 }
 
-func TestMessageBoxIndex_UnmarshalBinary_Failures(t *testing.T) {
+func TestMessageBoxIndexUnmarshalBinaryFailures(t *testing.T) {
 	t.Parallel()
 
 	var m MessageBoxIndex
@@ -319,7 +319,7 @@ func TestMessageBoxIndex_UnmarshalBinary_Failures(t *testing.T) {
 	require.Contains(t, err.Error(), "invalid MessageBoxIndex binary size")
 }
 
-func TestBoxOwnerCap_UnmarshalBinary_Failures(t *testing.T) {
+func TestBoxOwnerCapUnmarshalBinaryFailures(t *testing.T) {
 	t.Parallel()
 
 	var o WriteCap
@@ -330,7 +330,7 @@ func TestBoxOwnerCap_UnmarshalBinary_Failures(t *testing.T) {
 	require.Contains(t, err.Error(), "invalid BoxOwnerCap binary size")
 }
 
-func TestReadCap_UnmarshalBinary_Failures(t *testing.T) {
+func TestReadCapUnmarshalBinaryFailures(t *testing.T) {
 	t.Parallel()
 
 	var u ReadCap
@@ -341,7 +341,7 @@ func TestReadCap_UnmarshalBinary_Failures(t *testing.T) {
 	require.Contains(t, err.Error(), "invalid ReadCap binary size")
 }
 
-func TestMessageBoxIndex_AdvanceIndexTo_Failures(t *testing.T) {
+func TestMessageBoxIndexAdvanceIndexToFailures(t *testing.T) {
 	t.Parallel()
 
 	m := MessageBoxIndex{Idx64: 10}
@@ -352,7 +352,7 @@ func TestMessageBoxIndex_AdvanceIndexTo_Failures(t *testing.T) {
 	require.Contains(t, err.Error(), "cannot rewind index")
 }
 
-func TestMessageBoxIndex_DeriveMessageBoxID_Failures(t *testing.T) {
+func TestMessageBoxIndexDeriveMessageBoxIDFailures(t *testing.T) {
 	t.Parallel()
 
 	var m MessageBoxIndex
@@ -363,7 +363,7 @@ func TestMessageBoxIndex_DeriveMessageBoxID_Failures(t *testing.T) {
 	require.Error(t, err, "expected panic when calling DeriveMessageBoxID with an uninitialized public key")
 }
 
-func TestStatefulReader_Failures(t *testing.T) {
+func TestStatefulReaderFailures(t *testing.T) {
 	t.Parallel()
 
 	ownercap, err := NewWriteCap(rand.Reader)
@@ -385,7 +385,7 @@ func TestStatefulReader_Failures(t *testing.T) {
 	require.Error(t, err, "expected error when attempting to decrypt empty box")
 }
 
-func TestStatefulWriter_Failures(t *testing.T) {
+func TestStatefulWriterFailures(t *testing.T) {
 	t.Parallel()
 
 	owner := &WriteCap{
@@ -411,7 +411,7 @@ func TestStatefulWriter_Failures(t *testing.T) {
 	require.Error(t, err, "expected error when nextIndex is nil during EncryptNext")
 }
 
-func TestStatefulWriter_NextBoxID_Failures(t *testing.T) {
+func TestStatefulWriterNextBoxIDFailures(t *testing.T) {
 	t.Parallel()
 
 	owner, err := NewWriteCap(rand.Reader)
@@ -441,7 +441,7 @@ func TestStatefulWriter_NextBoxID_Failures(t *testing.T) {
 	require.Contains(t, err.Error(), "ctx is nil")
 }
 
-func TestStatefulWriter_EncryptNext_Failures(t *testing.T) {
+func TestStatefulWriterEncryptNextFailures(t *testing.T) {
 	t.Parallel()
 
 	owner, err := NewWriteCap(rand.Reader)
@@ -466,7 +466,7 @@ func TestStatefulWriter_EncryptNext_Failures(t *testing.T) {
 	require.Error(t, err)
 }
 
-func TestStatefulReader_DecryptNext_Failures(t *testing.T) {
+func TestStatefulReaderDecryptNextFailures(t *testing.T) {
 	t.Parallel()
 
 	ctx := []byte("test-session")
@@ -517,7 +517,7 @@ func TestStatefulReader_DecryptNext_Failures(t *testing.T) {
 	require.Error(t, err)
 }
 
-func TestStatefulReader_NextBoxID_Failure_NextIndex(t *testing.T) {
+func TestStatefulReaderNextBoxIDFailureNextIndex(t *testing.T) {
 	t.Parallel()
 
 	ctx := []byte("test-session")
@@ -536,7 +536,7 @@ func TestStatefulReader_NextBoxID_Failure_NextIndex(t *testing.T) {
 	require.Error(t, err)
 }
 
-func TestReadCapFromBytes_Failures(t *testing.T) {
+func TestReadCapFromBytesFailures(t *testing.T) {
 	t.Parallel()
 
 	// Failure case: Input data is too short
@@ -545,7 +545,7 @@ func TestReadCapFromBytes_Failures(t *testing.T) {
 	require.Contains(t, err.Error(), "invalid ReadCap binary size")
 }
 
-func TestNewEmptyMessageBoxIndexFromBytes_ErrorHandling(t *testing.T) {
+func TestNewEmptyMessageBoxIndexFromBytesErrorHandling(t *testing.T) {
 	t.Parallel()
 
 	// Test successful case
@@ -582,7 +582,7 @@ func TestNewEmptyMessageBoxIndexFromBytes_ErrorHandling(t *testing.T) {
 	require.Contains(t, err.Error(), "invalid MessageBoxIndex binary size")
 }
 
-func TestNewStatefulReaderWithIndex_StateConsistency(t *testing.T) {
+func TestNewStatefulReaderWithIndexStateConsistency(t *testing.T) {
 	t.Parallel()
 
 	ctx := []byte("test-session")
