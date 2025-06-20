@@ -88,6 +88,10 @@ const (
 
 	// SignatureSize is the size in bytes of our signatures.
 	SignatureSize = ed25519.SignatureSize
+
+	// Error message constants
+	errNextIndexIsNil                 = "next index is nil"
+	errNextIndexIsNilCannotParseReply = "next index is nil, cannot parse reply"
 )
 
 // MessageBoxIndex type encapsulates all the various low level cryptographic operations
@@ -667,7 +671,7 @@ func (sr *StatefulReader) NextBoxID() (*[BoxIDSize]byte, error) {
 // This does NOT advance state - it's used for crash consistency planning.
 func (sr *StatefulReader) GetNextMessageIndex() (*MessageBoxIndex, error) {
 	if sr.NextIndex == nil {
-		return nil, errors.New("next index is nil")
+		return nil, errors.New(errNextIndexIsNil)
 	}
 	return sr.NextIndex.NextIndex()
 }
@@ -684,7 +688,7 @@ func (sr *StatefulReader) DecryptNext(ctx []byte, box [BoxIDSize]byte, ciphertex
 		return nil, errors.New("empty box, no message received")
 	}
 	if sr.NextIndex == nil {
-		return nil, errors.New("next index is nil, cannot parse reply")
+		return nil, errors.New(errNextIndexIsNilCannotParseReply)
 	}
 	nextboxPubKey := sr.NextIndex.BoxIDForContext(sr.Rcap, sr.Ctx)
 	if !bytes.Equal(box[:], nextboxPubKey.Bytes()) {
@@ -803,7 +807,7 @@ func (sw *StatefulWriter) unmarshal(b []byte) error {
 // NextBoxID returns the next mailbox ID for writing.
 func (sw *StatefulWriter) NextBoxID() (*ed25519.PublicKey, error) {
 	if sw.NextIndex == nil {
-		return nil, errors.New("next index is nil")
+		return nil, errors.New(errNextIndexIsNil)
 	}
 	if sw.Ctx == nil {
 		return nil, errors.New("ctx is nil")
@@ -815,7 +819,7 @@ func (sw *StatefulWriter) NextBoxID() (*ed25519.PublicKey, error) {
 // This does NOT advance state - it's used for crash consistency planning.
 func (sw *StatefulWriter) GetNextMessageIndex() (*MessageBoxIndex, error) {
 	if sw.NextIndex == nil {
-		return nil, errors.New("next index is nil")
+		return nil, errors.New(errNextIndexIsNil)
 	}
 	return sw.NextIndex.NextIndex()
 }
@@ -830,7 +834,7 @@ func (sw *StatefulWriter) GetCurrentMessageIndex() *MessageBoxIndex {
 // This allows for deferred state advancement until courier acknowledgment.
 func (sw *StatefulWriter) PrepareNext(plaintext []byte) (boxID [BoxIDSize]byte, ciphertext []byte, sig []byte, err error) {
 	if sw.NextIndex == nil {
-		return [BoxIDSize]byte{}, nil, nil, errors.New("next index is nil")
+		return [BoxIDSize]byte{}, nil, nil, errors.New(errNextIndexIsNil)
 	}
 
 	// Encrypt the message without advancing state
@@ -842,7 +846,7 @@ func (sw *StatefulWriter) PrepareNext(plaintext []byte) (boxID [BoxIDSize]byte, 
 // This should be called only after courier acknowledgment.
 func (sw *StatefulWriter) AdvanceState() error {
 	if sw.NextIndex == nil {
-		return errors.New("next index is nil")
+		return errors.New(errNextIndexIsNil)
 	}
 
 	// Compute the next index

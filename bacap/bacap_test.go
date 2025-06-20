@@ -429,7 +429,7 @@ func TestStatefulWriterNextBoxIDFailures(t *testing.T) {
 
 	_, err = writer.NextBoxID()
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "next index is nil")
+	require.Contains(t, err.Error(), errNextIndexIsNil)
 
 	writer.Ctx = nil
 	_, err = writer.NextBoxID()
@@ -454,7 +454,7 @@ func TestStatefulWriterEncryptNextFailures(t *testing.T) {
 
 	_, _, _, err = writer.EncryptNext([]byte("message"))
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "next index is nil")
+	require.Contains(t, err.Error(), errNextIndexIsNil)
 
 	// Test case: EncryptNext fails when advancing state fails
 	writer, err = NewStatefulWriter(owner, []byte("test"))
@@ -494,7 +494,7 @@ func TestStatefulReaderDecryptNextFailures(t *testing.T) {
 	reader.NextIndex = nil
 	_, err = reader.DecryptNext(ctx, [32]byte(validBoxID.Bytes()), ciphertext, sig)
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "next index is nil, cannot parse reply")
+	require.Contains(t, err.Error(), errNextIndexIsNilCannotParseReply)
 
 	// Restore nextIndex for further tests
 	reader, err = NewStatefulReader(uread, ctx)
