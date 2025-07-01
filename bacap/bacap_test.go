@@ -319,6 +319,87 @@ func TestMessageBoxIndexUnmarshalBinaryFailures(t *testing.T) {
 	require.Contains(t, err.Error(), errInvalidMessageBoxIndexBinarySize)
 }
 
+// Test that WriteCap.ReadCap() returns a public key corresponding to
+// the public key in WriteCap
+func TestWriteCap2ReadCap(t *testing.T) {
+	t.Parallel()
+
+	owner, err := NewWriteCap(rand.Reader)
+	require.NoError(t, err)
+	readCap1 := owner.ReadCap()
+
+	ownerSer1, err := owner.MarshalBinary()
+	require.NoError(t, err)
+	readSer1, err := readCap1.MarshalBinary()
+	require.NoError(t, err)
+	// The first 32 bytes are the private key of the WriteCap
+	// and the public key of the readCap:
+	require.NotEqual(t, ownerSer1[:32], readSer1[:32])
+	require.Equal(t, ownerSer1[32:64], readSer1[:32])
+	// The remaining bytes are the nextMessageIndex:
+	require.Equal(t, ownerSer1[64:], readSer1[32:])
+
+	ctxr := [32]byte{}
+	ctx := ctxr[:]
+
+	sw, err := NewStatefulWriter(owner, ctx)
+	require.NoError(t, err)
+	sr, err := NewStatefulReader(readCap1, ctx)
+	require.NoError(t, err)
+	require.Equal(t, sw.NextIndex, sr.NextIndex)
+
+	readCapDerived := owner.ReadCap()
+	srDerived, err := NewStatefulReader(readCapDerived, ctx)
+	require.NoError(t, err)
+	require.Equal(t, sr, srDerived)
+
+	owner2, err := NewWriteCapFromBytes(ownerSer1)
+	require.NoError(t, err)
+	readCap2, err := ReadCapFromBytes(readSer1)
+	require.NoError(t, err)
+	sw2, err := NewStatefulWriter(owner2, ctx)
+	require.NoError(t, err)
+	sr2, err := NewStatefulReader(readCap2, ctx)
+	require.NoError(t, err)
+	require.Equal(t, sw.NextIndex, sw2.NextIndex)
+	require.Equal(t, sr.NextIndex, sr2.NextIndex)
+	require.Equal(t, sw2.NextIndex, sr2.NextIndex)
+}
+
+func TestBoxOwnerCapWorks(t *testing.T) {
+	t.Parallel()
+
+	owner, err := NewWriteCap(rand.Reader)
+	require.NoError(t, err)
+
+	ser1, err := owner.MarshalBinary()
+	require.NoError(t, err)
+	require.Equal(t, WriteCapSize, len(ser1))
+
+	// Invalid size
+	var o2 WriteCap
+	err = o2.UnmarshalBinary(ser1)
+	require.NoError(t, err)
+
+	ser2, err := o2.MarshalBinary()
+	require.NoError(t, err)
+	require.Equal(t, ser1, ser2)
+
+	o3, err := NewWriteCapFromBytes(ser2)
+	require.NoError(t, err)
+
+	ser3, err := o3.MarshalBinary()
+	require.NoError(t, err)
+	require.Equal(t, ser1, ser3)
+
+	o4 := NewEmptyWriteCap()
+	err = o4.UnmarshalBinary(ser3)
+	require.NoError(t, err)
+	ser4, err := o4.MarshalBinary()
+	require.NoError(t, err)
+	require.Equal(t, ser1, ser4)
+}
+
 func TestBoxOwnerCapUnmarshalBinaryFailures(t *testing.T) {
 	t.Parallel()
 
