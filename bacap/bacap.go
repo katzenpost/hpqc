@@ -270,7 +270,7 @@ func (m *MessageBoxIndex) VerifyBox(box [BoxIDSize]byte, ciphertext []byte, sig 
 	if err = boxPk.FromBytes(box[:]); err != nil {
 		return
 	}
-	if false == boxPk.Verify(sig, ciphertext) {
+	if !boxPk.Verify(sig, ciphertext) {
 		return false, errors.New("signature verification failed")
 	}
 	return true, nil
@@ -303,7 +303,7 @@ func (m *MessageBoxIndex) DecryptForContext(box [BoxIDSize]byte, ctx []byte, cip
 	if err = boxPk.FromBytes(box[:]); err != nil {
 		return
 	}
-	if false == boxPk.Verify(sig, ciphertext) {
+	if !boxPk.Verify(sig, ciphertext) {
 		return nil, errors.New("signature verification failed")
 	}
 	eICtx := m.deriveEForContext(ctx)
