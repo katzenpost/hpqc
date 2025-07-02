@@ -4,7 +4,7 @@ go 1.23.0
 
 require (
 	codeberg.org/vula/highctidh v1.0.2024092800
-	filippo.io/edwards25519 v1.0.0
+	filippo.io/edwards25519 v1.1.0
 	filippo.io/mlkem768 v0.0.0-20240221181710-5ce91625fdc1
 	github.com/agl/gcmsiv v0.0.0-20190418185415-e8dcd2f151dc
 	github.com/fxamacker/cbor/v2 v2.7.0
@@ -31,5 +31,3 @@ require (
 	golang.org/x/sys v0.31.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
-
-replace filippo.io/edwards25519 => ../edwards25519
