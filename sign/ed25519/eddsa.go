@@ -121,6 +121,8 @@ func (s *scheme) SupportsContext() bool {
 type PrivateKey struct {
 	// scalar is the 32-byte canonical scalar (this is what gets serialized)
 	scalar [32]byte
+	// originalSeed stores the original seed for KAT compatibility (not serialized)
+	originalSeed *[32]byte
 }
 
 func NewEmptyPrivateKey() *PrivateKey {
@@ -167,12 +169,22 @@ func (p *PrivateKey) KeyType() string {
 }
 
 func (p *PrivateKey) SignMessage(message []byte) (signature []byte) {
-	// Implement Ed25519 signing using the canonical scalar directly
+	// Use KAT-compatible signing if we have the original seed
+	if p.originalSeed != nil {
+		privKey := ed25519.NewKeyFromSeed(p.originalSeed[:])
+		return ed25519.Sign(privKey, message)
+	}
+
+	// Otherwise use canonical scalar signing
 	return p.signWithCanonicalScalar(message)
 }
 
 func (p *PrivateKey) Reset() {
 	util.ExplicitBzero(p.scalar[:])
+	if p.originalSeed != nil {
+		util.ExplicitBzero(p.originalSeed[:])
+		p.originalSeed = nil
+	}
 }
 
 func (p *PrivateKey) Bytes() []byte {
@@ -204,6 +216,10 @@ func (p *PrivateKey) FromSeed(seed []byte) error {
 		return errInvalidKey
 	}
 
+	// Store the original seed for KAT-compatible signing
+	p.originalSeed = new([32]byte)
+	copy(p.originalSeed[:], seed)
+
 	// Derive canonical scalar from seed using Ed25519 method
 	h := sha512.Sum512(seed)
 
@@ -229,14 +245,23 @@ func (p *PrivateKey) Identity() []byte {
 
 // PublicKey returns the PublicKey corresponding to the PrivateKey.
 func (p *PrivateKey) PublicKey() *PublicKey {
-	// Use the canonical scalar directly for public key computation
-	scalar := new(edwards25519.Scalar)
-	if _, err := scalar.SetCanonicalBytes(p.scalar[:]); err != nil {
-		panic("invalid private key scalar: " + err.Error())
-	}
+	var pubKeyBytes []byte
 
-	point := new(edwards25519.Point).ScalarBaseMult(scalar)
-	pubKeyBytes := point.Bytes()
+	// Use KAT-compatible derivation if we have the original seed
+	if p.originalSeed != nil {
+		privKey := ed25519.NewKeyFromSeed(p.originalSeed[:])
+		stdPubKey := privKey.Public().(ed25519.PublicKey)
+		pubKeyBytes = stdPubKey
+	} else {
+		// Use the canonical scalar directly for public key computation
+		scalar := new(edwards25519.Scalar)
+		if _, err := scalar.SetCanonicalBytes(p.scalar[:]); err != nil {
+			panic("invalid private key scalar: " + err.Error())
+		}
+
+		point := new(edwards25519.Point).ScalarBaseMult(scalar)
+		pubKeyBytes = point.Bytes()
+	}
 
 	pubKey := new(PublicKey)
 	if err := pubKey.FromBytes(pubKeyBytes); err != nil {
