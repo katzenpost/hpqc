@@ -18,6 +18,7 @@
 package ed25519
 
 import (
+	"crypto/ed25519"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -81,7 +82,7 @@ func TestKeypair(t *testing.T) {
 	require.Equal(t, privKeyBlob2, privKeyBlob)
 
 	privKey2.Reset()
-	require.True(t, util.CtIsZero(privKey2.privKey))
+	require.True(t, util.CtIsZero(privKey2.scalar[:]))
 
 	var pubKey PublicKey
 	require.Error(t, pubKey.FromBytes(shortBuffer))
@@ -129,7 +130,10 @@ func TestCheckEdDSA(t *testing.T) {
 	tsk := [64]byte{157, 97, 177, 157, 239, 253, 90, 96, 186, 132, 74, 244, 146, 236, 44, 196, 68, 73, 197, 105, 123, 50, 105, 25, 112, 59, 172, 3, 28, 174, 127, 96, 215, 90, 152, 1, 130, 177, 10, 183, 213, 75, 254, 211, 201, 100, 7, 58, 14, 225, 114, 243, 218, 166, 35, 37, 175, 2, 26, 104, 247, 7, 81, 26}
 	tpk := [32]byte{215, 90, 152, 1, 130, 177, 10, 183, 213, 75, 254, 211, 201, 100, 7, 58, 14, 225, 114, 243, 218, 166, 35, 37, 175, 2, 26, 104, 247, 7, 81, 26}
 	rsk := new(PrivateKey)
-	assert.NoError(rsk.FromBytes(tsk[:]))
+	// Convert from 64-byte test vector - this will store the original seed for KAT compatibility
+	assert.NoError(rsk.fromEd25519PrivateKey(ed25519.PrivateKey(tsk[:])))
+
+	// Now the test should pass with original expected values due to KAT compatibility
 	assert.Equal(tpk[:], rsk.PublicKey().Bytes())
 	actual_signed, err := rsk.Sign(nil, []byte{}, nil)
 	require.NoError(t, err)

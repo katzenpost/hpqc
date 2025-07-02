@@ -4,6 +4,7 @@
 package ed25519
 
 import (
+	"crypto/ed25519"
 	"encoding/hex"
 	"io"
 	"testing"
@@ -328,10 +329,16 @@ func TestBlindedSignatureVectors(t *testing.T) {
 			require.NoError(t, err, "failed to decode expected signature")
 			require.Len(t, expectedSig, 64, "signature must be 64 bytes")
 
-			// Load private key
+			// Load private key - test vectors use 64-byte format, convert to canonical
 			privKey := new(PrivateKey)
-			err = privKey.FromBytes(privKeyBytes)
-			require.NoError(t, err, "failed to load private key")
+			if len(privKeyBytes) == 64 {
+				// Convert from 64-byte ed25519.PrivateKey to canonical scalar
+				err = privKey.fromEd25519PrivateKey(ed25519.PrivateKey(privKeyBytes))
+				require.NoError(t, err, "failed to convert private key")
+			} else {
+				err = privKey.FromBytes(privKeyBytes)
+				require.NoError(t, err, "failed to load private key")
+			}
 
 			// Perform blinding
 			blindedPrivKey := privKey.Blind(blindFactor)
@@ -405,10 +412,16 @@ func TestUnblindVectors(t *testing.T) {
 			expectedSingleBlind, err := hex.DecodeString(tv.expectedSingleBlind)
 			require.NoError(t, err, "failed to decode expected single blind")
 
-			// Load private key
+			// Load private key - test vectors use 64-byte format, convert to canonical
 			privKey := new(PrivateKey)
-			err = privKey.FromBytes(privKeyBytes)
-			require.NoError(t, err, "failed to load private key")
+			if len(privKeyBytes) == 64 {
+				// Convert from 64-byte ed25519.PrivateKey to canonical scalar
+				err = privKey.fromEd25519PrivateKey(ed25519.PrivateKey(privKeyBytes))
+				require.NoError(t, err, "failed to convert private key")
+			} else {
+				err = privKey.FromBytes(privKeyBytes)
+				require.NoError(t, err, "failed to load private key")
+			}
 
 			// Perform single blinding
 			singleBlindedKey := privKey.Blind(blindFactor1)

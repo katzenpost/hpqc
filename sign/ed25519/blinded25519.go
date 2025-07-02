@@ -98,17 +98,21 @@ func (k *BlindedPrivateKey) UnmarshalBinary(data []byte) error {
 		e := errors.New("BlindedPrivatekey.UnmarshalBinary: len(data) != 32")
 		return e
 	}
-	// we could reuse the old k.blinded, but it's easier to throw it away:
-	k.blinded = make([]byte, 64)
-	copy(k.blinded[:32], data)
-	// ns = k.blinded (mod L)
-	newsec_scalar, err := new(edwards25519.Scalar).SetUniformBytes(k.blinded)
+
+	// Validate that the input is a canonical scalar
+	scalar, err := new(edwards25519.Scalar).SetCanonicalBytes(data)
 	if err != nil {
 		return err
 	}
-	// ns * G (mod L)
-	pkxA_n := new(edwards25519.Point).ScalarBaseMult(newsec_scalar)
-	copy(k.blinded[32:], pkxA_n.Bytes())
+
+	// Store the canonical scalar and compute the public key
+	k.blinded = make([]byte, 64)
+	copy(k.blinded[:32], scalar.Bytes())
+
+	// Compute public key: scalar * G
+	pubKeyPoint := new(edwards25519.Point).ScalarBaseMult(scalar)
+	copy(k.blinded[32:], pubKeyPoint.Bytes())
+
 	if false == CheckPublicKey(k.PublicKey()) {
 		k.blinded = nil
 		return errors.New("Invalid marshalled data")
@@ -192,15 +196,18 @@ func (b *BlindedPrivateKey) Sign(message []byte) []byte {
 // and returns the BlindedPrivateKey. This function does not
 // mutate the PrivateKey.
 func (k *PrivateKey) Blind(factor []byte) *BlindedPrivateKey {
-	// Here digest is the actual secret key derived from the seed:
-	digest := sha512.Sum512(k.Bytes()[:32])
-	clamped, err := new(edwards25519.Scalar).SetBytesWithClamping(digest[:32])
-	if err != nil {
-		panic(err)
-	}
+	// Our Bytes() method now returns the canonical scalar directly
+	canonicalScalar := k.Bytes()
+
+	// Create a BlindedPrivateKey with the canonical scalar
 	bpk := new(BlindedPrivateKey)
 	bpk.blinded = make([]byte, ed25519.PrivateKeySize)
-	copy(bpk.blinded[:32], clamped.Bytes())
+	copy(bpk.blinded[:32], canonicalScalar)
+
+	// Compute and store the public key
+	pubKey := k.PublicKey().Bytes()
+	copy(bpk.blinded[32:], pubKey)
+
 	return bpk.Blind(factor)
 }
 
