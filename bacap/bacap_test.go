@@ -141,29 +141,41 @@ func TestAdvanceIndex(t *testing.T) {
 func TestReadCap(t *testing.T) {
 	t.Parallel()
 
-	owner, err := NewWriteCap(rand.Reader)
+	writecap, err := NewWriteCap(rand.Reader)
 	require.NoError(t, err)
 
-	blob, err := owner.MarshalBinary()
+	blob, err := writecap.MarshalBinary()
 	require.NoError(t, err)
+
+	t.Logf("write cap size is supposed to be %d", WriteCapSize)
+	if len(blob) != WriteCapSize {
+		t.Fatalf("expected blob to be %d bytes, got %d", WriteCapSize, len(blob))
+	}
+
 	owner2, _ := NewWriteCap(rand.Reader)
 	err = owner2.UnmarshalBinary(blob)
 	require.NoError(t, err)
 
-	uread := owner.ReadCap()
+	readcap := writecap.ReadCap()
 
-	blob, err = uread.MarshalBinary()
+	blob, err = readcap.MarshalBinary()
 	require.NoError(t, err)
+
+	t.Logf("read cap size is supposed to be %d", ReadCapSize)
+	if len(blob) != ReadCapSize {
+		t.Fatalf("expected blob to be %d bytes, got %d", ReadCapSize, len(blob))
+	}
+
 	_, err = ReadCapFromBytes(blob)
 	require.NoError(t, err)
 
-	require.Equal(t, owner.firstMessageBoxIndex.Idx64, uread.firstMessageBoxIndex.Idx64)
-	require.Equal(t, owner.rootPublicKey, uread.rootPublicKey)
+	require.Equal(t, writecap.firstMessageBoxIndex.Idx64, readcap.firstMessageBoxIndex.Idx64)
+	require.Equal(t, writecap.rootPublicKey, readcap.rootPublicKey)
 
-	mb1 := uread.firstMessageBoxIndex
+	mb1 := readcap.firstMessageBoxIndex
 	mb2, err := mb1.NextIndex()
 	require.NoError(t, err)
-	mb2_id := mb2.DeriveMessageBoxID(uread.rootPublicKey)
+	mb2_id := mb2.DeriveMessageBoxID(readcap.rootPublicKey)
 	require.False(t, util.CtIsZero(mb2_id.Bytes()))
 }
 
@@ -721,4 +733,17 @@ func TestNewStatefulReaderWithIndexStateConsistency(t *testing.T) {
 	// After successful decryption, LastInboxRead should now be set
 	require.NotNil(t, reader.LastInboxRead)
 	require.Equal(t, startIndex.Idx64, reader.LastInboxRead.Idx64)
+}
+
+func TestMesageBoxIndexMarshaling(t *testing.T) {
+	owner, err := NewWriteCap(rand.Reader)
+	require.NoError(t, err)
+
+	uread := owner.ReadCap()
+	startIndex, err := uread.firstMessageBoxIndex.NextIndex()
+	require.NoError(t, err)
+
+	blob, err := startIndex.MarshalBinary()
+	require.NoError(t, err)
+	require.Equal(t, len(blob), MessageBoxIndexSize)
 }
