@@ -84,10 +84,10 @@ func TestECDHOps(t *testing.T) {
 	require.NoError(t, err, "failed to generate bobSk")
 	curve25519.ScalarBaseMult(&bobPk, &bobSk)
 
-	curve25519.ScalarBaseMult(&tmp, &aliceKeypair.privBytes)
+	curve25519.ScalarBaseMult(&tmp, (*[GroupElementLength]byte)(aliceKeypair))
 	assert.Equal(aliceKeypair.Public().Bytes(), tmp[:], "ExpG() mismatch against X25519 scalar base mult")
 
-	aliceS := Exp(bobPk[:], aliceKeypair.privBytes[:])
+	aliceS := Exp(bobPk[:], aliceKeypair[:])
 	copy(tmp[:], aliceKeypair.Public().Bytes())
 	curve25519.ScalarMult(&bobS, &bobSk, &tmp)
 	assert.Equal(bobS[:], aliceS, "Exp() mismatch against X25519 scalar mult")
