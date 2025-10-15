@@ -50,7 +50,6 @@ func Scheme(rng io.Reader) *scheme {
 }
 
 type PrivateKey struct {
-	pubKey    PublicKey
 	privBytes [GroupElementLength]byte
 }
 
@@ -78,8 +77,7 @@ func (p *PrivateKey) FromBytes(data []byte) error {
 	}
 
 	copy(p.privBytes[:], data)
-	expG(&p.pubKey.pubBytes, &p.privBytes)
-	p.pubKey.rebuildB64String()
+	expG(&p.Public().(*PublicKey).pubBytes, &p.privBytes)
 
 	return nil
 }
@@ -110,8 +108,7 @@ func (k *PrivateKey) Exp(publicKey *PublicKey) []byte {
 }
 
 type PublicKey struct {
-	pubBytes  [GroupElementLength]byte
-	b64String string
+	pubBytes [GroupElementLength]byte
 }
 
 func (p *PublicKey) Blind(blindingFactor nike.PrivateKey) error {
@@ -126,7 +123,6 @@ func (p *PublicKey) Blind(blindingFactor nike.PrivateKey) error {
 
 func (p *PublicKey) Reset() {
 	util.ExplicitBzero(p.pubBytes[:])
-	p.b64String = "[scrubbed]"
 }
 
 func (p *PublicKey) Bytes() []byte {
@@ -135,17 +131,12 @@ func (p *PublicKey) Bytes() []byte {
 	return b
 }
 
-func (p *PublicKey) rebuildB64String() {
-	p.b64String = base64.StdEncoding.EncodeToString(p.Bytes())
-}
-
 func (p *PublicKey) FromBytes(data []byte) error {
 	if len(data) != PublicKeySize {
 		return errInvalidKey
 	}
 
 	copy(p.pubBytes[:], data)
-	p.rebuildB64String()
 
 	return nil
 }
@@ -293,8 +284,7 @@ func NewKeypair(r io.Reader) (*PrivateKey, error) {
 		return nil, err
 	}
 
-	expG(&k.pubKey.pubBytes, &k.privBytes)
-	k.pubKey.rebuildB64String()
+	expG(&k.Public().(*PublicKey).pubBytes, &k.privBytes)
 
 	return k, nil
 }
