@@ -17,6 +17,8 @@ jobs:
           # Exclude failing non-primary platform combinations
           - ARCH: "arm32v7"
             go-version: "1.21.x"
+          - ARCH: "arm64"
+            go-version: "1.21.x"
           - ARCH: "ppc64le"
             go-version: "1.21.x"
           - ARCH: "mipsle"
