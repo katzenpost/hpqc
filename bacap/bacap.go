@@ -438,6 +438,16 @@ func (o *WriteCap) ReadCap() *ReadCap {
 	return &ret
 }
 
+// GetFirstMessageBoxIndex returns a copy of the first message box index.
+func (o *WriteCap) GetFirstMessageBoxIndex() *MessageBoxIndex {
+	return &MessageBoxIndex{
+		Idx64:             o.firstMessageBoxIndex.Idx64,
+		CurBlindingFactor: o.firstMessageBoxIndex.CurBlindingFactor,
+		CurEncryptionKey:  o.firstMessageBoxIndex.CurEncryptionKey,
+		HKDFState:         o.firstMessageBoxIndex.HKDFState,
+	}
+}
+
 // MarshalBinary returns a binary blob of the BoxOwnerCap type.
 // Only serialize the rootPrivateKey. We do not serialize the rootPublicKey
 // because it can be derived from the private key.
@@ -532,6 +542,16 @@ func (u *ReadCap) UnmarshalBinary(data []byte) error {
 		return err
 	}
 	return nil
+}
+
+// GetFirstMessageBoxIndex returns a copy of the first message box index.
+func (u *ReadCap) GetFirstMessageBoxIndex() *MessageBoxIndex {
+	return &MessageBoxIndex{
+		Idx64:             u.firstMessageBoxIndex.Idx64,
+		CurBlindingFactor: u.firstMessageBoxIndex.CurBlindingFactor,
+		CurEncryptionKey:  u.firstMessageBoxIndex.CurEncryptionKey,
+		HKDFState:         u.firstMessageBoxIndex.HKDFState,
+	}
 }
 
 // warn about accidental copying of these as they have mutable state:
