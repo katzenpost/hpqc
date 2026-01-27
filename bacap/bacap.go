@@ -448,6 +448,11 @@ func (o *WriteCap) GetFirstMessageBoxIndex() *MessageBoxIndex {
 	}
 }
 
+// DeriveBoxID derives the box ID for a given message box index.
+func (o *WriteCap) DeriveBoxID(messageBoxIndex *MessageBoxIndex) *ed25519.PublicKey {
+	return messageBoxIndex.DeriveMessageBoxID(o.rootPublicKey)
+}
+
 // MarshalBinary returns a binary blob of the BoxOwnerCap type.
 // Only serialize the rootPrivateKey. We do not serialize the rootPublicKey
 // because it can be derived from the private key.
@@ -552,6 +557,11 @@ func (u *ReadCap) GetFirstMessageBoxIndex() *MessageBoxIndex {
 		CurEncryptionKey:  u.firstMessageBoxIndex.CurEncryptionKey,
 		HKDFState:         u.firstMessageBoxIndex.HKDFState,
 	}
+}
+
+// DeriveBoxID derives the box ID for a given message box index.
+func (u *ReadCap) DeriveBoxID(messageBoxIndex *MessageBoxIndex) *ed25519.PublicKey {
+	return messageBoxIndex.DeriveMessageBoxID(u.rootPublicKey)
 }
 
 // warn about accidental copying of these as they have mutable state:
