@@ -9,17 +9,25 @@ jobs:
       matrix:
         os: [ubuntu-latest]
         arch: [amd64]
-        go-version: ["1.23.0"]
+        go:
+          - { go-version: stable }
+          - { go-version-file: go.mod }
+        deps:
+          - locked
+          - latest
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
-          fetch-depth: 0
-      - name: Install Go (from go.mod)
-        uses: actions/setup-go@v5
+          persist-credentials: false
+      - name: Install Go
+        uses: actions/setup-go@v6
         with:
-          go-version-file: go.mod
-          check-latest: true
+          go-version: ${{ matrix.go.go-version }}
+          go-version-file: ${{ matrix.go.go-version-file }}
+      - name: Update to latest dependencies
+        if: matrix.deps == 'latest'
+        run: go get -u -t ./...
       - name: Run tests
         run: go test -v ./...
