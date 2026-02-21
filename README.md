@@ -22,8 +22,9 @@ This library is divided into four parts:
 * signature schemes
 * BACAP 
 
-NIKE  is what we usually think about when we say "Diffie-Hellman" public key exchange. It means you can find someone's public key, encrypt a message to them, and they will decrypt it with a separate private key. By contrast, KEM is a way to use symmetric-key cryptography primitives in a way that is functionally similar to public-key cryptography, by encoding the secret keys with a public key cryptography scheme that may not we suitable for universal use, but is suitable for encrypting keys. 
+NIKE is what we usually think about when we say "Diffie-Hellman" key exchange. It allows two parties to each derive the same shared secret from each other's public keys, without any interaction beyond publishing those keys. By contrast, KEM is a mechanism where the encapsulation function takes a public key and produces both a ciphertext and a randomly generated shared secret; the recipient can then recover the same shared secret by decapsulating the ciphertext with their private key.
 
+This library includes CTIDH, currently the only post-quantum NIKE in existence, based on isogenies of supersingular elliptic curves. For post-quantum KEMs, we provide ML-KEM-768, FrodoKEM, Classic McEliece, and NTRU Prime. All of these can be combined with classical primitives like X25519 or X448 to form hybrid schemes.
 
 The key to understanding and using this cryptography library is to review the `Scheme` interfaces, for NIKE, KEM and signature schemes, as well as the BACAP API:
 
