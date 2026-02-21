@@ -1,7 +1,7 @@
 codeberg.org/vula/highctidh v1.0.2024092800 h1:mvAQCDPgTTwo0/w1ZztxOEKp8CnH2+q5zf+3vKR79Jc=
 codeberg.org/vula/highctidh v1.0.2024092800/go.mod h1:admvznk7GhsrDih/BMy7jbIv9Y86U9vj7S5FVoquF/g=
-filippo.io/edwards25519 v1.0.0 h1:0wAIcmJUqRdI8IJ/3eGi5/HwXZWPujYXXlkrQogz0Ek=
-filippo.io/edwards25519 v1.0.0/go.mod h1:N1IkdkCkiLB6tki+MYJoSx2JTY9NUlxZE7eHn5EwJns=
+filippo.io/edwards25519 v1.1.1 h1:YpjwWWlNmGIDyXOn8zLzqiD+9TyIlPhGFG96P39uBpw=
+filippo.io/edwards25519 v1.1.1/go.mod h1:BxyFTGdWcka3PhytdK4V28tE5sGfRvvvRV7EaN4VDT4=
 filippo.io/mlkem768 v0.0.0-20260214141301-2e7bebc7d88d h1:YyLyABjdrdt2l/E6JAnku4BjhEDXhxQD2bPOnOvy8/M=
 filippo.io/mlkem768 v0.0.0-20260214141301-2e7bebc7d88d/go.mod h1:ym4egWKLpazdho3bHx0xuQlCq02ttP+vhxxKO8LgO9c=
 github.com/agl/gcmsiv v0.0.0-20190418185415-e8dcd2f151dc h1:MB338WDPuyQ8qXRiSRK2NVTv0EmLYsHXZAevEiQO1+c=
