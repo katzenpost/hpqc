@@ -15,6 +15,10 @@ jobs:
         deps:
           - locked
           - latest
+        exclude:
+          # latest deps often require newer Go than go.mod specifies
+          - go: { go-version-file: go.mod }
+            deps: latest
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout repository
