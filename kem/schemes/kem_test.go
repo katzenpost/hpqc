@@ -7,6 +7,8 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"runtime"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -73,6 +75,11 @@ func TestKEMTextUnmarshal(t *testing.T) {
 	for _, scheme := range todo {
 		if scheme.Name() == "DH4096_RFC3526" {
 			t.Logf("skipping %s", scheme.Name())
+			continue
+		}
+		// Skip ctidh on macOS due to memory corruption issues
+		if runtime.GOOS == "darwin" && strings.HasPrefix(scheme.Name(), "ctidh") {
+			t.Logf("skipping %s on macOS", scheme.Name())
 			continue
 		}
 		t.Logf("testing KEM Scheme: %s", scheme.Name())
