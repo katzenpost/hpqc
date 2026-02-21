@@ -1,11 +1,11 @@
 module github.com/katzenpost/hpqc
 
-go 1.23.0
+go 1.26
 
 require (
 	codeberg.org/vula/highctidh v1.0.2024092800
 	filippo.io/edwards25519 v1.0.0
-	filippo.io/mlkem768 v0.0.0-20240221181710-5ce91625fdc1
+	filippo.io/mlkem768 v0.0.0-20260214141301-2e7bebc7d88d
 	github.com/agl/gcmsiv v0.0.0-20190418185415-e8dcd2f151dc
 	github.com/fxamacker/cbor/v2 v2.7.0
 	github.com/go-faster/xor v1.0.0

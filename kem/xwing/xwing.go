@@ -20,7 +20,7 @@ const (
 	SharedKeySize  = xwing.SharedKeySize
 	CiphertextSize = xwing.CiphertextSize
 	PublicKeySize  = xwing.EncapsulationKeySize
-	PrivateKeySize = PublicKeySize + xwing.DecapsulationKeySize
+	PrivateKeySize = PublicKeySize + KeySeedSize // encap key + seed
 )
 
 // tell the type checker that we obey these interfaces
@@ -68,7 +68,7 @@ func (p *PrivateKey) Scheme() kem.Scheme {
 }
 
 func (p *PrivateKey) MarshalBinary() ([]byte, error) {
-	return append(p.decapKey, p.encapKey...), nil
+	return append(p.encapKey, p.decapKey...), nil
 }
 
 func (p *PrivateKey) Equal(privkey kem.PrivateKey) bool {
@@ -93,17 +93,17 @@ func (s *scheme) Name() string {
 }
 
 func (a *scheme) GenerateKeyPair() (kem.PublicKey, kem.PrivateKey, error) {
-	encapKey, decapKey, err := xwing.GenerateKey()
+	dk, err := xwing.GenerateKey()
 	if err != nil {
 		return nil, nil, err
 	}
 	return &PublicKey{
 			scheme:   a,
-			encapKey: encapKey,
+			encapKey: dk.EncapsulationKey(),
 		}, &PrivateKey{
 			scheme:   a,
-			encapKey: encapKey,
-			decapKey: decapKey,
+			encapKey: dk.EncapsulationKey(),
+			decapKey: dk.Bytes(),
 		}, nil
 }
 
@@ -112,7 +112,11 @@ func (s *scheme) Encapsulate(pk kem.PublicKey) (ct, ss []byte, err error) {
 }
 
 func (s *scheme) Decapsulate(myPrivkey kem.PrivateKey, ct []byte) ([]byte, error) {
-	return xwing.Decapsulate(myPrivkey.(*PrivateKey).decapKey, ct)
+	dk, err := xwing.NewKeyFromSeed(myPrivkey.(*PrivateKey).decapKey)
+	if err != nil {
+		return nil, err
+	}
+	return xwing.Decapsulate(dk, ct)
 }
 
 func (s *scheme) UnmarshalBinaryPublicKey(b []byte) (kem.PublicKey, error) {
@@ -131,8 +135,8 @@ func (s *scheme) UnmarshalBinaryPrivateKey(b []byte) (kem.PrivateKey, error) {
 	}
 	return &PrivateKey{
 		scheme:   s,
-		decapKey: b[:xwing.DecapsulationKeySize],
-		encapKey: b[xwing.DecapsulationKeySize:],
+		encapKey: b[:PublicKeySize],
+		decapKey: b[PublicKeySize:],
 	}, nil
 }
 
@@ -164,17 +168,17 @@ func (s *scheme) DeriveKeyPair(seed []byte) (kem.PublicKey, kem.PrivateKey) {
 	if len(seed) != KeySeedSize {
 		panic(kem.ErrSeedSize)
 	}
-	encapKey, decapKey, err := xwing.NewKeyFromSeed(seed)
+	dk, err := xwing.NewKeyFromSeed(seed)
 	if err != nil {
 		panic(err)
 	}
 	return &PublicKey{
 			scheme:   s,
-			encapKey: encapKey,
+			encapKey: dk.EncapsulationKey(),
 		}, &PrivateKey{
 			scheme:   s,
-			encapKey: encapKey,
-			decapKey: decapKey,
+			encapKey: dk.EncapsulationKey(),
+			decapKey: dk.Bytes(),
 		}
 }
 

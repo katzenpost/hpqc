@@ -15,11 +15,11 @@ import (
 )
 
 const (
-	SeedSize       = 64
+	SeedSize       = mlkem768.SeedSize
 	SharedKeySize  = mlkem768.SharedKeySize
 	CiphertextSize = mlkem768.CiphertextSize
 	PublicKeySize  = mlkem768.EncapsulationKeySize
-	PrivateKeySize = PublicKeySize + mlkem768.DecapsulationKeySize
+	PrivateKeySize = PublicKeySize + SeedSize // encap key + seed (d || z)
 )
 
 // tell the type checker that we obey these interfaces
@@ -67,7 +67,7 @@ func (p *PrivateKey) Scheme() kem.Scheme {
 }
 
 func (p *PrivateKey) MarshalBinary() ([]byte, error) {
-	return append(p.decapKey, p.encapKey...), nil
+	return append(p.encapKey, p.decapKey...), nil
 }
 
 func (p *PrivateKey) Equal(privkey kem.PrivateKey) bool {
@@ -92,17 +92,17 @@ func (s *scheme) Name() string {
 }
 
 func (a *scheme) GenerateKeyPair() (kem.PublicKey, kem.PrivateKey, error) {
-	encapKey, decapKey, err := mlkem768.GenerateKey()
+	dk, err := mlkem768.GenerateKey()
 	if err != nil {
 		return nil, nil, err
 	}
 	return &PublicKey{
 			scheme:   a,
-			encapKey: encapKey,
+			encapKey: dk.EncapsulationKey(),
 		}, &PrivateKey{
 			scheme:   a,
-			encapKey: encapKey,
-			decapKey: decapKey,
+			encapKey: dk.EncapsulationKey(),
+			decapKey: dk.Bytes(),
 		}, nil
 }
 
@@ -111,7 +111,11 @@ func (s *scheme) Encapsulate(pk kem.PublicKey) (ct, ss []byte, err error) {
 }
 
 func (s *scheme) Decapsulate(myPrivkey kem.PrivateKey, ct []byte) ([]byte, error) {
-	return mlkem768.Decapsulate(myPrivkey.(*PrivateKey).decapKey, ct)
+	dk, err := mlkem768.NewKeyFromSeed(myPrivkey.(*PrivateKey).decapKey)
+	if err != nil {
+		return nil, err
+	}
+	return mlkem768.Decapsulate(dk, ct)
 }
 
 func (s *scheme) UnmarshalBinaryPublicKey(b []byte) (kem.PublicKey, error) {
@@ -130,8 +134,8 @@ func (s *scheme) UnmarshalBinaryPrivateKey(b []byte) (kem.PrivateKey, error) {
 	}
 	return &PrivateKey{
 		scheme:   s,
-		decapKey: b[:mlkem768.DecapsulationKeySize],
-		encapKey: b[mlkem768.DecapsulationKeySize:],
+		encapKey: b[:PublicKeySize],
+		decapKey: b[PublicKeySize:],
 	}, nil
 }
 
@@ -163,17 +167,17 @@ func (s *scheme) DeriveKeyPair(seed []byte) (kem.PublicKey, kem.PrivateKey) {
 	if len(seed) != SeedSize {
 		panic(kem.ErrSeedSize)
 	}
-	encapKey, decapKey, err := mlkem768.NewKeyFromSeed(seed)
+	dk, err := mlkem768.NewKeyFromSeed(seed)
 	if err != nil {
 		panic(err)
 	}
 	return &PublicKey{
 			scheme:   s,
-			encapKey: encapKey,
+			encapKey: dk.EncapsulationKey(),
 		}, &PrivateKey{
 			scheme:   s,
-			encapKey: encapKey,
-			decapKey: decapKey,
+			encapKey: dk.EncapsulationKey(),
+			decapKey: dk.Bytes(),
 		}
 }
 
