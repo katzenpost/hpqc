@@ -23,6 +23,8 @@ github.com/katzenpost/chacha20poly1305 v0.0.0-20211026103954-7b6fb2fc0129 h1:BkX
 github.com/katzenpost/chacha20poly1305 v0.0.0-20211026103954-7b6fb2fc0129/go.mod h1:moU3dWG1uk4xayUNdUPs2Q3dx2Zsk5i9Ysfx+ujQrwM=
 github.com/katzenpost/circl v1.3.9-0.20240222183521-1cd9a34e9a0c h1:FYy03rLIjdyjklBOI6YSCb3q7OubTx0dVDWYOgDsvA8=
 github.com/katzenpost/circl v1.3.9-0.20240222183521-1cd9a34e9a0c/go.mod h1:+EBrwiGYs9S+qZqaqxujN1CReTNCMAG6p+31KkEDeeA=
+github.com/katzenpost/circl v1.3.9-0.20251030053153-8a71a806cd02 h1:gb3IXqAODjQKfht1Um1getepDTt9U7W0SFy+dVqEFrc=
+github.com/katzenpost/circl v1.3.9-0.20251030053153-8a71a806cd02/go.mod h1:Uv5vNSenUKpvNK2zT7llPz9RAM0NC5KiqdkCjHOdh8U=
 github.com/katzenpost/sntrup4591761 v0.0.0-20231024131303-8755eb1986b8 h1:TsKxH0x2RUwf5rBw67k15bqVM3oVbexA9oaTZQLIy3Y=
 github.com/katzenpost/sntrup4591761 v0.0.0-20231024131303-8755eb1986b8/go.mod h1:Hmcrwom7jcEmGdo0CsyuJNnldPeyS+M07FuCbo7I8fw=
 github.com/katzenpost/sphincsplus v0.0.2 h1:W1UWejLK62Lk0uK2R08H/sWEaQrRHWCaMEKO181SoOE=

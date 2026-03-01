@@ -12,7 +12,7 @@ require (
 	github.com/henrydcase/nobs v0.0.0-20230313231516-25b66236df73
 	github.com/katzenpost/chacha20 v0.0.0-20190910113340-7ce890d6a556
 	github.com/katzenpost/chacha20poly1305 v0.0.0-20211026103954-7b6fb2fc0129
-	github.com/katzenpost/circl v1.3.9-0.20240222183521-1cd9a34e9a0c
+	github.com/katzenpost/circl v1.3.9-0.20251030053153-8a71a806cd02
 	github.com/katzenpost/sntrup4591761 v0.0.0-20231024131303-8755eb1986b8
 	github.com/katzenpost/sphincsplus v0.0.2
 	github.com/stretchr/testify v1.8.4
