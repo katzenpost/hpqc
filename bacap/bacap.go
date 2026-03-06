@@ -297,7 +297,9 @@ func (m *MessageBoxIndex) EncryptForContext(owner *WriteCap, ctx []byte, plainte
 }
 
 // DecryptForContext decrypts the given ciphertext and verifies the given signature
-// using a key derives from the context and other cryptographic materials.
+// using a key derived from the context and other cryptographic materials.
+// For tombstones (empty ciphertext), it only verifies the signature and returns
+// empty plaintext without attempting decryption.
 func (m *MessageBoxIndex) DecryptForContext(box [BoxIDSize]byte, ctx []byte, ciphertext []byte, sig []byte) (plaintext []byte, err error) {
 	var boxPk ed25519.PublicKey
 	if err = boxPk.FromBytes(box[:]); err != nil {
@@ -306,6 +308,13 @@ func (m *MessageBoxIndex) DecryptForContext(box [BoxIDSize]byte, ctx []byte, cip
 	if !boxPk.Verify(sig, ciphertext) {
 		return nil, errors.New("signature verification failed")
 	}
+
+	// Handle tombstone: empty ciphertext means the box was tombstoned.
+	// The signature has been verified over the empty payload, so just return empty plaintext.
+	if len(ciphertext) == 0 {
+		return []byte{}, nil
+	}
+
 	eICtx := m.deriveEForContext(ctx)
 	sivdec, err := gcmsiv.NewGCMSIV(eICtx[:])
 	if err != nil {
