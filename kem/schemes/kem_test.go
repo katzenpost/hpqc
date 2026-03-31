@@ -78,7 +78,7 @@ func TestKEMTextUnmarshal(t *testing.T) {
 			continue
 		}
 		// Skip ctidh on macOS due to memory corruption issues
-		if runtime.GOOS == "darwin" && strings.HasPrefix(scheme.Name(), "ctidh") {
+		if runtime.GOOS == "darwin" && strings.HasPrefix(strings.ToLower(scheme.Name()), "ctidh") {
 			t.Logf("skipping %s on macOS", scheme.Name())
 			continue
 		}
