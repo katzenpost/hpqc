@@ -80,7 +80,7 @@ func TestKeypair(t *testing.T) {
 
 	require.Equal(t, privKeyBlob2, privKeyBlob)
 
-	privKey2.Reset()
+	privKey2.Zeroize()
 	require.True(t, util.CtIsZero(privKey2.privKey))
 
 	var pubKey PublicKey

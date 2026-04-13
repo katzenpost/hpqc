@@ -169,8 +169,8 @@ func (p *PrivateKey) SignMessage(message []byte) (signature []byte) {
 	return ed25519.Sign(p.privKey, message)
 }
 
-func (p *PrivateKey) Reset() {
-	p.pubKey.Reset()
+func (p *PrivateKey) Zeroize() {
+	p.pubKey.Zeroize()
 	util.ExplicitBzero(p.privKey)
 }
 
@@ -248,7 +248,7 @@ func (p *PublicKey) Verify(signature, message []byte) bool {
 	return ed25519.Verify(p.pubKey, message, signature)
 }
 
-func (p *PublicKey) Reset() {
+func (p *PublicKey) Zeroize() {
 	util.ExplicitBzero(p.pubKey)
 	p.b64String = "[scrubbed]"
 }

@@ -150,7 +150,7 @@ func (p *privateKey) UnmarshalBinary(b []byte) error {
 
 // end of sign.PublicKey interface
 
-func (p *privateKey) Reset() {
+func (p *privateKey) Zeroize() {
 	p.privateKey.Reset()
 }
 
@@ -187,7 +187,7 @@ func (p *publicKey) MarshalText() (text []byte, err error) {
 
 // end of sign.PublicKey interface
 
-func (p *publicKey) Reset() {
+func (p *publicKey) Zeroize() {
 	p.publicKey.Reset()
 }
 
