@@ -247,6 +247,7 @@ func (sch *Scheme) GenerateKeyPair() (kem.PublicKey, kem.PrivateKey, error) {
 
 // DeriveKeyPair uses a seed value to deterministically generate a key pair.
 func (sch *Scheme) DeriveKeyPair(seed []byte) (kem.PublicKey, kem.PrivateKey) {
+	defer coreUtil.ExplicitBzero(seed)
 	if len(seed) != sch.SeedSize() {
 		panic(fmt.Sprintf("seed size must be %d", sch.SeedSize()))
 	}

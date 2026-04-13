@@ -153,6 +153,7 @@ func (sch *Scheme) GenerateKeyPair() (kem.PublicKey, kem.PrivateKey, error) {
 }
 
 func (sch *Scheme) DeriveKeyPair(seed []byte) (kem.PublicKey, kem.PrivateKey) {
+	defer coreUtil.ExplicitBzero(seed)
 	if len(seed) != sch.first.SeedSize()+sch.second.SeedSize() {
 		panic(fmt.Sprintf("seed size must be %d", sch.first.SeedSize()+sch.second.SeedSize()))
 	}
