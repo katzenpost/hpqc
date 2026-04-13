@@ -170,11 +170,13 @@ func (sch *Scheme) Encapsulate(pk kem.PublicKey) (ct, ss []byte, err error) {
 	}
 
 	ct1, ss1, err := sch.first.Encapsulate(pub.first)
+	defer coreUtil.ExplicitBzero(ss1)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	ct2, ss2, err := sch.second.Encapsulate(pub.second)
+	defer coreUtil.ExplicitBzero(ss2)
 	if err != nil {
 		return nil, nil, err
 	}

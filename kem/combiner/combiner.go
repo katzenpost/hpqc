@@ -281,6 +281,11 @@ func (sch *Scheme) Encapsulate(pk kem.PublicKey) (ct, ss []byte, err error) {
 
 	ciphertexts := make([][]byte, len(sch.schemes))
 	sharedSecrets := make([][]byte, len(sch.schemes))
+	defer func() {
+		for _, ss := range sharedSecrets {
+			coreUtil.ExplicitBzero(ss)
+		}
+	}()
 	ciphertextBlob := []byte{}
 
 	for i := 0; i < len(sch.schemes); i++ {
