@@ -172,7 +172,7 @@ func (p *PrivateKey) DeriveSecret(pubKey nike.PublicKey) []byte {
 	return c.Bytes()
 }
 
-func (p *PrivateKey) Reset() {
+func (p *PrivateKey) Zeroize() {
 	b := make([]byte, privateKeySize)
 	err := p.FromBytes(b)
 	if err != nil {
@@ -236,7 +236,7 @@ func (p *PublicKey) CyclicInt() *cyclic.Int {
 	return p.publicKey
 }
 
-func (p *PublicKey) Reset() {
+func (p *PublicKey) Zeroize() {
 	b := make([]byte, publicKeySize)
 	p.FromBytes(b)
 }

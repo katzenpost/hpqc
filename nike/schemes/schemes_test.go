@@ -32,7 +32,7 @@ func TestNIKEUnmarshaling(t *testing.T) {
 		require.NoError(t, err)
 		refBytes := pubkey1.Bytes()
 		require.Equal(t, refBytes, pubkey2.Bytes())
-		pubkey1.Reset()
+		pubkey1.Zeroize()
 		_, err = pubkey1.MarshalBinary()
 		require.NoError(t, err)
 
@@ -43,7 +43,7 @@ func TestNIKEUnmarshaling(t *testing.T) {
 		t.Logf("privkey1blob is len %d", len(privkey1blob))
 		refBytes = privkey1.Bytes()
 
-		privkey1.Reset()
+		privkey1.Zeroize()
 		_, err = privkey1.MarshalBinary()
 		require.NoError(t, err)
 
@@ -114,7 +114,7 @@ func TestNIKEOps(t *testing.T) {
 		// test 4
 		require.False(t, util.CtIsZero(pubkey1.Bytes()))
 		pubblob1 := pubkey4.Bytes()
-		pubkey4.Reset()
+		pubkey4.Zeroize()
 		pubblob2 := pubkey4.Bytes()
 		require.False(t, util.CtIsZero(pubkey1.Bytes()))
 		require.NotEqual(t, pubkey1.Bytes(), pubkey4.Bytes())
@@ -123,7 +123,7 @@ func TestNIKEOps(t *testing.T) {
 
 		// test 5
 		privBlob1 := privkey2.Bytes()
-		privkey2.Reset()
+		privkey2.Zeroize()
 		privBlob2 := privkey2.Bytes()
 		require.NotEqual(t, privBlob1, privBlob2)
 

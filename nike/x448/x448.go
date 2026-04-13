@@ -170,7 +170,7 @@ func (p *PrivateKey) Public() nike.PublicKey {
 	return pubKey
 }
 
-func (p *PrivateKey) Reset() {
+func (p *PrivateKey) Zeroize() {
 	zeros := make([]byte, PrivateKeySize)
 	err := p.FromBytes(zeros)
 	if err != nil {
@@ -230,7 +230,7 @@ func (p *PublicKey) Blind(blindingFactor nike.PrivateKey) error {
 	return nil
 }
 
-func (p *PublicKey) Reset() {
+func (p *PublicKey) Zeroize() {
 	zeros := make([]byte, PublicKeySize)
 	err := p.FromBytes(zeros)
 	if err != nil {

@@ -16,8 +16,8 @@ type Key interface {
 	encoding.TextMarshaler
 	encoding.TextUnmarshaler
 
-	// Reset resets the key material to all zeros.
-	Reset()
+	// Zeroize sets the key material to all zeros.
+	Zeroize()
 
 	// Bytes serializes key material into a byte slice.
 	Bytes() []byte

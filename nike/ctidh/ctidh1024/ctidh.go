@@ -139,7 +139,7 @@ func (p *PublicKey) Blind(blindingFactor nike.PrivateKey) error {
 	return p.publicKey.Blind(blindingFactor.(*PrivateKey).privateKey)
 }
 
-func (p *PublicKey) Reset() {
+func (p *PublicKey) Zeroize() {
 	p.publicKey.Reset()
 }
 
@@ -189,7 +189,7 @@ func (p *PrivateKey) Public() nike.PublicKey {
 	}
 }
 
-func (p *PrivateKey) Reset() {
+func (p *PrivateKey) Zeroize() {
 	p.privateKey.Reset()
 }
 

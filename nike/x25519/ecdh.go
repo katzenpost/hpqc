@@ -55,7 +55,7 @@ func (p *PrivateKey) Public() nike.PublicKey {
 	return Scheme(rand.Reader).DerivePublicKey(p)
 }
 
-func (p *PrivateKey) Reset() {
+func (p *PrivateKey) Zeroize() {
 	b := make([]byte, PrivateKeySize)
 	err := p.FromBytes(b)
 	if err != nil {
@@ -117,7 +117,7 @@ func (p *PublicKey) Blind(blindingFactor nike.PrivateKey) error {
 	return nil
 }
 
-func (p *PublicKey) Reset() {
+func (p *PublicKey) Zeroize() {
 	util.ExplicitBzero(p[:])
 }
 

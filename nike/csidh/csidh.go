@@ -150,7 +150,7 @@ func (p *PublicKey) Blind(blindingFactor nike.PrivateKey) error {
 	panic("Blind operation not implemented")
 }
 
-func (p *PublicKey) Reset() {
+func (p *PublicKey) Zeroize() {
 	zeros := make([]byte, csidh.PublicKeySize)
 	err := p.FromBytes(zeros)
 	if err != nil {
@@ -209,7 +209,7 @@ func (p *PrivateKey) Public() nike.PublicKey {
 	return NOBS_CSIDH512Scheme.DerivePublicKey(p)
 }
 
-func (p *PrivateKey) Reset() {
+func (p *PrivateKey) Zeroize() {
 	zeros := make([]byte, csidh.PrivateKeySize)
 	err := p.FromBytes(zeros)
 	if err != nil {

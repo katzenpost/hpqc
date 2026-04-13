@@ -176,9 +176,9 @@ func (p *privateKey) Public() nike.PublicKey {
 	}
 }
 
-func (p *privateKey) Reset() {
-	p.first.Reset()
-	p.second.Reset()
+func (p *privateKey) Zeroize() {
+	p.first.Zeroize()
+	p.second.Zeroize()
 }
 
 func (p *privateKey) Bytes() []byte {
@@ -224,20 +224,20 @@ func (p *privateKey) UnmarshalText(data []byte) error {
 func (p *publicKey) Blind(blindingFactor nike.PrivateKey) error {
 	err := p.first.Blind(blindingFactor.(*privateKey).first)
 	if err != nil {
-		p.Reset()
+		p.Zeroize()
 		return err
 	}
 	err = p.second.Blind(blindingFactor.(*privateKey).second)
 	if err != nil {
-		p.Reset()
+		p.Zeroize()
 		return err
 	}
 	return nil
 }
 
-func (p *publicKey) Reset() {
-	p.first.Reset()
-	p.second.Reset()
+func (p *publicKey) Zeroize() {
+	p.first.Zeroize()
+	p.second.Zeroize()
 }
 
 func (p *publicKey) Bytes() []byte {
