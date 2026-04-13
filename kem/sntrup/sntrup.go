@@ -14,6 +14,7 @@ import (
 
 	"github.com/katzenpost/hpqc/kem"
 	"github.com/katzenpost/hpqc/kem/pem"
+	coreUtil "github.com/katzenpost/hpqc/util"
 
 	sntrup "github.com/katzenpost/sntrup4591761"
 
@@ -97,6 +98,7 @@ func NewKeyFromSeed(seed []byte) (*PublicKey, *PrivateKey) {
 // If rand is nil, hpqc/rand.Reader will be used.
 func GenerateKeyPair(rng io.Reader) (*PublicKey, *PrivateKey, error) {
 	var seed [KeySeedSize]byte
+	defer coreUtil.ExplicitBzero(seed[:])
 	if rng == nil {
 		rng = rand.Reader
 	}
@@ -247,6 +249,7 @@ func (pk *PublicKey) EncapsulateTo(ct, ss []byte, seed []byte) {
 	if err != nil {
 		panic(err)
 	}
+	defer coreUtil.ExplicitBzero(sharedkey[:])
 
 	copy(ct, ciphertext[:])
 	copy(ss, sharedkey[:])
@@ -307,6 +310,7 @@ func (sk *PrivateKey) DecapsulateTo(ss, ct []byte) {
 	if ok != 1 {
 		panic("sntrup.Decapsulate failed")
 	}
+	defer coreUtil.ExplicitBzero(sharedkey[:])
 	copy(ss, sharedkey[:])
 }
 
