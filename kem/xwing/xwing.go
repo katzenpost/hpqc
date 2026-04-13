@@ -12,7 +12,7 @@ import (
 	"filippo.io/mlkem768/xwing"
 
 	"github.com/katzenpost/hpqc/kem"
-	"github.com/katzenpost/hpqc/kem/pem"
+	"github.com/katzenpost/hpqc/util"
 )
 
 const (
@@ -40,10 +40,6 @@ type PublicKey struct {
 
 func (p *PublicKey) Scheme() kem.Scheme {
 	return p.scheme
-}
-
-func (p *PublicKey) MarshalText() (text []byte, err error) {
-	return pem.ToPublicPEMBytes(p), nil
 }
 
 func (p *PublicKey) MarshalBinary() ([]byte, error) {
@@ -76,6 +72,12 @@ func (p *PrivateKey) Equal(privkey kem.PrivateKey) bool {
 		return false
 	}
 	return hmac.Equal(privkey.(*PrivateKey).decapKey, p.decapKey)
+}
+
+func (p *PrivateKey) Zeroize() {
+	util.ExplicitBzero(p.decapKey)
+	p.decapKey = nil
+	p.encapKey = nil
 }
 
 func (p *PrivateKey) Public() kem.PublicKey {
@@ -138,14 +140,6 @@ func (s *scheme) UnmarshalBinaryPrivateKey(b []byte) (kem.PrivateKey, error) {
 		encapKey: b[:PublicKeySize],
 		decapKey: b[PublicKeySize:],
 	}, nil
-}
-
-func (s *scheme) UnmarshalTextPublicKey(text []byte) (kem.PublicKey, error) {
-	return pem.FromPublicPEMBytes(text, s)
-}
-
-func (s *scheme) UnmarshalTextPrivateKey(text []byte) (kem.PrivateKey, error) {
-	return pem.FromPrivatePEMBytes(text, s)
 }
 
 func (s *scheme) CiphertextSize() int {

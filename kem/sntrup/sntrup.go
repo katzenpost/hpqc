@@ -13,7 +13,7 @@ import (
 	"golang.org/x/crypto/hkdf"
 
 	"github.com/katzenpost/hpqc/kem"
-	"github.com/katzenpost/hpqc/kem/pem"
+	"github.com/katzenpost/hpqc/util"
 
 	sntrup "github.com/katzenpost/sntrup4591761"
 
@@ -201,14 +201,6 @@ func (s *scheme) UnmarshalBinaryPrivateKey(buf []byte) (kem.PrivateKey, error) {
 	}, nil
 }
 
-func (s *scheme) UnmarshalTextPublicKey(text []byte) (kem.PublicKey, error) {
-	return pem.FromPublicPEMBytes(text, s)
-}
-
-func (s *scheme) UnmarshalTextPrivateKey(text []byte) (kem.PrivateKey, error) {
-	return pem.FromPrivatePEMBytes(text, s)
-}
-
 // public key methods
 
 func (pk *PublicKey) Scheme() kem.Scheme {
@@ -256,9 +248,7 @@ func (pk *PublicKey) MarshalBinary() (data []byte, err error) {
 	return pk.key[:], nil
 }
 
-func (pk *PublicKey) MarshalText() (text []byte, err error) {
-	return pem.ToPublicPEMBytes(pk), nil
-}
+
 
 func (pk *PublicKey) Equal(other kem.PublicKey) bool {
 	oth, ok := other.(*PublicKey)
@@ -275,6 +265,11 @@ func (pk *PublicKey) Equal(other kem.PublicKey) bool {
 
 func (sk *PrivateKey) Scheme() kem.Scheme {
 	return sk.scheme
+}
+
+func (sk *PrivateKey) Zeroize() {
+	util.ExplicitBzero(sk.key[:])
+	sk.key = nil
 }
 
 func (sk *PrivateKey) Public() kem.PublicKey {

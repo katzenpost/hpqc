@@ -28,7 +28,6 @@ import (
 	"fmt"
 
 	"github.com/katzenpost/hpqc/kem"
-	"github.com/katzenpost/hpqc/kem/pem"
 	"github.com/katzenpost/hpqc/kem/util"
 	coreUtil "github.com/katzenpost/hpqc/util"
 	"golang.org/x/crypto/blake2b"
@@ -104,6 +103,13 @@ func (sk *PrivateKey) Equal(other kem.PrivateKey) bool {
 	return true
 }
 
+// Zeroize sets all private key material to zeros.
+func (sk *PrivateKey) Zeroize() {
+	for i := range sk.keys {
+		sk.keys[i].Zeroize()
+	}
+}
+
 // Public returns a public key, given a private key.
 func (sk *PrivateKey) Public() kem.PublicKey {
 	pubkeys := make([]kem.PublicKey, len(sk.keys))
@@ -157,10 +163,6 @@ func (sk *PublicKey) MarshalBinary() ([]byte, error) {
 	}
 
 	return blobs, nil
-}
-
-func (sk *PublicKey) MarshalText() (text []byte, err error) {
-	return pem.ToPublicPEMBytes(sk), nil
 }
 
 // Scheme methods
@@ -230,6 +232,9 @@ func (sch *Scheme) GenerateKeyPair() (kem.PublicKey, kem.PrivateKey, error) {
 	for i := 0; i < len(sch.schemes); i++ {
 		pk, sk, err := sch.schemes[i].GenerateKeyPair()
 		if err != nil {
+			for j := 0; j < i; j++ {
+				privKeys[j].Zeroize()
+			}
 			return nil, nil, err
 		}
 		pubKeys[i] = pk
@@ -398,10 +403,3 @@ func (sch *Scheme) UnmarshalBinaryPrivateKey(buf []byte) (kem.PrivateKey, error)
 	}, nil
 }
 
-func (sch *Scheme) UnmarshalTextPublicKey(text []byte) (kem.PublicKey, error) {
-	return pem.FromPublicPEMBytes(text, sch)
-}
-
-func (sch *Scheme) UnmarshalTextPrivateKey(text []byte) (kem.PrivateKey, error) {
-	return pem.FromPrivatePEMBytes(text, sch)
-}

@@ -18,7 +18,7 @@ import (
 	"github.com/katzenpost/hpqc/rand"
 )
 
-func TestKEMTextUnmarshal(t *testing.T) {
+func TestKEMMarshal(t *testing.T) {
 	todo := All()
 
 	dir, err := ioutil.TempDir("", "example")
@@ -34,22 +34,19 @@ func TestKEMTextUnmarshal(t *testing.T) {
 		require.NoError(t, err)
 		pubkey, privkey = s.DeriveKeyPair(seed)
 
-		blob1, err := pubkey.MarshalText()
+		blob1, err := pubkey.MarshalBinary()
+		require.NoError(t, err)
+		require.Equal(t, s.PublicKeySize(), len(blob1))
+
+		testpubkey2, err := s.UnmarshalBinaryPublicKey(blob1)
 		require.NoError(t, err)
 
-		testpubkey2, err := s.UnmarshalTextPublicKey(blob1)
-		require.NoError(t, err)
-
-		blob2, err := testpubkey2.MarshalText()
+		blob2, err := testpubkey2.MarshalBinary()
 		require.NoError(t, err)
 
 		require.Equal(t, blob1, blob2)
 
-		blob1, err = pubkey.MarshalBinary()
-		require.NoError(t, err)
-		require.Equal(t, s.PublicKeySize(), len(blob1))
-
-		// test private key marshaling/unmarshaling
+		// test private key marshaling/unmarshaling via PEM files
 		privfile := filepath.Join(dir, "privkey.pem")
 		err = pem.PrivateKeyToFile(privfile, privkey)
 		require.NoError(t, err)

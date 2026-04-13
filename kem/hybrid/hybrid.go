@@ -17,7 +17,6 @@ import (
 	"fmt"
 
 	"github.com/katzenpost/hpqc/kem"
-	"github.com/katzenpost/hpqc/kem/pem"
 	"github.com/katzenpost/hpqc/kem/util"
 	coreUtil "github.com/katzenpost/hpqc/util"
 	"golang.org/x/crypto/blake2b"
@@ -100,16 +99,17 @@ func (sk *PrivateKey) MarshalBinary() ([]byte, error) {
 	return append(first, second...), nil
 }
 
-func (sk *PublicKey) MarshalText() (text []byte, err error) {
-	return pem.ToPublicPEMBytes(sk), nil
-}
-
 func (sk *PrivateKey) Equal(other kem.PrivateKey) bool {
 	oth, ok := other.(*PrivateKey)
 	if !ok {
 		return false
 	}
 	return sk.first.Equal(oth.first) && sk.second.Equal(oth.second)
+}
+
+func (sk *PrivateKey) Zeroize() {
+	sk.first.Zeroize()
+	sk.second.Zeroize()
 }
 
 func (sk *PrivateKey) Public() kem.PublicKey {
@@ -146,6 +146,7 @@ func (sch *Scheme) GenerateKeyPair() (kem.PublicKey, kem.PrivateKey, error) {
 	}
 	pk2, sk2, err := sch.second.GenerateKeyPair()
 	if err != nil {
+		sk1.Zeroize()
 		return nil, nil, err
 	}
 
@@ -246,10 +247,3 @@ func (sch *Scheme) UnmarshalBinaryPrivateKey(buf []byte) (kem.PrivateKey, error)
 	return &PrivateKey{sch, sk1, sk2}, nil
 }
 
-func (a *Scheme) UnmarshalTextPublicKey(text []byte) (kem.PublicKey, error) {
-	return pem.FromPublicPEMBytes(text, a)
-}
-
-func (a *Scheme) UnmarshalTextPrivateKey(text []byte) (kem.PrivateKey, error) {
-	return pem.FromPrivatePEMBytes(text, a)
-}
