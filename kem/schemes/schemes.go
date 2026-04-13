@@ -18,6 +18,7 @@ import (
 
 	"github.com/katzenpost/hpqc/kem"
 	"github.com/katzenpost/hpqc/kem/adapter"
+	"github.com/katzenpost/hpqc/kem/circlkem"
 	"github.com/katzenpost/hpqc/kem/combiner"
 	"github.com/katzenpost/hpqc/kem/hybrid"
 	"github.com/katzenpost/hpqc/kem/mlkem768"
@@ -74,17 +75,17 @@ var allSchemes = []kem.Scheme{
 
 	mlkem768.Scheme(),
 	sntrup.Scheme(),
-	frodo640shake.Scheme(),
-	mceliece348864.Scheme(),
-	mceliece348864f.Scheme(),
-	mceliece460896.Scheme(),
-	mceliece460896f.Scheme(),
-	mceliece6688128.Scheme(),
-	mceliece6688128f.Scheme(),
-	mceliece6960119.Scheme(),
-	mceliece6960119f.Scheme(),
-	mceliece8192128.Scheme(),
-	mceliece8192128f.Scheme(),
+	circlkem.FromCircl(frodo640shake.Scheme()),
+	circlkem.FromCircl(mceliece348864.Scheme()),
+	circlkem.FromCircl(mceliece348864f.Scheme()),
+	circlkem.FromCircl(mceliece460896.Scheme()),
+	circlkem.FromCircl(mceliece460896f.Scheme()),
+	circlkem.FromCircl(mceliece6688128.Scheme()),
+	circlkem.FromCircl(mceliece6688128f.Scheme()),
+	circlkem.FromCircl(mceliece6960119.Scheme()),
+	circlkem.FromCircl(mceliece6960119f.Scheme()),
+	circlkem.FromCircl(mceliece8192128.Scheme()),
+	circlkem.FromCircl(mceliece8192128f.Scheme()),
 
 	// hybrid KEM schemes
 
@@ -95,7 +96,7 @@ var allSchemes = []kem.Scheme{
 	hybrid.New(
 		"Kyber768-X25519",
 		adapter.FromNIKE(x25519.Scheme(rand.Reader)),
-		kyber768.Scheme(),
+		circlkem.FromCircl(kyber768.Scheme()),
 	),
 
 	// If Xwing is not the PQ Hybrid KEM you are looking for then we recommend
@@ -119,7 +120,7 @@ var allSchemes = []kem.Scheme{
 		"FrodoKEM-640-SHAKE-X448",
 		[]kem.Scheme{
 			adapter.FromNIKE(x448.Scheme(rand.Reader)),
-			frodo640shake.Scheme(),
+			circlkem.FromCircl(frodo640shake.Scheme()),
 		},
 	),
 	combiner.New(
@@ -135,70 +136,70 @@ var allSchemes = []kem.Scheme{
 		"mceliece348864-X25519",
 		[]kem.Scheme{
 			adapter.FromNIKE(x25519.Scheme(rand.Reader)),
-			mceliece348864.Scheme(),
+			circlkem.FromCircl(mceliece348864.Scheme()),
 		},
 	),
 	combiner.New(
 		"mceliece348864f-X25519",
 		[]kem.Scheme{
 			adapter.FromNIKE(x25519.Scheme(rand.Reader)),
-			mceliece348864f.Scheme(),
+			circlkem.FromCircl(mceliece348864f.Scheme()),
 		},
 	),
 	combiner.New(
 		"mceliece460896-X25519",
 		[]kem.Scheme{
 			adapter.FromNIKE(x25519.Scheme(rand.Reader)),
-			mceliece460896.Scheme(),
+			circlkem.FromCircl(mceliece460896.Scheme()),
 		},
 	),
 	combiner.New(
 		"mceliece460896f-X25519",
 		[]kem.Scheme{
 			adapter.FromNIKE(x25519.Scheme(rand.Reader)),
-			mceliece460896f.Scheme(),
+			circlkem.FromCircl(mceliece460896f.Scheme()),
 		},
 	),
 	combiner.New(
 		"mceliece6688128-X25519",
 		[]kem.Scheme{
 			adapter.FromNIKE(x25519.Scheme(rand.Reader)),
-			mceliece6688128.Scheme(),
+			circlkem.FromCircl(mceliece6688128.Scheme()),
 		},
 	),
 	combiner.New(
 		"mceliece6688128f-X25519",
 		[]kem.Scheme{
 			adapter.FromNIKE(x25519.Scheme(rand.Reader)),
-			mceliece6688128f.Scheme(),
+			circlkem.FromCircl(mceliece6688128f.Scheme()),
 		},
 	),
 	combiner.New(
 		"mceliece6960119-X25519",
 		[]kem.Scheme{
 			adapter.FromNIKE(x25519.Scheme(rand.Reader)),
-			mceliece6960119.Scheme(),
+			circlkem.FromCircl(mceliece6960119.Scheme()),
 		},
 	),
 	combiner.New(
 		"mceliece6960119f-X25519",
 		[]kem.Scheme{
 			adapter.FromNIKE(x25519.Scheme(rand.Reader)),
-			mceliece6960119f.Scheme(),
+			circlkem.FromCircl(mceliece6960119f.Scheme()),
 		},
 	),
 	combiner.New(
 		"mceliece8192128-X25519",
 		[]kem.Scheme{
 			adapter.FromNIKE(x25519.Scheme(rand.Reader)),
-			mceliece8192128.Scheme(),
+			circlkem.FromCircl(mceliece8192128.Scheme()),
 		},
 	),
 	combiner.New(
 		"mceliece8192128f-X25519",
 		[]kem.Scheme{
 			adapter.FromNIKE(x25519.Scheme(rand.Reader)),
-			mceliece8192128f.Scheme(),
+			circlkem.FromCircl(mceliece8192128f.Scheme()),
 		},
 	),
 }
