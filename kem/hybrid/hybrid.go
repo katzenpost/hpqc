@@ -19,6 +19,7 @@ import (
 	"github.com/katzenpost/hpqc/kem"
 	"github.com/katzenpost/hpqc/kem/pem"
 	"github.com/katzenpost/hpqc/kem/util"
+	coreUtil "github.com/katzenpost/hpqc/util"
 	"golang.org/x/crypto/blake2b"
 )
 
@@ -197,10 +198,12 @@ func (sch *Scheme) Decapsulate(sk kem.PrivateKey, ct []byte) ([]byte, error) {
 
 	firstSize := sch.first.CiphertextSize()
 	ss1, err := sch.first.Decapsulate(priv.first, ct[:firstSize])
+	defer coreUtil.ExplicitBzero(ss1)
 	if err != nil {
 		return nil, err
 	}
 	ss2, err := sch.second.Decapsulate(priv.second, ct[firstSize:])
+	defer coreUtil.ExplicitBzero(ss2)
 	if err != nil {
 		return nil, err
 	}

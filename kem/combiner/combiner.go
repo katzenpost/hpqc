@@ -30,6 +30,7 @@ import (
 	"github.com/katzenpost/hpqc/kem"
 	"github.com/katzenpost/hpqc/kem/pem"
 	"github.com/katzenpost/hpqc/kem/util"
+	coreUtil "github.com/katzenpost/hpqc/util"
 	"golang.org/x/crypto/blake2b"
 )
 
@@ -314,11 +315,17 @@ func (sch *Scheme) Decapsulate(sk kem.PrivateKey, ct []byte) ([]byte, error) {
 	}
 
 	sharedSecrets := make([][]byte, len(sch.schemes))
+	defer func() {
+		for _, ss := range sharedSecrets {
+			coreUtil.ExplicitBzero(ss)
+		}
+	}()
 	ciphertexts := make([][]byte, len(sch.schemes))
 	offset := sch.schemes[0].CiphertextSize()
 
 	ss, err := sch.schemes[0].Decapsulate(priv.keys[0], ct[:offset])
 	if err != nil {
+		coreUtil.ExplicitBzero(ss)
 		return nil, err
 	}
 
