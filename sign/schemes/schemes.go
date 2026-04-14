@@ -11,6 +11,7 @@ import (
 	"github.com/katzenpost/circl/sign/eddilithium3"
 
 	"github.com/katzenpost/hpqc/sign"
+	"github.com/katzenpost/hpqc/sign/circlsign"
 	"github.com/katzenpost/hpqc/sign/ed25519"
 	"github.com/katzenpost/hpqc/sign/hybrid"
 	"github.com/katzenpost/hpqc/sign/sphincsplus"
@@ -28,11 +29,11 @@ var potentialSchemes = [...]sign.Scheme{
 var allSchemes = []sign.Scheme{
 	// classical
 	ed25519.Scheme(),
-	ed448.Scheme(),
+	circlsign.FromCircl(ed448.Scheme()),
 
 	// hybrid post quantum
-	eddilithium2.Scheme(),
-	eddilithium3.Scheme(),
+	circlsign.FromCircl(eddilithium2.Scheme()),
+	circlsign.FromCircl(eddilithium3.Scheme()),
 }
 
 var allSchemeNames map[string]sign.Scheme

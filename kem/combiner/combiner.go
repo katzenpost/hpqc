@@ -28,7 +28,6 @@ import (
 	"fmt"
 
 	"github.com/katzenpost/hpqc/kem"
-	"github.com/katzenpost/hpqc/kem/pem"
 	"github.com/katzenpost/hpqc/kem/util"
 	coreUtil "github.com/katzenpost/hpqc/util"
 	"golang.org/x/crypto/blake2b"
@@ -157,10 +156,6 @@ func (sk *PublicKey) MarshalBinary() ([]byte, error) {
 	}
 
 	return blobs, nil
-}
-
-func (sk *PublicKey) MarshalText() (text []byte, err error) {
-	return pem.ToPublicPEMBytes(sk), nil
 }
 
 // Scheme methods
@@ -398,10 +393,3 @@ func (sch *Scheme) UnmarshalBinaryPrivateKey(buf []byte) (kem.PrivateKey, error)
 	}, nil
 }
 
-func (sch *Scheme) UnmarshalTextPublicKey(text []byte) (kem.PublicKey, error) {
-	return pem.FromPublicPEMBytes(text, sch)
-}
-
-func (sch *Scheme) UnmarshalTextPrivateKey(text []byte) (kem.PrivateKey, error) {
-	return pem.FromPrivatePEMBytes(text, sch)
-}

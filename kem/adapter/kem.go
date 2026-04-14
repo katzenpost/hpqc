@@ -12,7 +12,6 @@ import (
 	"golang.org/x/crypto/blake2b"
 
 	"github.com/katzenpost/hpqc/kem"
-	"github.com/katzenpost/hpqc/kem/pem"
 	"github.com/katzenpost/hpqc/nike"
 	coreUtil "github.com/katzenpost/hpqc/util"
 )
@@ -34,10 +33,6 @@ type PublicKey struct {
 
 func (p *PublicKey) Scheme() kem.Scheme {
 	return p.scheme
-}
-
-func (p *PublicKey) MarshalText() (text []byte, err error) {
-	return pem.ToPublicPEMBytes(p), nil
 }
 
 func (p *PublicKey) MarshalBinary() ([]byte, error) {
@@ -217,14 +212,6 @@ func (a *Scheme) UnmarshalBinaryPrivateKey(b []byte) (kem.PrivateKey, error) {
 		privateKey: privkey,
 		scheme:     a,
 	}, nil
-}
-
-func (a *Scheme) UnmarshalTextPublicKey(text []byte) (kem.PublicKey, error) {
-	return pem.FromPublicPEMBytes(text, a)
-}
-
-func (a *Scheme) UnmarshalTextPrivateKey(text []byte) (kem.PrivateKey, error) {
-	return pem.FromPrivatePEMBytes(text, a)
 }
 
 // Size of encapsulated keys.

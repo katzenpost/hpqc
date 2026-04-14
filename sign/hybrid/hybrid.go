@@ -9,7 +9,6 @@ import (
 	"io"
 
 	"github.com/katzenpost/hpqc/sign"
-	"github.com/katzenpost/hpqc/sign/pem"
 )
 
 // Scheme is for hybrid signature schemes.
@@ -203,11 +202,17 @@ func (p *PrivateKey) MarshalBinary() ([]byte, error) {
 }
 
 func (p *PrivateKey) UnmarshalBinary(b []byte) error {
-	err := p.first.UnmarshalBinary(b[:p.first.Scheme().PrivateKeySize()])
+	first, err := p.scheme.first.UnmarshalBinaryPrivateKey(b[:p.scheme.first.PrivateKeySize()])
 	if err != nil {
 		return err
 	}
-	return p.second.UnmarshalBinary(b[p.first.Scheme().PrivateKeySize():])
+	second, err := p.scheme.second.UnmarshalBinaryPrivateKey(b[p.scheme.first.PrivateKeySize():])
+	if err != nil {
+		return err
+	}
+	p.first = first
+	p.second = second
+	return nil
 }
 
 // PublicKey is the public key in hybrid signature scheme.
@@ -253,6 +258,3 @@ func (p *PublicKey) MarshalBinary() ([]byte, error) {
 	return append(blob1, blob2...), nil
 }
 
-func (p *PublicKey) MarshalText() (text []byte, err error) {
-	return pem.ToPublicPEMBytes(p), nil
-}
