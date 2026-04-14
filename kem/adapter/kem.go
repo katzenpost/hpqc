@@ -13,6 +13,7 @@ import (
 
 	"github.com/katzenpost/hpqc/kem"
 	"github.com/katzenpost/hpqc/nike"
+	coreUtil "github.com/katzenpost/hpqc/util"
 )
 
 const (
@@ -132,6 +133,7 @@ func (a *Scheme) Encapsulate(pk kem.PublicKey) (ct, ss []byte, err error) {
 	}
 	// ss = DH(my_privkey, their_pubkey)
 	ss = a.nike.DeriveSecret(sk2.(*PrivateKey).privateKey, theirPubkey.publicKey)
+	defer coreUtil.ExplicitBzero(ss)
 	// ss2 = H(ss || their_pubkey || my_pubkey)
 	ss2 := a.hash(ss, theirPubkey.publicKey.Bytes(), myPubkey.(*PublicKey).publicKey.Bytes())
 	ct, _ = myPubkey.MarshalBinary()
@@ -180,6 +182,7 @@ func (a *Scheme) Decapsulate(myPrivkey kem.PrivateKey, ct []byte) ([]byte, error
 	}
 	// s = DH(my_privkey, their_pubkey)
 	ss := a.nike.DeriveSecret(myPrivkey.(*PrivateKey).privateKey, theirPubkey.(*PublicKey).publicKey)
+	defer coreUtil.ExplicitBzero(ss)
 	// shared_key = H(ss || my_pubkey || their_pubkey)
 	ss2 := a.hash(ss, myPrivkey.Public().(*PublicKey).publicKey.Bytes(), theirPubkey.(*PublicKey).publicKey.Bytes())
 	return ss2, nil
@@ -248,6 +251,7 @@ func (a *Scheme) DeriveKeyPair(seed []byte) (kem.PublicKey, kem.PrivateKey) {
 	}
 
 	seedHash := blake2b.Sum256(seed)
+	defer coreUtil.ExplicitBzero(seedHash[:])
 	count, err := h.Write(seedHash[:])
 	if err != nil {
 		panic(err)
