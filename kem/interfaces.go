@@ -73,7 +73,6 @@ import (
 
 // A KEM public key
 type PublicKey interface {
-	encoding.TextMarshaler
 	encoding.BinaryMarshaler
 
 	// Returns the scheme for this public key
@@ -117,12 +116,6 @@ type Scheme interface {
 
 	// UnmarshalBinaryPrivateKey unmarshals a PrivateKey from the provided buffer.
 	UnmarshalBinaryPrivateKey([]byte) (PrivateKey, error)
-
-	// UnmarshalTextPublicKey unmarshals a PublicKey from the provided text.
-	UnmarshalTextPublicKey([]byte) (PublicKey, error)
-
-	// UnmarshalTextPrivateKey unmarshals a PrivateKey from the provided text.
-	UnmarshalTextPrivateKey([]byte) (PrivateKey, error)
 
 	// Size of encapsulated keys.
 	CiphertextSize() int
