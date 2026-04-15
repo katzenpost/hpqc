@@ -8,4 +8,5 @@ package hybrid
 import "github.com/katzenpost/hpqc/sign"
 
 var Ed25519Sphincs sign.Scheme = nil
+var Ed25519SphincsLegacy sign.Scheme = nil
 var Ed448Sphincs sign.Scheme = nil

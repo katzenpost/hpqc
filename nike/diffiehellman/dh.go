@@ -5,6 +5,7 @@ package diffiehellman
 
 import (
 	"encoding/base64"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"io"
@@ -142,13 +143,25 @@ func (d *dhNIKE) NewKeypair(rng io.Reader) (nike.PrivateKey, nike.PublicKey) {
 
 func (d *dhNIKE) DeriveSecret(privateKey nike.PrivateKey, publicKey nike.PublicKey) []byte {
 	c := diffieHellman.GenerateSessionKey(privateKey.(*PrivateKey).privateKey, publicKey.(*PublicKey).publicKey, Scheme().group())
-	return c.BinaryEncode()
+	return paddedBinaryEncode(c)
 }
 
 func (d *dhNIKE) Blind(groupMember nike.PublicKey, blindingFactor nike.PrivateKey) nike.PublicKey {
 	return &PublicKey{
 		publicKey: diffieHellman.GenerateSessionKey(blindingFactor.(*PrivateKey).privateKey, groupMember.(*PublicKey).publicKey, Scheme().group()),
 	}
+}
+
+// paddedBinaryEncode encodes a cyclic.Int into a fixed-size byte slice.
+// cyclic.Int.BinaryEncode returns an 8-byte fingerprint followed by the big
+// integer's variable-length bytes. When the integer has leading zero bytes,
+// the result is shorter than expected. This function left-pads the integer
+// portion to groupSize so that the total length is always groupSize + 8.
+func paddedBinaryEncode(z *cyclic.Int) []byte {
+	buf := make([]byte, groupSize+8)
+	binary.LittleEndian.PutUint64(buf[:8], z.GetGroupFingerprint())
+	copy(buf[8:], z.LeftpadBytes(groupSize))
+	return buf
 }
 
 func (d *dhNIKE) DerivePublicKey(privKey nike.PrivateKey) nike.PublicKey {
@@ -184,7 +197,7 @@ func (p *PrivateKey) Bytes() []byte {
 	if p.privateKey == nil {
 		return nil
 	}
-	return p.privateKey.BinaryEncode()
+	return paddedBinaryEncode(p.privateKey)
 }
 
 func (p *PrivateKey) FromBytes(data []byte) error {
@@ -245,7 +258,7 @@ func (p *PublicKey) Bytes() []byte {
 	if p.publicKey == nil {
 		return nil
 	}
-	return p.publicKey.BinaryEncode()
+	return paddedBinaryEncode(p.publicKey)
 }
 
 func (p *PublicKey) FromBytes(data []byte) error {

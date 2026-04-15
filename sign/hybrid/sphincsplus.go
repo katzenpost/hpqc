@@ -14,5 +14,6 @@ import (
 	"github.com/katzenpost/hpqc/sign/sphincsplus"
 )
 
-var Ed25519Sphincs = New("Ed25519 Sphincs+", ed25519.Scheme(), sphincsplus.Scheme())
+var Ed25519Sphincs = New("Ed25519-Sphincs+", ed25519.Scheme(), sphincsplus.Scheme())
+var Ed25519SphincsLegacy = New("Ed25519 Sphincs+", ed25519.Scheme(), sphincsplus.Scheme())
 var Ed448Sphincs = New("Ed448-Sphincs+", circlsign.FromCircl(ed448.Scheme()), sphincsplus.Scheme())

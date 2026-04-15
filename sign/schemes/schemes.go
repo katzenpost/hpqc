@@ -23,6 +23,7 @@ var potentialSchemes = [...]sign.Scheme{
 
 	// post quantum hybrids
 	hybrid.Ed25519Sphincs,
+	hybrid.Ed25519SphincsLegacy,
 	hybrid.Ed448Sphincs,
 }
 
