@@ -4,6 +4,8 @@ import (
 	"encoding/base64"
 	"io"
 
+	"golang.org/x/crypto/blake2b"
+
 	"github.com/katzenpost/hpqc/nike"
 )
 
@@ -116,6 +118,28 @@ func (s *Scheme) GenerateKeyPair() (nike.PublicKey, nike.PrivateKey, error) {
 func (s *Scheme) DeriveSecret(privKey nike.PrivateKey, pubKey nike.PublicKey) []byte {
 	return append(privKey.(*privateKey).scheme.first.DeriveSecret(privKey.(*privateKey).first, pubKey.(*publicKey).first),
 		privKey.(*privateKey).scheme.second.DeriveSecret(privKey.(*privateKey).second, pubKey.(*publicKey).second)...)
+}
+
+// DeriveHashedSecret derives a uniform-pseudorandom shared secret suitable
+// for direct use as KDF input. The hybrid combiner hashes the concatenation
+// of the two component shared secrets via blake2b-256, satisfying the
+// hybrid-security argument: the result is indistinguishable from random
+// as long as either component NIKE's shared secret is unpredictable.
+//
+// Callers that need the raw concatenated NIKE output (e.g. Sphinx per-hop
+// key blinding, which re-interprets the result as a NIKE public key via
+// FromBytes) must continue to use DeriveSecret. Callers that feed the
+// secret into a KDF chain (Noise MixKey, HKDF, etc.) should prefer this.
+func (s *Scheme) DeriveHashedSecret(privKey nike.PrivateKey, pubKey nike.PublicKey) []byte {
+	h, err := blake2b.New256(nil)
+	if err != nil {
+		panic(err)
+	}
+	ss1 := s.first.DeriveSecret(privKey.(*privateKey).first, pubKey.(*publicKey).first)
+	ss2 := s.second.DeriveSecret(privKey.(*privateKey).second, pubKey.(*publicKey).second)
+	_, _ = h.Write(ss1)
+	_, _ = h.Write(ss2)
+	return h.Sum(nil)
 }
 
 func (s *Scheme) DerivePublicKey(privKey nike.PrivateKey) nike.PublicKey {
