@@ -14,9 +14,7 @@ import (
 )
 
 const (
-	// splitPRFLabel is a domain-separation tag prepended to every hash
-	// input so that this construction cannot collide with any other use
-	// of BLAKE2b in the system.
+	// splitPRFLabel is a domain-separation tag for this PRF construction.
 	splitPRFLabel = "splitprf-v1"
 
 	// SplitPRFOutputSize is the length in bytes of the value SplitPRF
@@ -36,26 +34,29 @@ var (
 	ErrMismatchedSlices = errors.New("split prf: shared-secret and ciphertext slice lengths differ")
 )
 
-// SplitPRF implements a domain-separated split-PRF KEM combiner over
-// any number of KEMs:
+// SplitPRF implements the standard-model PRF-then-XOR core function
+// of Giacon, Heuer & Poettering (Lemma 8 of "KEM Combiners",
+// https://eprint.iacr.org/2018/024.pdf), instantiated with BLAKE2b-256
+// in keyed mode as the per-component PRF F:
 //
-//	for each i in 1..n:
-//	    hash_i := BLAKE2b-256(
-//	        label ||
-//	        u32be(len(ss_i))    || ss_i ||
-//	        u32be(n)            ||
-//	        u32be(len(cct_1))   || cct_1 ||
-//	        ...                 ||
-//	        u32be(len(cct_n))   || cct_n
-//	    )
+//	key_i  := BLAKE2b-256(unkeyed)(ss_i)
+//	hash_i := BLAKE2b-256(
+//	             key = key_i,
+//	             msg = "splitprf-v1" || u32be(n) ||
+//	                   u32be(len(cct_1)) || cct_1 ||
+//	                   ...                ||
+//	                   u32be(len(cct_n)) || cct_n
+//	         )
 //	return hash_1 XOR hash_2 XOR ... XOR hash_n
 //
-// The length-prefixed encoding makes the transcript unambiguous even
-// when sub-KEMs have variable-size shared secrets or ciphertexts. The
-// construction retains IND-CCA2 security as long as at least one
-// sub-KEM is IND-CCA2 secure. See KEM Combiners
-// (https://eprint.iacr.org/2018/024.pdf) by Federico Giacon, Felix
-// Heuer, and Bertram Poettering.
+// The pre-hash key derivation handles BLAKE2b's 64-byte keyed-mode
+// cap so the construction accepts shared secrets of any length.
+//
+// By Theorem 1 of the paper the resulting combined KEM retains
+// IND-CCA2 security as long as at least one ingredient KEM is
+// IND-CCA2 secure. The length-prefixed ciphertext encoding makes the
+// message portion of the transcript unambiguous regardless of sub-KEM
+// ciphertext sizes.
 func SplitPRF(ss, cct [][]byte) ([]byte, error) {
 	if len(ss) == 0 || len(cct) == 0 {
 		return nil, ErrNoInputs
@@ -64,19 +65,20 @@ func SplitPRF(ss, cct [][]byte) ([]byte, error) {
 		return nil, ErrMismatchedSlices
 	}
 
-	cctSize := 4
+	msgSize := len(splitPRFLabel) + 4
 	for i := range ss {
 		if len(ss[i]) == 0 || len(cct[i]) == 0 {
 			return nil, ErrEmptyComponent
 		}
-		cctSize += 4 + len(cct[i])
+		msgSize += 4 + len(cct[i])
 	}
 
-	cctTranscript := make([]byte, 0, cctSize)
-	cctTranscript = appendU32BE(cctTranscript, uint32(len(ss)))
+	msg := make([]byte, 0, msgSize)
+	msg = append(msg, splitPRFLabel...)
+	msg = appendU32BE(msg, uint32(len(ss)))
 	for _, c := range cct {
-		cctTranscript = appendU32BE(cctTranscript, uint32(len(c)))
-		cctTranscript = append(cctTranscript, c...)
+		msg = appendU32BE(msg, uint32(len(c)))
+		msg = append(msg, c...)
 	}
 
 	hashes := make([][]byte, len(ss))
@@ -86,14 +88,11 @@ func SplitPRF(ss, cct [][]byte) ([]byte, error) {
 		}
 	}()
 
-	var lenBuf [4]byte
 	for i, s := range ss {
-		h := mustNewBlake2b256()
-		mustWrite(h, []byte(splitPRFLabel))
-		binary.BigEndian.PutUint32(lenBuf[:], uint32(len(s)))
-		mustWrite(h, lenBuf[:])
-		mustWrite(h, s)
-		mustWrite(h, cctTranscript)
+		key := deriveKey(s)
+		h := mustNewBlake2b256(key)
+		coreUtil.ExplicitBzero(key)
+		mustWrite(h, msg)
 		hashes[i] = h.Sum(nil)
 	}
 
@@ -106,6 +105,16 @@ func SplitPRF(ss, cct [][]byte) ([]byte, error) {
 	return out, nil
 }
 
+// deriveKey shrinks an arbitrary-length shared secret to a 32-byte
+// BLAKE2b key via an unkeyed BLAKE2b-256 hash. Required because
+// BLAKE2b's keyed mode caps the key at 64 bytes and our sub-KEMs are
+// not constrained to that.
+func deriveKey(ss []byte) []byte {
+	h := mustNewBlake2b256(nil)
+	mustWrite(h, ss)
+	return h.Sum(nil)
+}
+
 func appendU32BE(b []byte, v uint32) []byte {
 	var tmp [4]byte
 	binary.BigEndian.PutUint32(tmp[:], v)
@@ -113,10 +122,10 @@ func appendU32BE(b []byte, v uint32) []byte {
 }
 
 // mustNewBlake2b256 returns a fresh BLAKE2b-256 hasher. The constructor
-// only fails on excessive key length, and we pass a nil key, so any
-// error here is a bug in the underlying library.
-func mustNewBlake2b256() hash.Hash {
-	h, err := blake2b.New256(nil)
+// only fails when a key longer than 64 bytes is supplied; callers
+// inside this package never do, so any error is a bug.
+func mustNewBlake2b256(key []byte) hash.Hash {
+	h, err := blake2b.New256(key)
 	if err != nil {
 		panic(err)
 	}

@@ -32,7 +32,7 @@ func TestSplitPRFKnownAnswers(t *testing.T) {
 				bytes.Repeat([]byte{0xaa}, 16),
 				bytes.Repeat([]byte{0xbb}, 16),
 			},
-			want: "f611276ccb1d77e4fd47fbad1f3bfe374f92926a52622c472aa36074bca335da",
+			want: "7cd5095ff1211fc894acf5647fd27e3c20b1330c3f003e3a70dd0c7d46722657",
 		},
 		{
 			name: "three components",
@@ -46,7 +46,7 @@ func TestSplitPRFKnownAnswers(t *testing.T) {
 				bytes.Repeat([]byte{0xdd}, 4),
 				bytes.Repeat([]byte{0xee}, 4),
 			},
-			want: "e8382ea42bc98091c9fd7f0ec8e1bb860661213bd471ebb1074aef4701b076b6",
+			want: "31e5a1a2f3bb4c2a348bb8a37cfd765a744625c1546df386c4916a460ab2e251",
 		},
 	}
 	for _, tc := range cases {
