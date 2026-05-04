@@ -112,6 +112,76 @@ hpqc/
 ```
 
 
+## Python port
+
+A Python port of selected hpqc primitives lives under `py/`. It is
+not a complete mirror of the Go reference, but it is enough to build
+a Pigeonhole-compatible thin client end-to-end, and the parts it
+covers share their test vectors with the Go side so the two
+implementations cannot drift silently apart.
+
+What is currently ported:
+
+* **BACAP** (`hpqc.bacap`): both the stateless API (immutable
+  `MessageBoxIndex`, `ReadCap`, `WriteCap`) and the stateful
+  reader/writer wrappers, with full coverage of encrypt, decrypt,
+  sign, verify and tombstones. Cross-language vectors live under
+  `testvectors/bacap/`; the underlying primitive vectors
+  (SHA-512/256, BLAKE2b-512, HKDF-BLAKE2b-512, AES-256-GCM-SIV)
+  live under `testvectors/primitives/`.
+* **MKEM** (`hpqc.kem.mkem`): the multi-recipient KEM construction
+  on top of any NIKE. Cross-language vectors live under
+  `testvectors/kem/`.
+* **NIKE abstract classes** (`hpqc.nike.scheme`): the `Scheme`,
+  `PublicKey` and `PrivateKey` base classes that any NIKE
+  implementation must satisfy, mirroring the Go interfaces.
+* **CTIDH wrappers** (`hpqc.nike.ctidh{511,512,1024,2048}`): thin
+  adapters over the upstream `highctidh` package that present
+  CTIDH at each supported field size under the abstract NIKE
+  interface. A shared factory in `hpqc.nike._ctidh` keeps the
+  per-field-size classes distinct, so `isinstance` still catches
+  attempts to mix keys across field sizes.
+* **NIKE concretes**: X25519 and `HybridNIKE`, a generic combiner
+  that exposes two NIKEs as one.
+* **Ed25519 signing** (`hpqc.sign.ed25519`), including the blinded
+  Ed25519 variant that BACAP relies on.
+
+The Python and Go test suites read the same JSON vector files via
+per-file symlinks under `py/tests/.../vectors/`, so any divergence
+between the two ports surfaces immediately as a failing assertion
+on whichever side runs first.
+
+### Running the unit tests
+
+The package is not yet published to PyPI. Install from this
+checkout into a virtualenv and run pytest:
+
+```bash
+cd hpqc/py
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -e ".[test]"
+pytest
+```
+
+The CTIDH tests pull in the upstream `highctidh` package (also a
+runtime dependency of `hpqc.nike.ctidh*`); see
+[CTIDH](#the-pq-nike-ctidh-via-highctidh) below for build notes.
+
+### Using it from another project
+
+Until PyPI publication, depend on the source checkout directly. The
+simplest way is an editable install from your project's virtualenv:
+
+```bash
+pip install -e /path/to/hpqc/py
+```
+
+or the equivalent entry in your project's manifest. PyPI
+publication is coming soon, at which point the usual
+`pip install hpqc` will work.
+
+
 ## Using existing NIKE Schemes
 
 NIKE schemes API docs: https://pkg.go.dev/github.com/katzenpost/hpqc/nike/schemes
