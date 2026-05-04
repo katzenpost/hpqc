@@ -33,6 +33,17 @@ import (
 	"github.com/katzenpost/hpqc/rand"
 )
 
+// mustCombine wraps combiner.New for the registry's package-level slice
+// initialisation. A nil sub-scheme is a programmer error here, so we
+// turn the error into a panic at start-up.
+func mustCombine(name string, schemes []kem.Scheme) kem.Scheme {
+	s, err := combiner.New(name, schemes)
+	if err != nil {
+		panic(err)
+	}
+	return s
+}
+
 var potentialSchemes = [...]kem.Scheme{
 
 	// PQ KEMs
@@ -44,14 +55,14 @@ var potentialSchemes = [...]kem.Scheme{
 
 	// hybrid KEMs
 
-	combiner.New(
+	mustCombine(
 		"CTIDH512-X25519",
 		[]kem.Scheme{
 			adapter.FromNIKE(ctidh512.Scheme()),
 			adapter.FromNIKE(x25519.Scheme(rand.Reader)),
 		},
 	),
-	combiner.New(
+	mustCombine(
 		"CTIDH1024-X448",
 		[]kem.Scheme{
 			adapter.FromNIKE(ctidh1024.Scheme()),
@@ -101,14 +112,14 @@ var allSchemes = []kem.Scheme{
 
 	// If Xwing is not the PQ Hybrid KEM you are looking for then we recommend
 	// using our secure generic KEM combiner:
-	combiner.New(
+	mustCombine(
 		"MLKEM768-X25519",
 		[]kem.Scheme{
 			adapter.FromNIKE(x25519.Scheme(rand.Reader)),
 			mlkem768.Scheme(),
 		},
 	),
-	combiner.New(
+	mustCombine(
 		"MLKEM768-X448",
 		[]kem.Scheme{
 			adapter.FromNIKE(x448.Scheme(rand.Reader)),
@@ -116,14 +127,14 @@ var allSchemes = []kem.Scheme{
 		},
 	),
 
-	combiner.New(
+	mustCombine(
 		"FrodoKEM-640-SHAKE-X448",
 		[]kem.Scheme{
 			adapter.FromNIKE(x448.Scheme(rand.Reader)),
 			circlkem.FromCircl(frodo640shake.Scheme()),
 		},
 	),
-	combiner.New(
+	mustCombine(
 		"sntrup4591761-X448",
 		[]kem.Scheme{
 			adapter.FromNIKE(x448.Scheme(rand.Reader)),
@@ -132,70 +143,70 @@ var allSchemes = []kem.Scheme{
 	),
 
 	// all the Classic McEliece's from our fork of circl
-	combiner.New(
+	mustCombine(
 		"mceliece348864-X25519",
 		[]kem.Scheme{
 			adapter.FromNIKE(x25519.Scheme(rand.Reader)),
 			circlkem.FromCircl(mceliece348864.Scheme()),
 		},
 	),
-	combiner.New(
+	mustCombine(
 		"mceliece348864f-X25519",
 		[]kem.Scheme{
 			adapter.FromNIKE(x25519.Scheme(rand.Reader)),
 			circlkem.FromCircl(mceliece348864f.Scheme()),
 		},
 	),
-	combiner.New(
+	mustCombine(
 		"mceliece460896-X25519",
 		[]kem.Scheme{
 			adapter.FromNIKE(x25519.Scheme(rand.Reader)),
 			circlkem.FromCircl(mceliece460896.Scheme()),
 		},
 	),
-	combiner.New(
+	mustCombine(
 		"mceliece460896f-X25519",
 		[]kem.Scheme{
 			adapter.FromNIKE(x25519.Scheme(rand.Reader)),
 			circlkem.FromCircl(mceliece460896f.Scheme()),
 		},
 	),
-	combiner.New(
+	mustCombine(
 		"mceliece6688128-X25519",
 		[]kem.Scheme{
 			adapter.FromNIKE(x25519.Scheme(rand.Reader)),
 			circlkem.FromCircl(mceliece6688128.Scheme()),
 		},
 	),
-	combiner.New(
+	mustCombine(
 		"mceliece6688128f-X25519",
 		[]kem.Scheme{
 			adapter.FromNIKE(x25519.Scheme(rand.Reader)),
 			circlkem.FromCircl(mceliece6688128f.Scheme()),
 		},
 	),
-	combiner.New(
+	mustCombine(
 		"mceliece6960119-X25519",
 		[]kem.Scheme{
 			adapter.FromNIKE(x25519.Scheme(rand.Reader)),
 			circlkem.FromCircl(mceliece6960119.Scheme()),
 		},
 	),
-	combiner.New(
+	mustCombine(
 		"mceliece6960119f-X25519",
 		[]kem.Scheme{
 			adapter.FromNIKE(x25519.Scheme(rand.Reader)),
 			circlkem.FromCircl(mceliece6960119f.Scheme()),
 		},
 	),
-	combiner.New(
+	mustCombine(
 		"mceliece8192128-X25519",
 		[]kem.Scheme{
 			adapter.FromNIKE(x25519.Scheme(rand.Reader)),
 			circlkem.FromCircl(mceliece8192128.Scheme()),
 		},
 	),
-	combiner.New(
+	mustCombine(
 		"mceliece8192128f-X25519",
 		[]kem.Scheme{
 			adapter.FromNIKE(x25519.Scheme(rand.Reader)),

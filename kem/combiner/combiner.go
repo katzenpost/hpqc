@@ -25,36 +25,45 @@ package combiner
 
 import (
 	"errors"
-	"fmt"
+
+	"golang.org/x/crypto/blake2b"
 
 	"github.com/katzenpost/hpqc/kem"
 	"github.com/katzenpost/hpqc/kem/util"
 	coreUtil "github.com/katzenpost/hpqc/util"
-	"golang.org/x/crypto/blake2b"
 )
 
 var (
 	// ErrUninitialized indicates a key wasn't initialized.
 	ErrUninitialized = errors.New("public or private key not initialized")
+
+	// ErrNilScheme indicates a nil sub-scheme was supplied to New.
+	ErrNilScheme = errors.New("KEM sub-scheme cannot be nil")
+
+	// ErrEmptySchemes indicates no sub-schemes were supplied to New.
+	ErrEmptySchemes = errors.New("at least one KEM sub-scheme is required")
+
+	// ErrSeedSize indicates the supplied seed has the wrong length.
+	ErrSeedSize = errors.New("wrong seed size")
 )
 
 var _ kem.PrivateKey = (*PrivateKey)(nil)
 var _ kem.PublicKey = (*PublicKey)(nil)
 var _ kem.Scheme = (*Scheme)(nil)
 
-// Public key of a combined KEMs.
+// PublicKey is the public key of a combined KEM.
 type PublicKey struct {
 	scheme *Scheme
 	keys   []kem.PublicKey
 }
 
-// Private key of a hybrid KEM.
+// PrivateKey is the private key of a combined KEM.
 type PrivateKey struct {
 	scheme *Scheme
 	keys   []kem.PrivateKey
 }
 
-// Scheme for a hybrid KEM.
+// Scheme is a hybrid KEM built by combining sub-schemes via the split PRF.
 type Scheme struct {
 	name    string
 	schemes []kem.Scheme
@@ -76,16 +85,15 @@ func (sk *PrivateKey) MarshalBinary() ([]byte, error) {
 		}
 	}
 
-	blobs := []byte{}
-	for i := 0; i < len(sk.keys); i++ {
-		blob, err := sk.keys[i].MarshalBinary()
+	out := make([]byte, 0, sk.scheme.PrivateKeySize())
+	for _, k := range sk.keys {
+		blob, err := k.MarshalBinary()
 		if err != nil {
 			return nil, err
 		}
-		blobs = append(blobs, blob...)
+		out = append(out, blob...)
 	}
-
-	return blobs, nil
+	return out, nil
 }
 
 // Equal performs a non-constant time key comparison.
@@ -94,8 +102,16 @@ func (sk *PrivateKey) Equal(other kem.PrivateKey) bool {
 	if !ok {
 		return false
 	}
-
-	for i := 0; i < len(sk.keys); i++ {
+	if sk.scheme != oth.scheme {
+		return false
+	}
+	if len(sk.keys) != len(oth.keys) {
+		return false
+	}
+	for i := range sk.keys {
+		if sk.keys[i] == nil || oth.keys[i] == nil {
+			return false
+		}
 		if !sk.keys[i].Equal(oth.keys[i]) {
 			return false
 		}
@@ -106,7 +122,7 @@ func (sk *PrivateKey) Equal(other kem.PrivateKey) bool {
 // Public returns a public key, given a private key.
 func (sk *PrivateKey) Public() kem.PublicKey {
 	pubkeys := make([]kem.PublicKey, len(sk.keys))
-	for i := 0; i < len(sk.keys); i++ {
+	for i := range sk.keys {
 		pubkeys[i] = sk.keys[i].Public()
 	}
 	return &PublicKey{
@@ -121,14 +137,22 @@ func (sk *PrivateKey) Public() kem.PublicKey {
 func (pk *PublicKey) Scheme() kem.Scheme { return pk.scheme }
 
 // Equal performs a non-constant time key comparison.
-func (sk *PublicKey) Equal(other kem.PublicKey) bool {
+func (pk *PublicKey) Equal(other kem.PublicKey) bool {
 	oth, ok := other.(*PublicKey)
 	if !ok {
 		return false
 	}
-
-	for i := 0; i < len(sk.keys); i++ {
-		if !sk.keys[i].Equal(oth.keys[i]) {
+	if pk.scheme != oth.scheme {
+		return false
+	}
+	if len(pk.keys) != len(oth.keys) {
+		return false
+	}
+	for i := range pk.keys {
+		if pk.keys[i] == nil || oth.keys[i] == nil {
+			return false
+		}
+		if !pk.keys[i].Equal(oth.keys[i]) {
 			return false
 		}
 	}
@@ -136,41 +160,44 @@ func (sk *PublicKey) Equal(other kem.PublicKey) bool {
 }
 
 // MarshalBinary returns a binary blob of the key.
-func (sk *PublicKey) MarshalBinary() ([]byte, error) {
-	if sk.keys == nil {
+func (pk *PublicKey) MarshalBinary() ([]byte, error) {
+	if pk.keys == nil {
 		return nil, ErrUninitialized
 	}
-	for _, s := range sk.keys {
+	for _, s := range pk.keys {
 		if s == nil {
 			return nil, ErrUninitialized
 		}
 	}
 
-	blobs := []byte{}
-	for i := 0; i < len(sk.keys); i++ {
-		blob, err := sk.keys[i].MarshalBinary()
+	out := make([]byte, 0, pk.scheme.PublicKeySize())
+	for _, k := range pk.keys {
+		blob, err := k.MarshalBinary()
 		if err != nil {
 			return nil, err
 		}
-		blobs = append(blobs, blob...)
+		out = append(out, blob...)
 	}
-
-	return blobs, nil
+	return out, nil
 }
 
 // Scheme methods
 
-// New creates a new hybrid KEM given the slices of KEM schemes.
-func New(name string, schemes []kem.Scheme) *Scheme {
+// New creates a new hybrid KEM given the slice of KEM schemes.
+// It returns an error if any sub-scheme is nil or the slice is empty.
+func New(name string, schemes []kem.Scheme) (*Scheme, error) {
+	if len(schemes) == 0 {
+		return nil, ErrEmptySchemes
+	}
 	for _, x := range schemes {
 		if x == nil {
-			panic("KEM scheme cannot be nil")
+			return nil, ErrNilScheme
 		}
 	}
 	return &Scheme{
 		name:    name,
 		schemes: schemes,
-	}
+	}, nil
 }
 
 // Name returns the name of the KEM.
@@ -179,8 +206,8 @@ func (sch *Scheme) Name() string { return sch.name }
 // PublicKeySize returns the KEM's public key size in bytes.
 func (sch *Scheme) PublicKeySize() int {
 	sum := 0
-	for i := 0; i < len(sch.schemes); i++ {
-		sum += sch.schemes[i].PublicKeySize()
+	for _, s := range sch.schemes {
+		sum += s.PublicKeySize()
 	}
 	return sum
 }
@@ -222,8 +249,8 @@ func (sch *Scheme) GenerateKeyPair() (kem.PublicKey, kem.PrivateKey, error) {
 	pubKeys := make([]kem.PublicKey, len(sch.schemes))
 	privKeys := make([]kem.PrivateKey, len(sch.schemes))
 
-	for i := 0; i < len(sch.schemes); i++ {
-		pk, sk, err := sch.schemes[i].GenerateKeyPair()
+	for i, s := range sch.schemes {
+		pk, sk, err := s.GenerateKeyPair()
 		if err != nil {
 			return nil, nil, err
 		}
@@ -241,21 +268,19 @@ func (sch *Scheme) GenerateKeyPair() (kem.PublicKey, kem.PrivateKey, error) {
 }
 
 // DeriveKeyPair uses a seed value to deterministically generate a key pair.
+// The seed is read but not modified.
 func (sch *Scheme) DeriveKeyPair(seed []byte) (kem.PublicKey, kem.PrivateKey) {
-	defer coreUtil.ExplicitBzero(seed)
 	if len(seed) != sch.SeedSize() {
-		panic(fmt.Sprintf("seed size must be %d", sch.SeedSize()))
+		panic(ErrSeedSize)
 	}
 
 	pubKeys := make([]kem.PublicKey, len(sch.schemes))
 	privKeys := make([]kem.PrivateKey, len(sch.schemes))
 
-	offset := sch.schemes[0].SeedSize()
-	pubKeys[0], privKeys[0] = sch.schemes[0].DeriveKeyPair(seed[:offset])
-
-	for i := 1; i < len(sch.schemes); i++ {
-		seedSize := sch.schemes[i].SeedSize()
-		pubKeys[i], privKeys[i] = sch.schemes[i].DeriveKeyPair(seed[offset : offset+seedSize])
+	offset := 0
+	for i, s := range sch.schemes {
+		seedSize := s.SeedSize()
+		pubKeys[i], privKeys[i] = s.DeriveKeyPair(seed[offset : offset+seedSize])
 		offset += seedSize
 	}
 
@@ -274,34 +299,37 @@ func (sch *Scheme) Encapsulate(pk kem.PublicKey) (ct, ss []byte, err error) {
 	if !ok {
 		return nil, nil, kem.ErrTypeMismatch
 	}
+	if pub.scheme != sch {
+		return nil, nil, kem.ErrTypeMismatch
+	}
+	if len(pub.keys) != len(sch.schemes) {
+		return nil, nil, ErrUninitialized
+	}
 
 	ciphertexts := make([][]byte, len(sch.schemes))
 	sharedSecrets := make([][]byte, len(sch.schemes))
 	defer func() {
-		for _, ss := range sharedSecrets {
-			coreUtil.ExplicitBzero(ss)
+		for _, s := range sharedSecrets {
+			coreUtil.ExplicitBzero(s)
 		}
 	}()
-	ciphertextBlob := []byte{}
+	ciphertextBlob := make([]byte, 0, sch.CiphertextSize())
 
-	for i := 0; i < len(sch.schemes); i++ {
-		cct, ss, err := sch.schemes[i].Encapsulate(pub.keys[i])
-		if err != nil {
-			return nil, nil, err
+	for i, s := range sch.schemes {
+		cct, secret, encErr := s.Encapsulate(pub.keys[i])
+		if encErr != nil {
+			return nil, nil, encErr
 		}
 		ciphertexts[i] = cct
-		sharedSecrets[i] = ss
+		sharedSecrets[i] = secret
 		ciphertextBlob = append(ciphertextBlob, cct...)
 	}
 
-	ss = util.SplitPRF(sharedSecrets, ciphertexts)
-
+	ss, err = util.SplitPRF(sharedSecrets, ciphertexts)
+	if err != nil {
+		return nil, nil, err
+	}
 	return ciphertextBlob, ss, nil
-}
-
-// EncapsulateDeterministically deterministircally encapsulates a share secret to the given public key and the given seed value.
-func (sch *Scheme) EncapsulateDeterministically(publicKey kem.PublicKey, seed []byte) (ct, ss []byte, err error) {
-	panic("not implemented")
 }
 
 // Decapsulate decrypts a given KEM ciphertext using the given private key.
@@ -309,41 +337,39 @@ func (sch *Scheme) Decapsulate(sk kem.PrivateKey, ct []byte) ([]byte, error) {
 	if len(ct) != sch.CiphertextSize() {
 		return nil, kem.ErrCiphertextSize
 	}
-
 	priv, ok := sk.(*PrivateKey)
 	if !ok {
 		return nil, kem.ErrTypeMismatch
 	}
+	if priv.scheme != sch {
+		return nil, kem.ErrTypeMismatch
+	}
+	if len(priv.keys) != len(sch.schemes) {
+		return nil, ErrUninitialized
+	}
 
 	sharedSecrets := make([][]byte, len(sch.schemes))
 	defer func() {
-		for _, ss := range sharedSecrets {
-			coreUtil.ExplicitBzero(ss)
+		for _, s := range sharedSecrets {
+			coreUtil.ExplicitBzero(s)
 		}
 	}()
 	ciphertexts := make([][]byte, len(sch.schemes))
-	offset := sch.schemes[0].CiphertextSize()
 
-	ss, err := sch.schemes[0].Decapsulate(priv.keys[0], ct[:offset])
-	if err != nil {
-		coreUtil.ExplicitBzero(ss)
-		return nil, err
-	}
-
-	sharedSecrets[0] = ss
-	ciphertexts[0] = ct[:offset]
-
-	for i := 1; i < len(sch.schemes); i++ {
-		ciphertextSize := sch.schemes[i].CiphertextSize()
+	offset := 0
+	for i, s := range sch.schemes {
+		ciphertextSize := s.CiphertextSize()
 		ciphertexts[i] = ct[offset : offset+ciphertextSize]
-		sharedSecrets[i], err = sch.schemes[i].Decapsulate(priv.keys[i], ciphertexts[i])
+		secret, err := s.Decapsulate(priv.keys[i], ciphertexts[i])
 		if err != nil {
+			coreUtil.ExplicitBzero(secret)
 			return nil, err
 		}
+		sharedSecrets[i] = secret
 		offset += ciphertextSize
 	}
 
-	return util.SplitPRF(sharedSecrets, ciphertexts), nil
+	return util.SplitPRF(sharedSecrets, ciphertexts)
 }
 
 // UnmarshalBinaryPublicKey unmarshals a binary blob representing a public key.
@@ -352,19 +378,15 @@ func (sch *Scheme) UnmarshalBinaryPublicKey(buf []byte) (kem.PublicKey, error) {
 		return nil, kem.ErrPubKeySize
 	}
 	publicKeys := make([]kem.PublicKey, len(sch.schemes))
-	offset := sch.schemes[0].PublicKeySize()
-	pk1, err := sch.schemes[0].UnmarshalBinaryPublicKey(buf[:offset])
-	if err != nil {
-		return nil, err
-	}
-	publicKeys[0] = pk1
-	for i := 1; i < len(sch.schemes); i++ {
-		pk, err := sch.schemes[i].UnmarshalBinaryPublicKey(buf[offset : offset+sch.schemes[i].PublicKeySize()])
+	offset := 0
+	for i, s := range sch.schemes {
+		size := s.PublicKeySize()
+		pk, err := s.UnmarshalBinaryPublicKey(buf[offset : offset+size])
 		if err != nil {
 			return nil, err
 		}
 		publicKeys[i] = pk
-		offset += sch.schemes[i].PublicKeySize()
+		offset += size
 	}
 	return &PublicKey{
 		scheme: sch,
@@ -375,21 +397,21 @@ func (sch *Scheme) UnmarshalBinaryPublicKey(buf []byte) (kem.PublicKey, error) {
 // UnmarshalBinaryPrivateKey unmarshals a binary blob representing a private key.
 func (sch *Scheme) UnmarshalBinaryPrivateKey(buf []byte) (kem.PrivateKey, error) {
 	if len(buf) != sch.PrivateKeySize() {
-		return nil, kem.ErrPubKeySize
+		return nil, kem.ErrPrivKeySize
 	}
 	privateKeys := make([]kem.PrivateKey, len(sch.schemes))
 	offset := 0
-	for i := 0; i < len(sch.schemes); i++ {
-		pk, err := sch.schemes[i].UnmarshalBinaryPrivateKey(buf[offset : offset+sch.schemes[i].PrivateKeySize()])
+	for i, s := range sch.schemes {
+		size := s.PrivateKeySize()
+		sk, err := s.UnmarshalBinaryPrivateKey(buf[offset : offset+size])
 		if err != nil {
 			return nil, err
 		}
-		privateKeys[i] = pk
-		offset += sch.schemes[i].PrivateKeySize()
+		privateKeys[i] = sk
+		offset += size
 	}
 	return &PrivateKey{
 		scheme: sch,
 		keys:   privateKeys,
 	}, nil
 }
-
