@@ -1,0 +1,32 @@
+{
+  "format_version": 1,
+  "generator": "github.com/katzenpost/hpqc/testvectors/cmd/generate",
+  "primitive": "aes_gcm_siv",
+  "description": "AES-256-GCM-SIV (RFC 8452). The vectors include both an RFC reference and BACAP-shaped cases where nonce = box_id[:16] and AAD = box_id[:32].",
+  "vectors": [
+    {
+      "name": "rfc8452_appendix_c_2_example_1",
+      "key_hex": "0100000000000000000000000000000000000000000000000000000000000000",
+      "nonce_hex": "030000000000000000000000",
+      "aad_hex": "",
+      "plaintext_hex": "",
+      "ciphertext_hex": "07f5f4169bbf55a8400cd47ea6fd400f"
+    },
+    {
+      "name": "bacap_shape_box_id_as_nonce_and_aad",
+      "key_hex": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "nonce_hex": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "aad_hex": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "plaintext_hex": "48656c6c6f2c2042414341502e",
+      "ciphertext_hex": "acdffe949ad35a9038b39e07633a497c1699fabcebef16721a2c3d49e1"
+    },
+    {
+      "name": "bacap_shape_long_plaintext",
+      "key_hex": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "nonce_hex": "dddddddddddddddddddddddddddddddd",
+      "aad_hex": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "plaintext_hex": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "ciphertext_hex": "931077a48354f68d462c175ca9a6e238e715931b3676d60842a3d39f019f55400e81df41117cd2dede19170fcf324eb1e5f17587df1f4743c014b660e919c3b60da5812a95748d417642f9f6100f63c61a7cca2e9081b80298fe74f5670de66ec2bb73584571220a6b48b2163203ffc50cb37f563a11ba885f4a9881b564e5c09d62186db643f841a03143be181e42de2a34560429665ab35628d0e6b817f1c349a959113653c960a027afa562dd23fd00432b4dd66af93dce2fc325c6c38707da51296dc9869f8b0b475a2a73cb876d7137cc0386d3df678fcd49d2bec7ab30ff202cac4496f56a12055cfea5d4ee3e2ad8cefd656c6e1aab0359a4af75f156e9153a501d4942001f906f69d905bbf8925caf2fc78e8fed09ef70b36319faed2f37efe4c844778e98102727b39b77be22836c7baca8af8d0fb85896972ebb55a949e99665202175b051f2f595e588d0342f8f85ca7f9400e331e276ac591fe78e02b33e2578662af1942fc05af3b6dd968315353ed26d458f42eb498729f8b739eb9058340f612d77415ad650a8d0855257ed8ef971103ec4e324e3944da5214c3ce8ae96f1df9d54712dbacc03049d475dc931c24fb62c513692dac010824ae9844c06097de748e6b7c432ffcd59ba7d458ff2c20dd666ff7123296f79b1639681fbf4f9e76fad9d605266ca2d909c5b336a1c638451471d12f1b8c2c450a2eee4d67827af7c2be2b4614ad536f0c7"
+    }
+  ]
+}

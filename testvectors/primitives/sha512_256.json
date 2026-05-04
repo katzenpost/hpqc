@@ -1,0 +1,33 @@
+{
+  "format_version": 1,
+  "generator": "github.com/katzenpost/hpqc/testvectors/cmd/generate",
+  "primitive": "sha512_256",
+  "description": "SHA-512/256 (FIPS 180-4 §6.7). 32-byte output. Note: NOT the same as SHA-512 truncated to 256 bits; it has a distinct initial hash value.",
+  "vectors": [
+    {
+      "name": "empty",
+      "input_hex": "",
+      "output_hex": "c672b8d1ef56ed28ab87c3622c5114069bdd3ad7b8f9737498d0c01ecef0967a"
+    },
+    {
+      "name": "abc",
+      "input_hex": "616263",
+      "output_hex": "53048e2681941ef99b2e29b76b4c7dabe4c2d0c634fc6d46e0e2f13107e7af23"
+    },
+    {
+      "name": "32_zero_bytes",
+      "input_hex": "0000000000000000000000000000000000000000000000000000000000000000",
+      "output_hex": "af13c048991224a5e4c664446b688aaf48fb5456db3629601b00ec160c74e554"
+    },
+    {
+      "name": "hpqc_bacap_factor_example_1",
+      "input_hex": "424143415020626c696e64696e6720666163746f72206578616d706c65206f6e65",
+      "output_hex": "e8bde64bb5e93e3a1a4612938b49f814bd5582f26047c89ef6cd977c9a796e73"
+    },
+    {
+      "name": "hpqc_bacap_factor_example_2",
+      "input_hex": "424143415020626c696e64696e6720666163746f72206578616d706c652074776f",
+      "output_hex": "9e61e92ebfc13edd399d83e86faaf4495401e96595a391704ca63c33b3f6bb0a"
+    }
+  ]
+}

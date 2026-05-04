@@ -1,0 +1,28 @@
+{
+  "format_version": 1,
+  "generator": "github.com/katzenpost/hpqc/testvectors/cmd/generate",
+  "primitive": "blake2b_512",
+  "description": "BLAKE2b-512 (RFC 7693), unkeyed, 64-byte output. Used by BACAP as the underlying hash for HKDF.",
+  "vectors": [
+    {
+      "name": "empty",
+      "input_hex": "",
+      "output_hex": "786a02f742015903c6c6fd852552d272912f4740e15847618a86e217f71f5419d25e1031afee585313896444934eb04b903a685b1448b755d56f701afe9be2ce"
+    },
+    {
+      "name": "abc",
+      "input_hex": "616263",
+      "output_hex": "ba80a53f981c4d0d6a2797b69f12f6e94c212f14685ac4b74b12bb6fdbffa2d17d87c5392aab792dc252d5de4533cc9518d38aa8dbf1925ab92386edd4009923"
+    },
+    {
+      "name": "32_zero_bytes",
+      "input_hex": "0000000000000000000000000000000000000000000000000000000000000000",
+      "output_hex": "9ab7a73a97a1a3031406b6c169634a9c06cfb81dec3323bb4de5ce6f4b7ca107de534442a7eaeafbaf366ccfdde1cb97d7c884e4344cd0a23039de71a56d630a"
+    },
+    {
+      "name": "hpqc_bacap_hkdf_state_example",
+      "input_hex": "484b4446207374617465206578616d706c6520666f72204241434150",
+      "output_hex": "37b243f959f7761f51ea996ef197aa86fb435998c7be70a079f2b30ae3435ecf91fcddda7abd9f48f29886a328b39881d2982e49f080d1d39c9842c6733b250e"
+    }
+  ]
+}
