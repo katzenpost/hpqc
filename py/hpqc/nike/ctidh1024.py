@@ -25,6 +25,11 @@ from .scheme import PrivateKey, PublicKey, Scheme
 _CTIDH = _ctidh(1024)
 
 
+def _raw_bytes(shared, size: int) -> bytes:  # noqa: ARG001
+    """Identity ``_hash`` for highctidh's dh(): return the raw point bytes."""
+    return bytes(shared)
+
+
 class CTIDH1024PublicKey(PublicKey):
     """CTIDH-1024 public key (128 bytes when serialised)."""
 
@@ -90,7 +95,12 @@ class CTIDH1024(Scheme):
             raise TypeError("CTIDH1024.derive_secret requires a CTIDH1024 private key")
         if not isinstance(pub, CTIDH1024PublicKey):
             raise TypeError("CTIDH1024.derive_secret requires a CTIDH1024 public key")
-        return bytes(_CTIDH.dh(priv._inner, pub._inner))
+        # highctidh's high-level dh() defaults to SHAKE256-hashing the shared
+        # point; the Go side at hpqc/nike/ctidh/ctidh1024 returns the raw
+        # point bytes (the canonical NIKE-shared-secret convention used
+        # throughout hpqc). We override the _hash parameter with the identity
+        # function so we get the raw bytes too.
+        return _CTIDH.dh(priv._inner, pub._inner, _hash=_raw_bytes)
 
     def public_key_from_bytes(self, data: bytes) -> CTIDH1024PublicKey:
         return CTIDH1024PublicKey.from_bytes(data)

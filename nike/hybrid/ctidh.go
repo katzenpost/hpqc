@@ -34,8 +34,8 @@ var CTIDH512X448 nike.Scheme = &Scheme{
 
 var CTIDH1024X25519 nike.Scheme = &Scheme{
 	name:   "CTIDH1024-X25519",
-	second: ctidh1024.Scheme(),
-	first:  x25519.Scheme(rand.Reader),
+	first:  ctidh1024.Scheme(),
+	second: x25519.Scheme(rand.Reader),
 }
 
 var CTIDH1024X448 nike.Scheme = &Scheme{

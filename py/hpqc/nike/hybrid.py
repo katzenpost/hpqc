@@ -113,9 +113,22 @@ class HybridNIKE(Scheme):
     which know each component's sub-scheme and the byte boundary.
     """
 
-    def __init__(self, first: Scheme, second: Scheme) -> None:
+    def __init__(
+        self,
+        first: Scheme,
+        second: Scheme,
+        name: str | None = None,
+    ) -> None:
         self._first = first
         self._second = second
+        # The default name is ``first.name-second.name`` but the Go side
+        # ships with a few mislabelled hybrid schemes whose ``name`` does
+        # not match their actual ``first``/``second`` field order (e.g.
+        # ``hybrid.CTIDH1024X25519`` is named "CTIDH1024-X25519" but lays
+        # out X25519 first on the wire). When interoperating with such
+        # cases the caller must supply the explicit ``name`` so that
+        # serialisation labels match.
+        self._name = name if name is not None else f"{first.name}-{second.name}"
 
     @property
     def first(self) -> Scheme:
@@ -127,7 +140,7 @@ class HybridNIKE(Scheme):
 
     @property
     def name(self) -> str:
-        return f"{self._first.name}-{self._second.name}"
+        return self._name
 
     @property
     def public_key_size(self) -> int:

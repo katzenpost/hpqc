@@ -30,6 +30,9 @@ import (
 	"github.com/agl/gcmsiv"
 
 	"github.com/katzenpost/hpqc/bacap"
+	"github.com/katzenpost/hpqc/kem/mkem"
+	"github.com/katzenpost/hpqc/nike"
+	"github.com/katzenpost/hpqc/nike/hybrid"
 	"github.com/katzenpost/hpqc/sign/ed25519"
 )
 
@@ -52,6 +55,7 @@ func main() {
 
 	must(os.MkdirAll(filepath.Join(*out, "primitives"), 0o755))
 	must(os.MkdirAll(filepath.Join(*out, "bacap"), 0o755))
+	must(os.MkdirAll(filepath.Join(*out, "kem"), 0o755))
 
 	writeFile(*out, "primitives/sha512_256.json", genSHA512_256())
 	writeFile(*out, "primitives/blake2b_512.json", genBLAKE2b512())
@@ -62,6 +66,8 @@ func main() {
 	writeFile(*out, "bacap/message_box_index.json", genBACAPMessageBoxIndex())
 	writeFile(*out, "bacap/box_id.json", genBACAPBoxID())
 	writeFile(*out, "bacap/encrypt.json", genBACAPEncrypt())
+
+	writeFile(*out, "kem/mkem.json", genKEMMkem())
 
 	fmt.Println("ok")
 }
@@ -683,4 +689,85 @@ func repeatByte(b byte, n int) []byte {
 		out[i] = b
 	}
 	return out
+}
+
+// ===== MKEM vectors =====
+//
+// Multi-recipient KEM over the CTIDH1024-X25519 hybrid NIKE. Each
+// vector is non-deterministic (ephemeral keys, msg keys, and AEAD
+// nonces are all random), so re-running the generator produces a
+// different mkem.json. The recorded vector exercises the wire-
+// format compatibility of the Python port: the Python side loads
+// the recipient private keys and the CBOR-marshaled ciphertext, then
+// decapsulates and confirms the recovered plaintext. A pass means
+// CBOR field naming, ChaCha20-Poly1305 framing (12-byte nonce + tag),
+// BLAKE2b-256 hashing of the NIKE shared secret, and the underlying
+// hybrid NIKE shared-secret bytes all agree between Go and Python.
+
+type mkemVector struct {
+	Name                    string   `json:"name"`
+	NikeName                string   `json:"nike_name"`
+	RecipientPrivateKeysHex []string `json:"recipient_private_keys_hex"`
+	CiphertextHex           string   `json:"ciphertext_hex"`
+	PlaintextHex            string   `json:"plaintext_hex"`
+}
+
+func genKEMMkem() vectorFile {
+	nikeScheme := hybrid.CTIDH1024X25519
+	scheme := mkem.NewScheme(nikeScheme)
+
+	cases := []struct {
+		name      string
+		nRecips   int
+		plaintext []byte
+	}{
+		{"single_recipient_short", 1, []byte("hello")},
+		{"two_recipients", 2, []byte("multicast payload across two recipients")},
+		{"three_recipients_long", 3, repeatByte(0x42, 1024)},
+	}
+
+	vs := make([]mkemVector, 0, len(cases))
+	for _, c := range cases {
+		pubs := make([]nike.PublicKey, c.nRecips)
+		privs := make([]nike.PrivateKey, c.nRecips)
+		privsHex := make([]string, c.nRecips)
+		for i := 0; i < c.nRecips; i++ {
+			pub, priv, err := scheme.GenerateKeyPair()
+			must(err)
+			pubs[i] = pub
+			privs[i] = priv
+			privBytes, err := priv.MarshalBinary()
+			must(err)
+			privsHex[i] = hex.EncodeToString(privBytes)
+		}
+
+		_, ct := scheme.Encapsulate(pubs, c.plaintext)
+		ctBytes := ct.Marshal()
+
+		// Self-check: every recipient must decapsulate to the same
+		// plaintext under this very ciphertext.
+		for i := 0; i < c.nRecips; i++ {
+			got, err := scheme.Decapsulate(privs[i], ct)
+			must(err)
+			if string(got) != string(c.plaintext) {
+				panic("mkem vector " + c.name + ": self-decap mismatch")
+			}
+		}
+
+		vs = append(vs, mkemVector{
+			Name:                    c.name,
+			NikeName:                nikeScheme.Name(),
+			RecipientPrivateKeysHex: privsHex,
+			CiphertextHex:           hex.EncodeToString(ctBytes),
+			PlaintextHex:            hex.EncodeToString(c.plaintext),
+		})
+	}
+
+	return vectorFile{
+		FormatVersion: formatVersion,
+		Generator:     generatorName,
+		Primitive:     "kem_mkem",
+		Description:   "MKEM ciphertexts over the CTIDH1024-X25519 hybrid NIKE. Each vector records the recipient private keys (hex, MarshalBinary form) and a CBOR-marshaled MKEM ciphertext; consumers must recover the recorded plaintext when decapsulating with any of the recorded private keys. Outputs are non-deterministic, so re-running the generator changes every vector.",
+		Vectors:       vs,
+	}
 }
