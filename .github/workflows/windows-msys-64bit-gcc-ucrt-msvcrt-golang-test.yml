@@ -53,6 +53,7 @@ jobs:
         env:
           HIGHCTIDH_PORTABLE: "1"
           CGO_ENABLED: "1"
+          GOTOOLCHAIN: auto
         run: go get -v ./...
 
       - name: Build golang
@@ -60,6 +61,7 @@ jobs:
         env:
           HIGHCTIDH_PORTABLE: "1"
           CGO_ENABLED: "1"
+          GOTOOLCHAIN: auto
           GOEXPERIMENT: cgocheck2
           GODEBUG: cgocheck=1
           CGO_LDFLAGS: "-Wl,--no-as-needed -Wl,-allow-multiple-definition"
@@ -70,6 +72,7 @@ jobs:
         env:
           HIGHCTIDH_PORTABLE: "1"
           CGO_ENABLED: "1"
+          GOTOOLCHAIN: auto
           GOEXPERIMENT: cgocheck2
           GODEBUG: cgocheck=1
           CGO_LDFLAGS: "-Wl,--no-as-needed -Wl,-allow-multiple-definition"
