@@ -152,10 +152,20 @@ per-file symlinks under `py/tests/.../vectors/`, so any divergence
 between the two ports surfaces immediately as a failing assertion
 on whichever side runs first.
 
+### Installing it
+
+```bash
+pip install hpqc
+```
+
+The CTIDH wrappers pull in the upstream `highctidh` package (also
+a runtime dependency); see
+[CTIDH](#the-pq-nike-ctidh-via-highctidh) below for build notes.
+
 ### Running the unit tests
 
-The package is not yet published to PyPI. Install from this
-checkout into a virtualenv and run pytest:
+The test suite is not shipped with the PyPI wheel; clone the repo
+and install from the source checkout to run it:
 
 ```bash
 cd hpqc/py
@@ -164,23 +174,6 @@ source .venv/bin/activate
 pip install -e ".[test]"
 pytest
 ```
-
-The CTIDH tests pull in the upstream `highctidh` package (also a
-runtime dependency of `hpqc.nike.ctidh*`); see
-[CTIDH](#the-pq-nike-ctidh-via-highctidh) below for build notes.
-
-### Using it from another project
-
-Until PyPI publication, depend on the source checkout directly. The
-simplest way is an editable install from your project's virtualenv:
-
-```bash
-pip install -e /path/to/hpqc/py
-```
-
-or the equivalent entry in your project's manifest. PyPI
-publication is coming soon, at which point the usual
-`pip install hpqc` will work.
 
 
 ## Using existing NIKE Schemes

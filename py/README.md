@@ -44,21 +44,19 @@ whichever side runs first.
 
 ## Installation
 
-The package is not yet published to PyPI. Until it is, install from
-a checkout:
-
-```bash
-pip install -e /path/to/hpqc/py
-```
-
-Once published:
-
 ```bash
 pip install hpqc
 ```
 
 Runtime dependencies (`pynacl`, `cryptography`, `cbor2`,
 `highctidh`) are pulled in automatically.
+
+To install from a source checkout instead (for example to test an
+unreleased change):
+
+```bash
+pip install -e /path/to/hpqc/py
+```
 
 
 ## Quick start
