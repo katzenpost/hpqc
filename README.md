@@ -115,10 +115,11 @@ hpqc/
 ## Python port
 
 A Python port of selected hpqc primitives lives under `py/`. It is
-not a complete mirror of the Go reference, but it is enough to build
-a Pigeonhole-compatible thin client end-to-end, and the parts it
-covers share their test vectors with the Go side so the two
-implementations cannot drift silently apart.
+not a complete mirror of the Go reference, but it covers BACAP,
+MKEM, and the NIKE primitives those depend on, so Python
+applications and tooling that need these constructions can use them
+directly. The two ports share their JSON test vectors so neither
+side can drift silently from the other.
 
 What is currently ported:
 

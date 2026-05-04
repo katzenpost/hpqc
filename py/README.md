@@ -4,12 +4,18 @@ A Python port of selected primitives from
 [katzenpost/hpqc](https://github.com/katzenpost/hpqc), the hybrid
 post-quantum cryptography library used by the Katzenpost mix
 network. The Go implementation is the reference; this Python
-package mirrors the parts needed to build a Pigeonhole-compatible
-thin client end-to-end.
+package covers BACAP, MKEM, and the NIKE primitives those depend
+on, so Python applications and tooling can perform these
+operations directly. The shared JSON test vectors under
+`testvectors/` keep the Python and Go ports byte-identical.
 
-For the broader project context, the full set of NIKE, KEM, and
-signature schemes that hpqc implements, and the design rationale
-behind BACAP, please see the
+For the rationale behind BACAP and a short overview of the
+construction, see the
+[BACAP section of the main README](https://github.com/katzenpost/hpqc#bacap).
+For a fuller treatment, see §4 of the
+[Echomix paper](https://arxiv.org/abs/2501.02933). For the full
+catalogue of NIKE, KEM, and signature schemes that hpqc implements
+in Go, see the
 [main repository README](https://github.com/katzenpost/hpqc#readme).
 
 
