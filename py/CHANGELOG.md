@@ -16,7 +16,7 @@ side, are also recorded in the repository-root
 Nothing here yet.
 
 
-## [0.0.1] - Unreleased
+## [0.0.1] - 2026-05-04
 
 Initial public release.
 
