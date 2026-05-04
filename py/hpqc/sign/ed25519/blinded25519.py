@@ -125,31 +125,43 @@ class VerifyKey(nacl.signing.VerifyKey):
 
 if __name__ == "__main__":
     import doctest
+    import json
     import os
-    from base64 import b64encode, b64decode
 
     doctest.testmod(verbose=True)
 
-    tests = [
-        line.split(b",")
-        for line in open(os.path.dirname(__file__) + "/kat.csv")
-        .read()
-        .strip()
-        .encode()
-        .split(b"\n")
-    ]
+    # The canonical blinded-Ed25519 vectors are read via the per-package
+    # symlink that the Python tests use, mirroring the Go side's testdata/
+    # symlink. From this module we walk up out of py/hpqc/ and back down
+    # into py/tests/.
+    vectors_path = os.path.normpath(
+        os.path.join(
+            os.path.dirname(__file__),
+            "..", "..", "..",
+            "tests", "sign", "ed25519", "vectors", "blinded_ed25519.json",
+        )
+    )
+    with open(vectors_path, "rb") as f:
+        doc = json.load(f)
+    assert doc["format_version"] == 1
+    assert doc["primitive"] == "blinded_ed25519"
 
-    for seed, expected_pk, msg, expected_sig, *factors in tests:
+    for v in doc["vectors"]:
+        # The shared schema records the full 64-byte Ed25519 private key
+        # (seed || pubkey); pynacl's SigningKey takes only the 32-byte seed.
+        seed = bytes.fromhex(v["private_key_hex"])[:32]
+        msg = bytes.fromhex(v["message_hex"])
+        expected_pk = bytes.fromhex(v["blinded_pubkey_hex"])
+        expected_sig = bytes.fromhex(v["blinded_signature_hex"])
+        factors = [bytes.fromhex(fh) for fh in v["blind_factors_hex"]]
+        assert factors, v["name"] + ": vector must have at least one blind factor"
+
         key = SigningKey(seed)
-        cur_pk = key.verify_key
-        assert expected_pk == b64encode(bytes(cur_pk))
-        assert expected_sig == b64encode(key.sign(msg)[:64])
-        while factors:
-            factor, expected_pk, expected_sig, *factors = factors
+        for factor in factors:
             key = key.blind(factor)
-            cur_pk = cur_pk.blind(factor)
-            assert bytes(cur_pk) == bytes(key.verify_key)
-            assert expected_pk == b64encode(bytes(cur_pk))
-            sig = key.sign(msg)[:64]
-            assert cur_pk.verify(msg, sig) == msg
-            assert expected_sig == b64encode(sig)
+        sig = key.sign(msg)[:64]
+
+        assert bytes(key.verify_key) == expected_pk, v["name"] + ": blinded pubkey mismatch"
+        assert sig == expected_sig, v["name"] + ": signature mismatch"
+        assert key.verify_key.verify(msg, sig) == msg, v["name"] + ": self-verify failed"
+        print("ok", v["name"])

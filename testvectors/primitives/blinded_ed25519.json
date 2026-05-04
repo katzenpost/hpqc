@@ -2,31 +2,76 @@
   "format_version": 1,
   "generator": "github.com/katzenpost/hpqc/testvectors/cmd/generate",
   "primitive": "blinded_ed25519",
-  "description": "Blinded Ed25519 per hpqc/sign/ed25519/blinded25519.go. Inputs: (private_key, raw blind_factor, message). Outputs: (blinded_pubkey, signature). Each signature is verifiable under standard Ed25519 against the blinded pubkey.",
+  "description": "Blinded Ed25519 per hpqc/sign/ed25519/blinded25519.go. Each vector applies an ordered list of blind factors to a private key and records the resulting blinded public key and a signature over the message under the blinded private key. Single-factor and chain (multi-factor) cases use the same schema; vector names and per-vector provenance distinguish the two sources.",
   "vectors": [
     {
-      "name": "vector_1_seed_12345",
+      "name": "hpqc_vector_1_seed_12345",
+      "provenance": "Originally hardcoded in sign/ed25519/blinded25519_test.go::TestBlindedSignatureVectors in the katzenpost/hpqc Go implementation.",
       "private_key_hex": "1ae969564b34a33ecd1af05fe6923d6de71870997d38ef60155c325957214c425d8ca057866bdee02b63464f587aa75fdad4694c5c05db72323f3928722286cf",
-      "blind_factor_hex": "59d74b863e2fba93aeceb05d2fdcde0c9688d21d95aa7bedefc7f31b35731a3d",
       "message_hex": "297611a6b583a5c30587d4e530c948f013e96d5a4e653f0791899d6270c6f3c0",
+      "blind_factors_hex": [
+        "59d74b863e2fba93aeceb05d2fdcde0c9688d21d95aa7bedefc7f31b35731a3d"
+      ],
       "blinded_pubkey_hex": "9040d29aefe0f045ffd580fb5e0d2f98c61df75e6b45c43a0b456f13e0fbc05b",
-      "signature_hex": "c910841a0274ab6460151143b729d381b925073bbc3877a438fc99bff01e21debe840be097572f177991f896c5ae70401e8ba27c1170c3ac6f1d2f183c5ef303"
+      "blinded_signature_hex": "c910841a0274ab6460151143b729d381b925073bbc3877a438fc99bff01e21debe840be097572f177991f896c5ae70401e8ba27c1170c3ac6f1d2f183c5ef303"
     },
     {
-      "name": "vector_2_seed_0",
+      "name": "hpqc_vector_2_seed_0",
+      "provenance": "Originally hardcoded in sign/ed25519/blinded25519_test.go::TestBlindedSignatureVectors in the katzenpost/hpqc Go implementation.",
       "private_key_hex": "0194fdc2fa2ffcc041d3ff12045b73c86e4ff95ff662a5eee82abdf44a2d0b7597f3bd871315281e8b83edc7a9fd0541066154449070ccdb3cdd42cf69ccde88",
-      "blind_factor_hex": "fb180daf48a79ee0b10d394651850fd4a178892ee285ece1511455780875d64e",
       "message_hex": "e2d3d0d0de6bf8f9b44ce85ff044c6b1f83b8e883bbf857aab99c5b252c7429c",
+      "blind_factors_hex": [
+        "fb180daf48a79ee0b10d394651850fd4a178892ee285ece1511455780875d64e"
+      ],
       "blinded_pubkey_hex": "b1275c25380c06100f20942f4f81f3533ef32baeee877cc8c5e2e5df5ddef7a8",
-      "signature_hex": "92ce223a2774a54246b28fee25627ea03380cb2d1a0812aa6141223de261858f123166a034738270abbac513c66328165893ab72b5a65b190eae35c869c98d06"
+      "blinded_signature_hex": "92ce223a2774a54246b28fee25627ea03380cb2d1a0812aa6141223de261858f123166a034738270abbac513c66328165893ab72b5a65b190eae35c869c98d06"
     },
     {
-      "name": "vector_3_seed_max_int64",
+      "name": "hpqc_vector_3_seed_max_int64",
+      "provenance": "Originally hardcoded in sign/ed25519/blinded25519_test.go::TestBlindedSignatureVectors in the katzenpost/hpqc Go implementation.",
       "private_key_hex": "52fdfc072182654f163f5f0f9a621d729566c74d10037c4d7bbb0407d1e2c6496f1581709bb7b1ef030d210db18e3b0ba1c776fba65d8cdaad05415142d189f8",
-      "blind_factor_hex": "81855ad8681d0d86d1e91e00167939cb6694d2c422acd208a0072939487f6999",
       "message_hex": "eb9d18a44784045d87f3c67cf22746e995af5a25367951baa2ff6cd471c483f1",
+      "blind_factors_hex": [
+        "81855ad8681d0d86d1e91e00167939cb6694d2c422acd208a0072939487f6999"
+      ],
       "blinded_pubkey_hex": "00820761955498aa0c4d0e4d564399ea8281c65051838887c9f6936f63a4159f",
-      "signature_hex": "c176f7bd7b97555ed006959b76a3fc3b858ae6ce6c1e610f049eef6523886461b61910e21f9e7dbeb5f8e677fb6fd753a9c6c5ed8518278f164f087e72e2d308"
+      "blinded_signature_hex": "c176f7bd7b97555ed006959b76a3fc3b858ae6ce6c1e610f049eef6523886461b61910e21f9e7dbeb5f8e677fb6fd753a9c6c5ed8518278f164f087e72e2d308"
+    },
+    {
+      "name": "leif_chain_step_1",
+      "provenance": "Originally from Leif Ryge's misc/kat.csv in the python-kat branch, merged into add_python_bacap via commit b02c707.",
+      "private_key_hex": "736565643030303030303030303030303030303030303030303030303030303018d06b284d49c140c5f45d6c476ebc8166c04ef9717f95d6319512ece6a72a7c",
+      "message_hex": "4d657373616765204f6e65",
+      "blind_factors_hex": [
+        "666163746f72315f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f"
+      ],
+      "blinded_pubkey_hex": "4ffa4d325b74c3b502eb81c47257ebbb2df5e0ce278d1f08bf6dd51e6909ac99",
+      "blinded_signature_hex": "d713e4575532d387a19878311c9f070a17da2f2315d30f3708aabb1ed68a9957c964e9bc2088497bbee1de4d1c8030dc8402e9776fa7beb3d35b9120b4ef290f"
+    },
+    {
+      "name": "leif_chain_step_2",
+      "provenance": "Originally from Leif Ryge's misc/kat.csv in the python-kat branch, merged into add_python_bacap via commit b02c707.",
+      "private_key_hex": "736565643030303030303030303030303030303030303030303030303030303018d06b284d49c140c5f45d6c476ebc8166c04ef9717f95d6319512ece6a72a7c",
+      "message_hex": "4d657373616765204f6e65",
+      "blind_factors_hex": [
+        "666163746f72315f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f",
+        "666163746f72325f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f"
+      ],
+      "blinded_pubkey_hex": "b1b8e4787ea1fdc667f86fd663554429d0ca3e75e23fd494e29b7b5eed70a09c",
+      "blinded_signature_hex": "b18703580bc1f2083ff51c83d0389a4a1636a00f8499a9437d0a7d6ffd59272ddd2be55d1e79cd21b178da2190ddb7df87d62dffa70032366705993b21f56804"
+    },
+    {
+      "name": "leif_chain_step_3",
+      "provenance": "Originally from Leif Ryge's misc/kat.csv in the python-kat branch, merged into add_python_bacap via commit b02c707.",
+      "private_key_hex": "736565643030303030303030303030303030303030303030303030303030303018d06b284d49c140c5f45d6c476ebc8166c04ef9717f95d6319512ece6a72a7c",
+      "message_hex": "4d657373616765204f6e65",
+      "blind_factors_hex": [
+        "666163746f72315f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f",
+        "666163746f72325f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f",
+        "666163746f72335f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f"
+      ],
+      "blinded_pubkey_hex": "9e7634288bf2cde2a99359613da63acb77b917f58ef04d3fab90da5e6d7c6029",
+      "blinded_signature_hex": "d19c4e76361e81316b9ffc48acfeaf411eaa152abe0e9234f00ed1b01ef3dad3e82b789a41763defe98a598c45fb54faa8d064b11caabd0e27e7145b1081940d"
     }
   ]
 }

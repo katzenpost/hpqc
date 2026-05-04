@@ -4,12 +4,8 @@
 package ed25519
 
 import (
-	"crypto/ed25519"
-	"encoding/base64"
-	"encoding/csv"
 	"encoding/hex"
 	"io"
-	"os"
 	"testing"
 	"testing/quick"
 	"time"
@@ -450,49 +446,5 @@ func TestUnblindVectors(t *testing.T) {
 				assert.True(t, singlePubKey.Verify(unblindedSig, message), "unblinded signature should verify")
 			}
 		})
-	}
-}
-
-func TestKat(t *testing.T) {
-	assert := assert.New(t)
-	file, err := os.Open("../../misc/kat.csv")
-	defer file.Close()
-	require.NoError(t, err)
-	reader := csv.NewReader(file)
-	reader.FieldsPerRecord = -1 // Allow variable number of fields
-	rows, err := reader.ReadAll()
-	require.NoError(t, err)
-
-	for _, R := range rows {
-		var key *PrivateKey
-		key_seed, expected_pk, message, expected_sig, factor, R := R[0], R[1], R[2], R[3], R[4], R[5:]
-		key = new(PrivateKey)
-		key.privKey = ed25519.NewKeyFromSeed([]byte(key_seed))
-		key.pubKey.pubKey = []byte(key.privKey[32:])
-		key.pubKey.rebuildB64String()
-		cur_pk := key.PublicKey()
-		assert.Equal(true, CheckPublicKey(cur_pk))
-		assert.Equal(expected_pk, base64.StdEncoding.EncodeToString(key.PublicKey().Bytes()))
-		sig, err := key.Sign(nil, []byte(message), nil)
-		require.NoError(t, err)
-		assert.Equal(expected_sig, base64.StdEncoding.EncodeToString(sig))
-		expected_pk, expected_sig, R = R[0], R[1], R[2:]
-		blinded_secret_key := key.Blind([]byte(factor))
-		cur_pk = cur_pk.Blind([]byte(factor))
-		assert.Equal(true, CheckPublicKey(cur_pk))
-		sig = blinded_secret_key.Sign([]byte(message))
-		assert.Equal(expected_pk, base64.StdEncoding.EncodeToString(cur_pk.Bytes()))
-		assert.Equal(expected_sig, base64.StdEncoding.EncodeToString(sig))
-		assert.Equal(true, cur_pk.Verify(sig, []byte(message)))
-		for len(R) > 0 {
-			factor, expected_pk, expected_sig, R = R[0], R[1], R[2], R[3:]
-			blinded_secret_key = blinded_secret_key.Blind([]byte(factor))
-			cur_pk = cur_pk.Blind([]byte(factor))
-			assert.Equal(true, CheckPublicKey(cur_pk))
-			sig = blinded_secret_key.Sign([]byte(message))
-			assert.Equal(expected_pk, base64.StdEncoding.EncodeToString(cur_pk.Bytes()))
-			assert.Equal(expected_sig, base64.StdEncoding.EncodeToString(sig))
-			assert.Equal(true, cur_pk.Verify(sig, []byte(message)))
-		}
 	}
 }

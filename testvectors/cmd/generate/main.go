@@ -14,6 +14,7 @@
 package main
 
 import (
+	stded25519 "crypto/ed25519"
 	"crypto/sha512"
 	"encoding/hex"
 	"encoding/json"
@@ -283,83 +284,134 @@ func genAESGCMSIV() vectorFile {
 	}
 }
 
-// Blinded Ed25519 per hpqc/sign/ed25519/blinded25519.go. Each vector locks
-// down both the blinded public key and the signature: a Python port that
-// gets the SHA-512/256 factor hashing wrong, the scalar clamping wrong, or
-// the [33:64] off-by-one in the nonce derivation will fail one of these.
+// Blinded Ed25519 per hpqc/sign/ed25519/blinded25519.go.
+//
+// Each vector is (private_key, message, ordered list of blind factors) →
+// (blinded_pubkey, signature). The factors are applied in order so a vector
+// with N factors records the cumulative result of N successive blindings,
+// covering both the single-blinding and the chained-blinding cases under
+// one schema.
 
 type blindedEd25519Vector struct {
-	Name             string `json:"name"`
-	PrivateKeyHex    string `json:"private_key_hex"`    // 64-byte Ed25519 private key (seed || pub)
-	BlindFactorHex   string `json:"blind_factor_hex"`   // 32-byte raw factor (will be sha512_256-hashed inside Blind)
-	MessageHex       string `json:"message_hex"`        // message to sign
-	BlindedPubKeyHex string `json:"blinded_pubkey_hex"` // 32-byte blinded public key
-	SignatureHex     string `json:"signature_hex"`      // 64-byte custom-routine signature
+	Name              string   `json:"name"`
+	Provenance        string   `json:"provenance"`         // where the inputs came from
+	PrivateKeyHex     string   `json:"private_key_hex"`    // 64-byte Ed25519 private key (seed || pub)
+	MessageHex        string   `json:"message_hex"`        // message to sign
+	BlindFactorsHex   []string `json:"blind_factors_hex"`  // one or more 32-byte factors, applied in order
+	BlindedPubKeyHex  string   `json:"blinded_pubkey_hex"` // 32-byte blinded public key after all factors applied
+	BlindedSigHex     string   `json:"blinded_signature_hex"` // 64-byte signature under the blinded private key
 }
 
+const (
+	provenanceHpqcGo = "Originally hardcoded in sign/ed25519/blinded25519_test.go::TestBlindedSignatureVectors in the katzenpost/hpqc Go implementation."
+	provenanceLeif   = "Originally from Leif Ryge's misc/kat.csv in the python-kat branch, merged into add_python_bacap via commit b02c707."
+)
+
 func genBlindedEd25519() vectorFile {
-	// Three vectors lifted directly from sign/ed25519/blinded25519_test.go's
-	// TestBlindedSignatureVectors. They are deterministic given the inputs
-	// and serve as the smoke-test triplet for any port of Blind+Sign.
-	cases := []struct {
+	vs := []blindedEd25519Vector{}
+
+	// Three vectors lifted from blinded25519_test.go's
+	// TestBlindedSignatureVectors. Single-factor, smoke-test triplet.
+	hpqcCases := []struct {
 		name       string
 		privateKey string
 		factor     string
 		message    string
 	}{
 		{
-			name:       "vector_1_seed_12345",
+			name:       "hpqc_vector_1_seed_12345",
 			privateKey: "1ae969564b34a33ecd1af05fe6923d6de71870997d38ef60155c325957214c425d8ca057866bdee02b63464f587aa75fdad4694c5c05db72323f3928722286cf",
 			factor:     "59d74b863e2fba93aeceb05d2fdcde0c9688d21d95aa7bedefc7f31b35731a3d",
 			message:    "297611a6b583a5c30587d4e530c948f013e96d5a4e653f0791899d6270c6f3c0",
 		},
 		{
-			name:       "vector_2_seed_0",
+			name:       "hpqc_vector_2_seed_0",
 			privateKey: "0194fdc2fa2ffcc041d3ff12045b73c86e4ff95ff662a5eee82abdf44a2d0b7597f3bd871315281e8b83edc7a9fd0541066154449070ccdb3cdd42cf69ccde88",
 			factor:     "fb180daf48a79ee0b10d394651850fd4a178892ee285ece1511455780875d64e",
 			message:    "e2d3d0d0de6bf8f9b44ce85ff044c6b1f83b8e883bbf857aab99c5b252c7429c",
 		},
 		{
-			name:       "vector_3_seed_max_int64",
+			name:       "hpqc_vector_3_seed_max_int64",
 			privateKey: "52fdfc072182654f163f5f0f9a621d729566c74d10037c4d7bbb0407d1e2c6496f1581709bb7b1ef030d210db18e3b0ba1c776fba65d8cdaad05415142d189f8",
 			factor:     "81855ad8681d0d86d1e91e00167939cb6694d2c422acd208a0072939487f6999",
 			message:    "eb9d18a44784045d87f3c67cf22746e995af5a25367951baa2ff6cd471c483f1",
 		},
 	}
-	vs := make([]blindedEd25519Vector, 0, len(cases))
-	for _, c := range cases {
-		privBytes := mustHex(c.privateKey)
-		factor := mustHex(c.factor)
-		message := mustHex(c.message)
-
-		priv := new(ed25519.PrivateKey)
-		must(priv.FromBytes(privBytes))
-		blinded := priv.Blind(factor)
-		blindedPub := blinded.PublicKey()
-		sig := blinded.Sign(message)
-
-		// Sanity: the resulting signature must verify under standard Ed25519
-		// against the blinded public key. This is the property that lets a
-		// Python sender interoperate with any Ed25519 verifier.
-		if !blindedPub.Verify(sig, message) {
-			panic("vector " + c.name + ": signature failed self-verification")
-		}
-
-		vs = append(vs, blindedEd25519Vector{
-			Name:             c.name,
-			PrivateKeyHex:    c.privateKey,
-			BlindFactorHex:   c.factor,
-			MessageHex:       c.message,
-			BlindedPubKeyHex: hex.EncodeToString(blindedPub.Bytes()),
-			SignatureHex:     hex.EncodeToString(sig),
-		})
+	for _, c := range hpqcCases {
+		vs = append(vs, computeBlindedEd25519Vector(c.name, provenanceHpqcGo,
+			mustHex(c.privateKey), mustHex(c.message), [][]byte{mustHex(c.factor)}))
 	}
+
+	// Leif's KAT chain from misc/kat.csv. The seed is a 32-byte ASCII string;
+	// from it we derive the standard Ed25519 64-byte private key and then
+	// apply three successive blinding factors. We unroll the chain into three
+	// vectors so that each cumulative step (one, two, three factors) is its
+	// own line in the consolidated set.
+	leifSeed := []byte("seed0000000000000000000000000000")
+	leifMessage := []byte("Message One")
+	leifFactors := [][]byte{
+		[]byte("factor1_________________________"),
+		[]byte("factor2_________________________"),
+		[]byte("factor3_________________________"),
+	}
+	if len(leifSeed) != stded25519.SeedSize {
+		panic("leif seed wrong length")
+	}
+	leifPriv := stded25519.NewKeyFromSeed(leifSeed)
+	for i := range leifFactors {
+		factors := leifFactors[: i+1]
+		vs = append(vs, computeBlindedEd25519Vector(
+			fmt.Sprintf("leif_chain_step_%d", i+1),
+			provenanceLeif,
+			[]byte(leifPriv),
+			leifMessage,
+			factors,
+		))
+	}
+
 	return vectorFile{
 		FormatVersion: formatVersion,
 		Generator:     generatorName,
 		Primitive:     "blinded_ed25519",
-		Description:   "Blinded Ed25519 per hpqc/sign/ed25519/blinded25519.go. Inputs: (private_key, raw blind_factor, message). Outputs: (blinded_pubkey, signature). Each signature is verifiable under standard Ed25519 against the blinded pubkey.",
+		Description:   "Blinded Ed25519 per hpqc/sign/ed25519/blinded25519.go. Each vector applies an ordered list of blind factors to a private key and records the resulting blinded public key and a signature over the message under the blinded private key. Single-factor and chain (multi-factor) cases use the same schema; vector names and per-vector provenance distinguish the two sources.",
 		Vectors:       vs,
+	}
+}
+
+// computeBlindedEd25519Vector applies the blind factors to privKeyBytes in
+// order, signs message under the resulting blinded private key, and returns
+// a vector with the recorded outputs. It panics if the resulting signature
+// fails to self-verify under standard Ed25519 against the blinded pubkey.
+func computeBlindedEd25519Vector(name, provenance string, privKeyBytes, message []byte, factors [][]byte) blindedEd25519Vector {
+	if len(factors) == 0 {
+		panic("computeBlindedEd25519Vector: at least one factor required")
+	}
+	priv := new(ed25519.PrivateKey)
+	must(priv.FromBytes(privKeyBytes))
+
+	blinded := priv.Blind(factors[0])
+	for _, f := range factors[1:] {
+		blinded = blinded.Blind(f)
+	}
+	blindedPub := blinded.PublicKey()
+	sig := blinded.Sign(message)
+
+	if !blindedPub.Verify(sig, message) {
+		panic("vector " + name + ": signature failed self-verification")
+	}
+
+	factorsHex := make([]string, len(factors))
+	for i, f := range factors {
+		factorsHex[i] = hex.EncodeToString(f)
+	}
+	return blindedEd25519Vector{
+		Name:             name,
+		Provenance:       provenance,
+		PrivateKeyHex:    hex.EncodeToString(privKeyBytes),
+		MessageHex:       hex.EncodeToString(message),
+		BlindFactorsHex:  factorsHex,
+		BlindedPubKeyHex: hex.EncodeToString(blindedPub.Bytes()),
+		BlindedSigHex:    hex.EncodeToString(sig),
 	}
 }
 
