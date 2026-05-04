@@ -28,10 +28,10 @@ This library includes CTIDH, currently the only post-quantum NIKE in existence, 
 
 The key to understanding and using this cryptography library is to review the `Scheme` interfaces, for NIKE, KEM and signature schemes, as well as the BACAP API:
 
-* NIKE Scheme: https://pkg.go.dev/github.com/katzenpost/hpqc@v0.0.52/nike#Scheme
-* KEM Scheme: https://pkg.go.dev/github.com/katzenpost/hpqc@v0.0.52/kem#Scheme
-* signature schemes' Scheme: https://pkg.go.dev/github.com/katzenpost/hpqc@v0.0.52/sign#Scheme
-* BACAP API documentation: https://pkg.go.dev/github.com/katzenpost/hpqc@v0.0.52/bacap
+* NIKE Scheme: https://pkg.go.dev/github.com/katzenpost/hpqc/nike#Scheme
+* KEM Scheme: https://pkg.go.dev/github.com/katzenpost/hpqc/kem#Scheme
+* signature schemes' Scheme: https://pkg.go.dev/github.com/katzenpost/hpqc/sign#Scheme
+* BACAP API documentation: https://pkg.go.dev/github.com/katzenpost/hpqc/bacap
 
 Using our generic NIKE, KEM and Signature scheme interfaces helps you achieve cryptographic code agility which makes it easy to switch between cryptographic primitives.
 
@@ -269,7 +269,7 @@ import (
 	"github.com/katzenpost/hpqc/sign/sphincsplus"
 )
 
-var Ed25519Sphincs = hybrid.New("Ed25519 Sphincs+", ed25519.Scheme(), sphincsplus.Scheme())
+var Ed25519Sphincs = hybrid.New("Ed25519-Sphincs+", ed25519.Scheme(), sphincsplus.Scheme())
 ```
 
 
@@ -300,23 +300,27 @@ The following code demonstrates the use of both the adapter and the combiner int
 import (
 	"github.com/katzenpost/hpqc/kem"
 	"github.com/katzenpost/hpqc/kem/adapter"
+	"github.com/katzenpost/hpqc/kem/circlkem"
 	"github.com/katzenpost/hpqc/kem/combiner"
-	"github.com/katzenpost/hpqc/kem/hybrid"
 	"github.com/katzenpost/hpqc/kem/mlkem768"
 	"github.com/katzenpost/circl/kem/frodo/frodo640shake"
-	"github.com/katzenpost/hpqc/nike/x448"
 	"github.com/katzenpost/hpqc/nike/ctidh/ctidh1024"
+	"github.com/katzenpost/hpqc/nike/x448"
+	"github.com/katzenpost/hpqc/rand"
 )
 
-var kemScheme kem.Scheme = combiner.New(
-		"MLKEM768-Frodo640Shake-CTIDH1024-X448",
-		[]kem.Scheme{
-		    mlkem768.Scheme(),
-			frodo640shake.Scheme(),
-			adapter.FromNIKE(ctidh1024.Scheme()),
-			adapter.FromNIKE(x448.Scheme(rand.Reader)),
-		},
+kemScheme, err := combiner.New(
+	"MLKEM768-Frodo640Shake-CTIDH1024-X448",
+	[]kem.Scheme{
+		mlkem768.Scheme(),
+		circlkem.FromCircl(frodo640shake.Scheme()),
+		adapter.FromNIKE(ctidh1024.Scheme()),
+		adapter.FromNIKE(x448.Scheme(rand.Reader)),
+	},
 )
+if err != nil {
+	panic(err)
+}
 ```
 
 
@@ -334,7 +338,7 @@ func SplitPRF(ss1, ss2, ss3, cct1, cct2, cct3 []byte) []byte {
 
 ## MKEM
 
-The [MKEM package](https://pkg.go.dev/github.com/katzenpost/hpqc@v0.0.53/kem/mkem) is an efficient multiparty encryption scheme. You can pass it any NIKE scheme.
+The [MKEM package](https://pkg.go.dev/github.com/katzenpost/hpqc/kem/mkem) is an efficient multiparty encryption scheme. You can pass it any NIKE scheme.
 
 
 
@@ -375,14 +379,12 @@ CGO_LDFLAGS: -Wl,-stack_size,0x1F40000
 |:---:|
 
 | Primitive | HPQC name | security |
-|  --------  |  -------  | -------  | 
-| Classical Diffie-Hellman | "DH4096_RFC3526" | classic |
+|  --------  |  -------  | -------  |
 | X25519 | "X25519" | classic |
 | X448 | "X448" | classic |
-| Implementations of CTIDH | "ctidh511", "ctidh512", "ctidh1024", "ctidh2048" | post-quantum | 
-| hybrid of CSIDH and X25519 | "NOBS_CSIDH-X25519 " | hybrid |
-|hybrids of CTIDH with X25519 | "CTIDH511-X25519", "CTIDH512-X25519", "CTIDH1024-X25519" | hybrid |
-| hybrids of CTIDH with X448 | "CTIDH512-X448", "CTIDH1024-X448", "CTIDH2048-X448"| hybrid |
+| Implementations of CTIDH | "ctidh511", "ctidh512", "ctidh1024", "ctidh2048" | post-quantum |
+| hybrids of CTIDH with X25519 | "CTIDH512-X25519", "CTIDH1024-X25519" (alias "X25519-CTIDH1024") | hybrid |
+| hybrids of CTIDH with X448 | "CTIDH512-X448", "CTIDH1024-X448", "CTIDH2048-X448" | hybrid |
 
 __________
 
@@ -394,7 +396,7 @@ __________
 |  --------  |  -------  | -------  | 
 | ML-KEM-768| "MLKEM768" | post-quantum |
 | XWING is a hybrid primitive that pre-combines ML-KEM-768 and X25519. Due to [security properties](https://eprint.iacr.org/2018/024) of our combiner, we also implement our own combination of the two below.| "XWING" | hybrid |
-| The sntrup4591761 version of the NTRU cryptosystem. | "NTRUPrime"  | post-quantum |
+| The sntrup4591761 version of the NTRU cryptosystem. | "sntrup4591761" | post-quantum |
 | FrodoKEM-640-SHAKE |"FrodoKEM-640-SHAKE"| post-quantum|
 | Various forms of the McEliece cryptosystem| "mceliece348864", "mceliece348864f", "mceliece460896", "mceliece460896f", "mceliece6688128", "mceliece6688128f", "mceliece6960119", "mceliece6960119f", "mceliece8192128", "mceliece8192128f" | post-quantum|
 |A hybrid of ML-KEM-768 and X25519. The [KEM Combiners paper](https://eprint.iacr.org/2018/024.pdf) is the reason we implemented our own combination in addition to including XWING. |"MLKEM768-X25519"| hybrid |
@@ -416,7 +418,7 @@ ____________
 | Ed25519 | "ed25519" | classic |
 | Ed448 | "ed448" | classic |
 | Sphincs+shake-256f | "Sphincs+" | post-quantum |
-| hybrids of Sphincs+ and ECC | "Ed25519 Sphincs+", "Ed448-Sphincs+" | hybrid |
+| hybrids of Sphincs+ and ECC | "Ed25519-Sphincs+", "Ed448-Sphincs+" (legacy alias "Ed25519 Sphincs+" still resolves) | hybrid |
 |hybrids of Dilithium 2 and 3 with Ed25519 | "eddilithium2", "eddilithium3" | hybrid |
 
 
@@ -434,12 +436,11 @@ This library was inspired by Cloudflare's `circl` cryptography library. HPQC use
 
 * [LICENSE file](https://github.com/katzenpost/hpqc/blob/main/LICENSE).
 * [About free software philosophy](https://www.gnu.org/philosophy/free-sw.html)
-* There are precisely three files which were borrowed from cloudflare's
+* There are precisely two files which were borrowed from cloudflare's
 `circl` cryptography library:
 
-1. https://github.com/katzenpost/hpqc/blob/main/kem/hybrid/hybrid.go
-2. https://github.com/katzenpost/hpqc/blob/main/kem/interfaces.go
-3. https://github.com/katzenpost/hpqc/blob/main/sign/interfaces.go
+1. https://github.com/katzenpost/hpqc/blob/main/kem/interfaces.go
+2. https://github.com/katzenpost/hpqc/blob/main/sign/interfaces.go
 
 * Classical Diffiehellman implementation from Elixxir/XX Network and modified in place
 to conform to our NIKE scheme interfaces, [BSD 2-clause LICENSE file included](https://github.com/katzenpost/hpqc/blob/main/nike/diffiehellman/LICENSE)
