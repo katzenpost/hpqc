@@ -46,10 +46,47 @@ jobs:
           name: python-package-distributions
           path: py/dist/
 
+  smoke-test:
+    name: Smoke-import the wheel before publish
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: python-package-distributions
+          path: dist/
+
+      - name: Install wheel into a fresh venv and import the public modules
+        run: |
+          python -m venv /tmp/smoke
+          /tmp/smoke/bin/pip install dist/*.whl
+          /tmp/smoke/bin/python -c "
+          import hpqc
+          from hpqc.bacap import WriteCap, ReadCap, MessageBoxIndex
+          from hpqc.kem.mkem import MKEMScheme
+          from hpqc.nike.x25519 import X25519
+          from hpqc.nike.scheme import Scheme
+          from hpqc.sign.ed25519 import VerifyKey
+          assert hpqc.__version__, 'hpqc.__version__ should be populated'
+          mkem = MKEMScheme(X25519())
+          pk, sk = mkem.generate_keypair()
+          eph, ct = mkem.encapsulate([pk], b'smoke')
+          assert mkem.decapsulate(sk, ct) == b'smoke'
+          wc = WriteCap.generate()
+          mbi = wc.first_message_box_index
+          box, c, s = mbi.encrypt_for_context(wc, b'ctx', b'hello')
+          assert mbi.decrypt_for_context(box, b'ctx', c, s) == b'hello'
+          print('smoke OK, version', hpqc.__version__)
+          "
+
   publish-testpypi:
     name: Publish to TestPyPI
     if: github.event_name == 'workflow_dispatch'
-    needs: build
+    needs: smoke-test
     runs-on: ubuntu-latest
     environment:
       name: testpypi
@@ -69,7 +106,7 @@ jobs:
   publish-pypi:
     name: Publish to PyPI
     if: startsWith(github.ref, 'refs/tags/py/v')
-    needs: build
+    needs: smoke-test
     runs-on: ubuntu-latest
     environment:
       name: pypi
