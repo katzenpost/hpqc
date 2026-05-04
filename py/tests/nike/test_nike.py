@@ -17,7 +17,10 @@ from __future__ import annotations
 import pytest
 
 from hpqc.nike import PrivateKey, PublicKey, Scheme
+from hpqc.nike.ctidh511 import CTIDH511
+from hpqc.nike.ctidh512 import CTIDH512
 from hpqc.nike.ctidh1024 import CTIDH1024
+from hpqc.nike.ctidh2048 import CTIDH2048
 from hpqc.nike.hybrid import HybridNIKE
 from hpqc.nike.x25519 import X25519
 
@@ -25,7 +28,10 @@ from hpqc.nike.x25519 import X25519
 def _all_schemes() -> list[Scheme]:
     return [
         X25519(),
+        CTIDH511(),
+        CTIDH512(),
         CTIDH1024(),
+        CTIDH2048(),
         HybridNIKE(CTIDH1024(), X25519()),
     ]
 
