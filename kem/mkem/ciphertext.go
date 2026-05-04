@@ -17,13 +17,13 @@ var (
 
 type Ciphertext struct {
 	EphemeralPublicKey nike.PublicKey
-	DEKCiphertexts     []*[DEKSize]byte
+	DEKCiphertexts     [][]byte
 	Envelope           []byte
 }
 
 type IntermediaryCiphertext struct {
 	EphemeralPublicKey []byte
-	DEKCiphertexts     []*[DEKSize]byte
+	DEKCiphertexts     [][]byte
 	Envelope           []byte
 }
 
