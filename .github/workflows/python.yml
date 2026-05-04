@@ -26,3 +26,27 @@ jobs:
       - name: Run pytest
         working-directory: py
         run: pytest -v
+
+  build:
+    name: Build sdist and wheel
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Build distributions
+        run: |
+          python -m pip install --upgrade build twine
+          python -m build py
+      - name: twine check
+        run: twine check py/dist/*
+      - name: Wheel must contain LICENSE
+        run: |
+          unzip -l py/dist/*.whl | grep -q 'dist-info/licenses/LICENSE' \
+            || (echo "wheel is missing LICENSE under .dist-info/licenses/" && exit 1)
