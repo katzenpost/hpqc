@@ -18,6 +18,7 @@ dependencies = [
     "pynacl>=1.6",
     "cryptography>=47.0",
     "highctidh>=1.0.2025051200",
+    "cbor2>=6.0",
 ]
 
 [project.optional-dependencies]
