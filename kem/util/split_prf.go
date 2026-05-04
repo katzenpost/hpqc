@@ -4,128 +4,65 @@
 package util
 
 import (
-	"encoding/binary"
-	"errors"
-	"hash"
-
+	"github.com/go-faster/xor"
 	"golang.org/x/crypto/blake2b"
-
-	coreUtil "github.com/katzenpost/hpqc/util"
 )
 
-const (
-	// splitPRFLabel is a domain-separation tag prepended to every hash
-	// input so that this construction cannot collide with any other use
-	// of BLAKE2b in the system.
-	splitPRFLabel = "splitprf-v1"
-
-	// OutputSize is the length in bytes of the value SplitPRF returns.
-	OutputSize = blake2b.Size256
-)
-
-var (
-	// ErrNoInputs is returned when SplitPRF is called with zero inputs.
-	ErrNoInputs = errors.New("split prf: no inputs supplied")
-
-	// ErrEmptyComponent is returned when any inner shared secret or
-	// ciphertext slice is nil or zero-length.
-	ErrEmptyComponent = errors.New("split prf: input component cannot be nil or empty")
-
-	// ErrMismatchedSlices is returned when len(ss) != len(cct).
-	ErrMismatchedSlices = errors.New("split prf: shared-secret and ciphertext slice lengths differ")
-)
-
-// SplitPRF implements a domain-separated split-PRF KEM combiner over
-// any number of KEMs:
+// SplitPRF can be used with any number of KEMs
+// and it implement split PRF KEM combiner as:
 //
-//	for each i in 1..n:
-//	    hash_i := BLAKE2b-256(
-//	        label ||
-//	        u32be(len(ss_i))    || ss_i ||
-//	        u32be(n)            ||
-//	        u32be(len(cct_1))   || cct_1 ||
-//	        ...                 ||
-//	        u32be(len(cct_n))   || cct_n
-//	    )
-//	return hash_1 XOR hash_2 XOR ... XOR hash_n
+//	cct := cct1 || cct2 || cct3 || ...
+//	return H(ss1 || cct) XOR H(ss2 || cct) XOR H(ss3 || cct)
 //
-// The length-prefixed encoding makes the transcript unambiguous even
-// when sub-KEMs have variable-size shared secrets or ciphertexts. The
-// construction retains IND-CCA2 security as long as at least one
-// sub-KEM is IND-CCA2 secure. See KEM Combiners
-// (https://eprint.iacr.org/2018/024.pdf) by Federico Giacon, Felix
-// Heuer, and Bertram Poettering.
-func SplitPRF(ss, cct [][]byte) ([]byte, error) {
-	if len(ss) == 0 || len(cct) == 0 {
-		return nil, ErrNoInputs
-	}
+// in order to retain IND-CCA2 security
+// as described in KEM Combiners  https://eprint.iacr.org/2018/024.pdf
+// by Federico Giacon, Felix Heuer, and Bertram Poettering
+func SplitPRF(ss, cct [][]byte) []byte {
+
 	if len(ss) != len(cct) {
-		return nil, ErrMismatchedSlices
+		panic("mismatched slices")
 	}
 
-	cctSize := 4
-	for i := range ss {
-		if len(ss[i]) == 0 || len(cct[i]) == 0 {
-			return nil, ErrEmptyComponent
+	cctcat := []byte{}
+	for i := 0; i < len(cct); i++ {
+		if cct[i] == nil {
+			panic("ciphertext cannot be nil")
 		}
-		cctSize += 4 + len(cct[i])
-	}
-
-	cctTranscript := make([]byte, 0, cctSize)
-	cctTranscript = appendU32BE(cctTranscript, uint32(len(ss)))
-	for _, c := range cct {
-		cctTranscript = appendU32BE(cctTranscript, uint32(len(c)))
-		cctTranscript = append(cctTranscript, c...)
+		if len(cct[i]) == 0 {
+			panic("ciphertext cannot be zero length")
+		}
+		cctcat = append(cctcat, cct[i]...)
 	}
 
 	hashes := make([][]byte, len(ss))
-	defer func() {
-		for _, h := range hashes {
-			coreUtil.ExplicitBzero(h)
+	for i := 0; i < len(ss); i++ {
+		h, err := blake2b.New256(nil)
+		if err != nil {
+			panic(err)
 		}
-	}()
-
-	var lenBuf [4]byte
-	for i, s := range ss {
-		h := mustNewBlake2b256()
-		mustWrite(h, []byte(splitPRFLabel))
-		binary.BigEndian.PutUint32(lenBuf[:], uint32(len(s)))
-		mustWrite(h, lenBuf[:])
-		mustWrite(h, s)
-		mustWrite(h, cctTranscript)
+		if ss[i] == nil {
+			panic("shared secret cannot be nil")
+		}
+		if len(ss[i]) == 0 {
+			panic("shared secret cannot be zero length")
+		}
+		_, err = h.Write(ss[i])
+		if err != nil {
+			panic(err)
+		}
+		_, err = h.Write(cctcat)
+		if err != nil {
+			panic(err)
+		}
 		hashes[i] = h.Sum(nil)
 	}
 
-	out := make([]byte, OutputSize)
-	for _, hsh := range hashes {
-		for j := 0; j < OutputSize; j++ {
-			out[j] ^= hsh[j]
-		}
+	acc := hashes[0]
+	for i := 1; i < len(ss); i++ {
+		out := make([]byte, 32)
+		xor.Bytes(out, acc, hashes[i])
+		acc = out
 	}
-	return out, nil
+	return acc
 }
 
-func appendU32BE(b []byte, v uint32) []byte {
-	var tmp [4]byte
-	binary.BigEndian.PutUint32(tmp[:], v)
-	return append(b, tmp[:]...)
-}
-
-// mustNewBlake2b256 returns a fresh BLAKE2b-256 hasher. The constructor
-// only fails on excessive key length, and we pass a nil key, so any
-// error here is a bug in the underlying library.
-func mustNewBlake2b256() hash.Hash {
-	h, err := blake2b.New256(nil)
-	if err != nil {
-		panic(err)
-	}
-	return h
-}
-
-// mustWrite writes p to h. hash.Hash.Write is contracted never to
-// return an error; if one does it is a bug.
-func mustWrite(h hash.Hash, p []byte) {
-	if _, err := h.Write(p); err != nil {
-		panic(err)
-	}
-}

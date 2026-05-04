@@ -20,7 +20,6 @@ import (
 	"github.com/katzenpost/hpqc/kem/adapter"
 	"github.com/katzenpost/hpqc/kem/circlkem"
 	"github.com/katzenpost/hpqc/kem/combiner"
-	"github.com/katzenpost/hpqc/kem/hybrid"
 	"github.com/katzenpost/hpqc/kem/mlkem768"
 	"github.com/katzenpost/hpqc/kem/sntrup"
 	"github.com/katzenpost/hpqc/kem/xwing"
@@ -33,9 +32,9 @@ import (
 	"github.com/katzenpost/hpqc/rand"
 )
 
-// mustCombine wraps combiner.New for the registry's package-level slice
-// initialisation. A nil sub-scheme is a programmer error here, so we
-// turn the error into a panic at start-up.
+// mustCombine wraps combiner.New for the registry's package-level
+// slice initialisation. A nil sub-scheme is a programmer error here,
+// so we turn the error into a panic at start-up.
 func mustCombine(name string, schemes []kem.Scheme) kem.Scheme {
 	s, err := combiner.New(name, schemes)
 	if err != nil {
@@ -102,12 +101,13 @@ var allSchemes = []kem.Scheme{
 
 	xwing.Scheme(),
 
-	// XXX TODO: must soon deprecate use of "hybrid.New" in favour of "combiner.New".
-	// We'd also like to remove Kyber now that we have mlkem768.
-	hybrid.New(
+	// We'd like to remove Kyber now that we have mlkem768.
+	mustCombine(
 		"Kyber768-X25519",
-		adapter.FromNIKE(x25519.Scheme(rand.Reader)),
-		circlkem.FromCircl(kyber768.Scheme()),
+		[]kem.Scheme{
+			adapter.FromNIKE(x25519.Scheme(rand.Reader)),
+			circlkem.FromCircl(kyber768.Scheme()),
+		},
 	),
 
 	// If Xwing is not the PQ Hybrid KEM you are looking for then we recommend

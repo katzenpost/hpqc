@@ -1,26 +1,21 @@
 // SPDX-FileCopyrightText: © 2023 David Stainton
 // SPDX-License-Identifier: AGPL-3.0-only
 
-// Package combiner defines a security preserving KEM combiner.
-// The [KEM Combiners paper](https://eprint.iacr.org/2018/024.pdf) makes the
-// observation that if a KEM combiner is not security preserving then the
-// resulting hybrid KEM will not have IND-CCA2 security if one of the
-// composing KEMs does not have IND-CCA2 security. Likewise the paper
-// points out that when using a security preserving KEM combiner, if only
-// one of the composing KEMs has IND-CCA2 security then the resulting
-// hybrid KEM will have IND-CCA2 security.
+// Package combiner is a security-preserving KEM combiner. It uses a
+// split-PRF design with a domain-separated, length-prefixed input
+// encoding (see SplitPRF in this package) so the construction is
+// unambiguous regardless of sub-KEM output sizes.
 //
-// Our KEM combiner uses the split PRF design for an arbitrary number
-// of kems, here shown with only three, in pseudo code:
+// The KEM Combiners paper
+// (https://eprint.iacr.org/2018/024.pdf) shows that a security-
+// preserving combiner gives an IND-CCA2 hybrid as long as at least one
+// composing KEM is itself IND-CCA2. The split-PRF used here is over
+// any number of sub-KEMs:
 //
-// ```
-//
-//	func SplitPRF(ss1, ss2, ss3, cct1, cct2, cct3 []byte) []byte {
-//	    cct := cct1 || cct2 || cct3
-//	    return PRF(ss1 || cct) XOR PRF(ss2 || cct) XOR PRF(ss3 || cct)
-//	}
-//
-// ```
+//	for each i in 1..n:
+//	    hash_i := H(label || u32be(len(ss_i)) || ss_i ||
+//	                u32be(n)  || u32be(len(cct_j)) || cct_j …)
+//	return hash_1 XOR hash_2 XOR ... XOR hash_n
 package combiner
 
 import (
@@ -29,7 +24,6 @@ import (
 	"golang.org/x/crypto/blake2b"
 
 	"github.com/katzenpost/hpqc/kem"
-	"github.com/katzenpost/hpqc/kem/util"
 	coreUtil "github.com/katzenpost/hpqc/util"
 )
 
@@ -325,7 +319,7 @@ func (sch *Scheme) Encapsulate(pk kem.PublicKey) (ct, ss []byte, err error) {
 		ciphertextBlob = append(ciphertextBlob, cct...)
 	}
 
-	ss, err = util.SplitPRF(sharedSecrets, ciphertexts)
+	ss, err = SplitPRF(sharedSecrets, ciphertexts)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -369,7 +363,7 @@ func (sch *Scheme) Decapsulate(sk kem.PrivateKey, ct []byte) ([]byte, error) {
 		offset += ciphertextSize
 	}
 
-	return util.SplitPRF(sharedSecrets, ciphertexts)
+	return SplitPRF(sharedSecrets, ciphertexts)
 }
 
 // UnmarshalBinaryPublicKey unmarshals a binary blob representing a public key.

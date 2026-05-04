@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: © 2026 David Stainton
 // SPDX-License-Identifier: AGPL-3.0-only
 
-package util_test
+package combiner_test
 
 import (
 	"bytes"
@@ -9,7 +9,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/katzenpost/hpqc/kem/util"
+	"github.com/katzenpost/hpqc/kem/combiner"
 )
 
 // TestSplitPRFKnownAnswers pins the output of SplitPRF for fixed
@@ -51,7 +51,7 @@ func TestSplitPRFKnownAnswers(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			got, err := util.SplitPRF(tc.ss, tc.cct)
+			got, err := combiner.SplitPRF(tc.ss, tc.cct)
 			if err != nil {
 				t.Fatalf("SplitPRF: %v", err)
 			}
@@ -67,26 +67,26 @@ func TestSplitPRFKnownAnswers(t *testing.T) {
 }
 
 func TestSplitPRFOutputSize(t *testing.T) {
-	out, err := util.SplitPRF(
+	out, err := combiner.SplitPRF(
 		[][]byte{{0xaa}},
 		[][]byte{{0xbb}},
 	)
 	if err != nil {
 		t.Fatalf("SplitPRF: %v", err)
 	}
-	if len(out) != util.OutputSize {
-		t.Fatalf("output length %d != OutputSize %d", len(out), util.OutputSize)
+	if len(out) != combiner.SplitPRFOutputSize {
+		t.Fatalf("output length %d != OutputSize %d", len(out), combiner.SplitPRFOutputSize)
 	}
 }
 
 func TestSplitPRFDeterministic(t *testing.T) {
 	ss := [][]byte{{0x01, 0x02}, {0x03, 0x04}}
 	cct := [][]byte{{0x10}, {0x20}}
-	a, err := util.SplitPRF(ss, cct)
+	a, err := combiner.SplitPRF(ss, cct)
 	if err != nil {
 		t.Fatalf("SplitPRF: %v", err)
 	}
-	b, err := util.SplitPRF(ss, cct)
+	b, err := combiner.SplitPRF(ss, cct)
 	if err != nil {
 		t.Fatalf("SplitPRF: %v", err)
 	}
@@ -103,11 +103,11 @@ func TestSplitPRFOrderDependent(t *testing.T) {
 	cctA := [][]byte{{0xaa}, {0xbb}}
 	ssB := [][]byte{{0x02}, {0x01}}
 	cctB := [][]byte{{0xbb}, {0xaa}}
-	a, err := util.SplitPRF(ssA, cctA)
+	a, err := combiner.SplitPRF(ssA, cctA)
 	if err != nil {
 		t.Fatalf("SplitPRF A: %v", err)
 	}
-	b, err := util.SplitPRF(ssB, cctB)
+	b, err := combiner.SplitPRF(ssB, cctB)
 	if err != nil {
 		t.Fatalf("SplitPRF B: %v", err)
 	}
@@ -123,14 +123,14 @@ func TestSplitPRFOrderDependent(t *testing.T) {
 func TestSplitPRFLengthPrefixIsBinding(t *testing.T) {
 	// Two ciphertext slicings that, when naively concatenated, would
 	// produce the same byte stream "0x11 0x22 0x33 0x44".
-	a, err := util.SplitPRF(
+	a, err := combiner.SplitPRF(
 		[][]byte{{0x55}, {0x66}},
 		[][]byte{{0x11, 0x22}, {0x33, 0x44}},
 	)
 	if err != nil {
 		t.Fatalf("SplitPRF a: %v", err)
 	}
-	b, err := util.SplitPRF(
+	b, err := combiner.SplitPRF(
 		[][]byte{{0x55}, {0x66}},
 		[][]byte{{0x11}, {0x22, 0x33, 0x44}},
 	)
@@ -143,20 +143,20 @@ func TestSplitPRFLengthPrefixIsBinding(t *testing.T) {
 }
 
 func TestSplitPRFErrNoInputs(t *testing.T) {
-	if _, err := util.SplitPRF(nil, nil); !errors.Is(err, util.ErrNoInputs) {
+	if _, err := combiner.SplitPRF(nil, nil); !errors.Is(err, combiner.ErrNoInputs) {
 		t.Fatalf("expected ErrNoInputs, got %v", err)
 	}
-	if _, err := util.SplitPRF([][]byte{}, [][]byte{}); !errors.Is(err, util.ErrNoInputs) {
+	if _, err := combiner.SplitPRF([][]byte{}, [][]byte{}); !errors.Is(err, combiner.ErrNoInputs) {
 		t.Fatalf("expected ErrNoInputs, got %v", err)
 	}
 }
 
 func TestSplitPRFErrMismatchedSlices(t *testing.T) {
-	_, err := util.SplitPRF(
+	_, err := combiner.SplitPRF(
 		[][]byte{{0x01}, {0x02}},
 		[][]byte{{0xaa}},
 	)
-	if !errors.Is(err, util.ErrMismatchedSlices) {
+	if !errors.Is(err, combiner.ErrMismatchedSlices) {
 		t.Fatalf("expected ErrMismatchedSlices, got %v", err)
 	}
 }
@@ -174,7 +174,7 @@ func TestSplitPRFErrEmptyComponent(t *testing.T) {
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			if _, err := util.SplitPRF(tc.ss, tc.cct); !errors.Is(err, util.ErrEmptyComponent) {
+			if _, err := combiner.SplitPRF(tc.ss, tc.cct); !errors.Is(err, combiner.ErrEmptyComponent) {
 				t.Fatalf("expected ErrEmptyComponent, got %v", err)
 			}
 		})

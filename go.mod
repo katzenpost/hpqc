@@ -8,6 +8,8 @@ require (
 	filippo.io/mlkem768 v0.0.0-20260214141301-2e7bebc7d88d
 	github.com/agl/gcmsiv v0.0.0-20190418185415-e8dcd2f151dc
 	github.com/fxamacker/cbor/v2 v2.9.1
+	github.com/go-faster/xor v1.0.0
+	github.com/henrydcase/nobs v0.0.0-20230313231516-25b66236df73
 	github.com/katzenpost/chacha20 v0.0.1
 	github.com/katzenpost/chacha20poly1305 v0.0.1
 	github.com/katzenpost/circl v1.3.8-0.20260413165442-e2d217fd59f5
