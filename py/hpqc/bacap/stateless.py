@@ -19,6 +19,7 @@ import os
 import struct
 from typing import Callable, Optional, Tuple
 
+from cryptography.exceptions import InvalidTag
 from cryptography.hazmat.primitives.ciphers.aead import AESGCMSIV
 from nacl.exceptions import BadSignatureError
 from nacl.signing import VerifyKey as NaclVerifyKey
@@ -26,6 +27,13 @@ from nacl.signing import VerifyKey as NaclVerifyKey
 from hpqc.sign.ed25519 import (
     SigningKey as BlindableSigningKey,
     VerifyKey as BlindableVerifyKey,
+)
+
+from .exceptions import (
+    CannotRewind,
+    DecryptionFailed,
+    InvalidArgument,
+    SignatureVerificationFailed,
 )
 
 
@@ -77,11 +85,11 @@ class MessageBoxIndex:
 
     def __post_init__(self) -> None:
         if not (0 <= self.idx_64 < 1 << 64):
-            raise ValueError("idx_64 out of range for uint64")
+            raise InvalidArgument("idx_64 out of range for uint64")
         for name in ("cur_blinding_factor", "cur_encryption_key", "hkdf_state"):
             v = getattr(self, name)
             if not isinstance(v, (bytes, bytearray)) or len(v) != 32:
-                raise ValueError(f"{name} must be 32 bytes")
+                raise InvalidArgument(f"{name} must be 32 bytes")
 
     @classmethod
     def empty(cls) -> "MessageBoxIndex":
@@ -122,7 +130,7 @@ class MessageBoxIndex:
     @classmethod
     def from_bytes(cls, data: bytes) -> "MessageBoxIndex":
         if len(data) != MessageBoxIndexSize:
-            raise ValueError("invalid MessageBoxIndex binary size")
+            raise InvalidArgument("invalid MessageBoxIndex binary size")
         return cls(
             struct.unpack("<Q", data[:8])[0],
             bytes(data[8:40]),
@@ -135,7 +143,9 @@ class MessageBoxIndex:
     def advance_index_to(self, target: int) -> "MessageBoxIndex":
         """Returns a new MessageBoxIndex stepped to the given idx via HKDF."""
         if target < self.idx_64:
-            raise ValueError("cannot rewind index: target index is less than current")
+            raise CannotRewind(
+                f"cannot rewind index: target {target} < current {self.idx_64}"
+            )
         if target == self.idx_64:
             return self
         cur_idx = self.idx_64
@@ -205,7 +215,7 @@ class MessageBoxIndex:
     def verify_box(box: bytes, ciphertext: bytes, signature: bytes) -> bool:
         """Returns True iff signature verifies under box (the box-ID pubkey)."""
         if len(box) != BoxIDSize:
-            raise ValueError("invalid box length")
+            raise InvalidArgument("invalid box length")
         try:
             NaclVerifyKey(box).verify(ciphertext, signature)
         except BadSignatureError:
@@ -247,15 +257,20 @@ class MessageBoxIndex:
         without any decryption.
         """
         if len(box) != BoxIDSize:
-            raise ValueError("invalid box length")
+            raise InvalidArgument("invalid box length")
         try:
             NaclVerifyKey(box).verify(ciphertext, signature)
         except BadSignatureError as e:
-            raise ValueError("signature verification failed") from e
+            raise SignatureVerificationFailed(
+                "signature did not verify under the box-ID public key"
+            ) from e
         if not ciphertext:
             return b""
         e_ctx = self._derive_e_for_context(ctx)
-        return AESGCMSIV(e_ctx).decrypt(box[:12], ciphertext, box)
+        try:
+            return AESGCMSIV(e_ctx).decrypt(box[:12], ciphertext, box)
+        except InvalidTag as e:
+            raise DecryptionFailed("AES-256-GCM-SIV authentication failed") from e
 
 
 def _seed_from_signing_key(sk: BlindableSigningKey) -> bytes:
@@ -305,7 +320,7 @@ class WriteCap:
     @classmethod
     def from_bytes(cls, data: bytes) -> "WriteCap":
         if len(data) != WriteCapSize:
-            raise ValueError("invalid WriteCap binary size")
+            raise InvalidArgument("invalid WriteCap binary size")
         # Go stores seed||pubkey; we re-derive pubkey from seed and ignore
         # the stored pubkey (it is implied by the seed).
         sk = BlindableSigningKey(data[:32])
@@ -337,7 +352,7 @@ class ReadCap:
     @classmethod
     def from_bytes(cls, data: bytes) -> "ReadCap":
         if len(data) != ReadCapSize:
-            raise ValueError("invalid ReadCap binary size")
+            raise InvalidArgument("invalid ReadCap binary size")
         pk = BlindableVerifyKey(data[:BoxIDSize])
         idx = MessageBoxIndex.from_bytes(data[BoxIDSize:])
         return cls(pk, idx)

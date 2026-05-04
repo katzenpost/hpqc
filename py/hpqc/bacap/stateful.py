@@ -11,6 +11,11 @@ from __future__ import annotations
 
 from typing import Optional, Tuple
 
+from .exceptions import (
+    BoxIDMismatch,
+    EmptyBox,
+    InvalidArgument,
+)
 from .stateless import (
     BoxIDSize,
     MessageBoxIndex,
@@ -34,9 +39,9 @@ class StatefulReader:
         next_index: Optional[MessageBoxIndex] = None,
     ) -> None:
         if read_cap is None:
-            raise ValueError("read_cap is None")
+            raise InvalidArgument("read_cap is None")
         if ctx is None:
-            raise ValueError("ctx is None")
+            raise InvalidArgument("ctx is None")
         self.read_cap: ReadCap = read_cap
         # Defensive copy of ctx so callers cannot mutate it under us.
         self.ctx: bytes = bytes(ctx)
@@ -56,7 +61,7 @@ class StatefulReader:
             cur = self.next_index
         else:
             if self.last_inbox_read is None:
-                raise ValueError("both next_index and last_inbox_read are None")
+                raise InvalidArgument("both next_index and last_inbox_read are None")
             cur = self.last_inbox_read.next_index()
         return cur.box_id_for_context(self.read_cap, self.ctx)
 
@@ -70,7 +75,7 @@ class StatefulReader:
         Does NOT advance state; useful for crash-consistency planning.
         """
         if self.next_index is None:
-            raise ValueError("next index is None")
+            raise InvalidArgument("next index is None")
         return self.next_index.next_index()
 
     def decrypt_next(
@@ -87,17 +92,17 @@ class StatefulReader:
         in normal use but the API allows them to differ, mirroring Go.
         """
         if len(box) != BoxIDSize:
-            raise ValueError("invalid box length")
+            raise InvalidArgument("invalid box length")
         if all(b == 0 for b in box):
-            raise ValueError("empty box, no message received")
+            raise EmptyBox("empty box, no message received")
         if self.next_index is None:
-            raise ValueError("next index is None, cannot parse reply")
+            raise InvalidArgument("next index is None, cannot parse reply")
         if len(signature) != SignatureSize:
-            raise ValueError("invalid signature length")
+            raise InvalidArgument("invalid signature length")
 
         expected = self.next_index.box_id_for_context(self.read_cap, self.ctx)
         if box != expected:
-            raise ValueError("reply does not match expected box ID")
+            raise BoxIDMismatch("reply does not match expected box ID")
 
         # Do everything that can fail BEFORE mutating state.
         plaintext = self.next_index.decrypt_for_context(box, ctx, ciphertext, signature)
@@ -123,9 +128,9 @@ class StatefulWriter:
         next_index: Optional[MessageBoxIndex] = None,
     ) -> None:
         if ctx is None:
-            raise ValueError("ctx is None")
+            raise InvalidArgument("ctx is None")
         if next_index is not None and owner is None:
-            raise ValueError("owner is None")
+            raise InvalidArgument("owner is None")
         self.write_cap: WriteCap = owner
         self.ctx: bytes = bytes(ctx)
         if next_index is None:
@@ -138,9 +143,9 @@ class StatefulWriter:
     def next_box_id(self) -> bytes:
         """Returns the box ID this writer will write next, without advancing."""
         if self.next_index is None:
-            raise ValueError("next index is None")
+            raise InvalidArgument("next index is None")
         if self.write_cap is None:
-            raise ValueError("write_cap is None")
+            raise InvalidArgument("write_cap is None")
         return self.next_index.box_id_for_context(self.write_cap.read_cap(), self.ctx)
 
     def get_current_message_index(self) -> Optional[MessageBoxIndex]:
@@ -149,7 +154,7 @@ class StatefulWriter:
     def get_next_message_index(self) -> MessageBoxIndex:
         """Returns what next_index will be after advance_state. No mutation."""
         if self.next_index is None:
-            raise ValueError("next index is None")
+            raise InvalidArgument("next index is None")
         return self.next_index.next_index()
 
     def prepare_next(self, plaintext: bytes) -> Tuple[bytes, bytes, bytes]:
@@ -159,7 +164,7 @@ class StatefulWriter:
         the courier acknowledges receipt.
         """
         if self.next_index is None:
-            raise ValueError("next index is None")
+            raise InvalidArgument("next index is None")
         return self.next_index.encrypt_for_context(self.write_cap, self.ctx, plaintext)
 
     def advance_state(self) -> None:
@@ -168,7 +173,7 @@ class StatefulWriter:
         Should only be called after the courier acknowledges receipt.
         """
         if self.next_index is None:
-            raise ValueError("next index is None")
+            raise InvalidArgument("next index is None")
         next_idx = self.next_index.next_index()
         self.last_outbox_idx = self.next_index
         self.next_index = next_idx

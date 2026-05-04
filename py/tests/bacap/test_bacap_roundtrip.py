@@ -14,12 +14,19 @@ from __future__ import annotations
 import pytest
 
 from hpqc.bacap import (
+    BACAPError,
+    BoxIDMismatch,
     BoxIDSize,
+    CannotRewind,
+    DecryptionFailed,
+    EmptyBox,
+    InvalidArgument,
     MessageBoxIndex,
     MessageBoxIndexSize,
     ReadCap,
     ReadCapSize,
     SignatureSize,
+    SignatureVerificationFailed,
     StatefulReader,
     StatefulWriter,
     WriteCap,
@@ -47,7 +54,7 @@ def test_message_box_index_advance_is_idempotent_at_target() -> None:
 
 def test_message_box_index_cannot_rewind() -> None:
     idx = MessageBoxIndex.random()
-    with pytest.raises(ValueError):
+    with pytest.raises(CannotRewind):
         idx.advance_index_to(idx.idx_64 - 1 if idx.idx_64 > 0 else 0)
 
 
@@ -121,7 +128,7 @@ def test_decrypt_rejects_bad_signature() -> None:
     # Flip a bit in the signature.
     bad = bytearray(sig)
     bad[0] ^= 0x01
-    with pytest.raises(ValueError):
+    with pytest.raises(SignatureVerificationFailed):
         idx.decrypt_for_context(box_id, CTX, ciphertext, bytes(bad))
 
 
@@ -179,7 +186,7 @@ def test_stateful_reader_rejects_wrong_box_id() -> None:
     box_id, ciphertext, sig = writer.encrypt_next(b"hi")
     # Tamper with the box ID.
     bad_box = bytes(b ^ 0x01 for b in box_id)
-    with pytest.raises(ValueError):
+    with pytest.raises(BoxIDMismatch):
         reader.decrypt_next(CTX, bad_box, ciphertext, sig)
 
 
@@ -187,7 +194,7 @@ def test_stateful_reader_rejects_zero_box() -> None:
     wc = WriteCap.generate()
     rc = wc.read_cap()
     reader = StatefulReader(rc, CTX)
-    with pytest.raises(ValueError, match="empty box"):
+    with pytest.raises(EmptyBox):
         reader.decrypt_next(CTX, b"\x00" * BoxIDSize, b"x", b"\x00" * SignatureSize)
 
 
@@ -232,3 +239,76 @@ def test_stateful_and_stateless_agree() -> None:
     assert box_id_a == box_id_b
     assert ct_a == ct_b
     assert sig_a == sig_b
+
+
+# ----- exception hierarchy -----
+
+
+def test_invalid_argument_on_wrong_size_bytes() -> None:
+    with pytest.raises(InvalidArgument):
+        MessageBoxIndex.from_bytes(b"\x00" * (MessageBoxIndexSize - 1))
+    with pytest.raises(InvalidArgument):
+        WriteCap.from_bytes(b"\x00" * (WriteCapSize - 1))
+    with pytest.raises(InvalidArgument):
+        ReadCap.from_bytes(b"\x00" * (ReadCapSize - 1))
+
+
+def test_decryption_failed_on_corrupt_ciphertext() -> None:
+    wc = WriteCap.generate()
+    idx = wc.first_message_box_index
+    box_id, ciphertext, sig = idx.encrypt_for_context(wc, CTX, b"hello")
+
+    # Flip a bit in the middle of the ciphertext (signature still verifies
+    # over the *altered* bytes only if we re-sign, so for this test we
+    # alter the ciphertext and re-sign with the blinded private key so we
+    # reach the AES-GCM-SIV stage instead of failing at the signature.
+    bad_ct = bytearray(ciphertext)
+    bad_ct[len(bad_ct) // 2] ^= 0x01
+    # Re-derive the blinded signing key and produce a valid signature
+    # over the corrupted ciphertext.
+    from hpqc.bacap.stateless import _hkdf_blake2b
+    k_ctx = _hkdf_blake2b(idx.cur_blinding_factor, CTX, b"", 32)
+    bad_sig = wc.root_private_key.blind(k_ctx).sign(bytes(bad_ct))[:64]
+
+    with pytest.raises(DecryptionFailed):
+        idx.decrypt_for_context(box_id, CTX, bytes(bad_ct), bad_sig)
+
+
+def test_all_bacap_errors_inherit_from_BACAPError() -> None:
+    """Catching BACAPError must catch every BACAP-specific exception."""
+    # Construct the simplest case for each subclass and confirm the catch.
+    wc = WriteCap.generate()
+    rc = wc.read_cap()
+    idx = wc.first_message_box_index
+
+    # InvalidArgument
+    with pytest.raises(BACAPError):
+        MessageBoxIndex.from_bytes(b"")
+    # CannotRewind also inherits InvalidArgument; both should be caught
+    # as BACAPError.
+    with pytest.raises(BACAPError):
+        idx.advance_index_to(0) if idx.idx_64 == 0 else idx.advance_index_to(idx.idx_64 - 1)
+    # SignatureVerificationFailed
+    box_id, ciphertext, sig = idx.encrypt_for_context(wc, CTX, b"x")
+    bad_sig = bytes([sig[0] ^ 1]) + sig[1:]
+    with pytest.raises(BACAPError):
+        idx.decrypt_for_context(box_id, CTX, ciphertext, bad_sig)
+    # EmptyBox
+    reader = StatefulReader(rc, CTX)
+    with pytest.raises(BACAPError):
+        reader.decrypt_next(CTX, b"\x00" * BoxIDSize, b"x", b"\x00" * SignatureSize)
+    # BoxIDMismatch
+    box_id2, ct2, sig2 = idx.encrypt_for_context(wc, CTX, b"y")
+    bad_box = bytes(b ^ 1 for b in box_id2)
+    reader2 = StatefulReader(rc, CTX)
+    with pytest.raises(BACAPError):
+        reader2.decrypt_next(CTX, bad_box, ct2, sig2)
+
+
+def test_cannot_rewind_is_a_subclass_of_invalid_argument() -> None:
+    """Catching InvalidArgument must also catch CannotRewind."""
+    idx = MessageBoxIndex.random()
+    if idx.idx_64 == 0:
+        pytest.skip("rare case: random index landed at 0; nothing to rewind to")
+    with pytest.raises(InvalidArgument):
+        idx.advance_index_to(idx.idx_64 - 1)

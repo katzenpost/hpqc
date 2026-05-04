@@ -19,6 +19,15 @@ The package exposes two complementary APIs:
 Both APIs sit on the same primitives and produce byte-identical
 output; pick whichever shape suits your application.
 """
+from .exceptions import (
+    BACAPError,
+    BoxIDMismatch,
+    CannotRewind,
+    DecryptionFailed,
+    EmptyBox,
+    InvalidArgument,
+    SignatureVerificationFailed,
+)
 from .stateless import (
     BoxIDSize,
     MessageBoxIndex,
@@ -32,14 +41,24 @@ from .stateless import (
 from .stateful import StatefulReader, StatefulWriter
 
 __all__ = [
+    # exceptions
+    "BACAPError",
+    "BoxIDMismatch",
+    "CannotRewind",
+    "DecryptionFailed",
+    "EmptyBox",
+    "InvalidArgument",
+    "SignatureVerificationFailed",
+    # stateless
     "BoxIDSize",
     "MessageBoxIndex",
     "MessageBoxIndexSize",
     "ReadCap",
     "ReadCapSize",
     "SignatureSize",
-    "StatefulReader",
-    "StatefulWriter",
     "WriteCap",
     "WriteCapSize",
+    # stateful
+    "StatefulReader",
+    "StatefulWriter",
 ]
