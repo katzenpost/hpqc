@@ -216,8 +216,10 @@ func genHKDFBlake2b() vectorFile {
 }
 
 // AES-256-GCM-SIV per RFC 8452. Used by BACAP for box payload encryption.
-// In BACAP the nonce is box_id[:16] and the AAD is box_id[:32]; the vectors
-// here mirror that shape.
+// BACAP passes box_id[:12] as the nonce and the full 32-byte box_id as the
+// AAD; the BACAP-shaped vectors below mirror that. (Earlier the nonce was
+// box_id[:16], which agl/gcmsiv silently accepted but no standards-
+// conformant AES-GCM-SIV implementation does. See issue #96.)
 
 type aesGCMSIVVector struct {
 	Name          string `json:"name"`
@@ -246,14 +248,14 @@ func genAESGCMSIV() vectorFile {
 		{
 			name:      "bacap_shape_box_id_as_nonce_and_aad",
 			key:       bytesPattern(0xaa, 32),
-			nonce:     bytesPattern(0xbb, 16),
+			nonce:     bytesPattern(0xbb, 12),
 			aad:       bytesPattern(0xbb, 32),
 			plaintext: []byte("Hello, BACAP."),
 		},
 		{
 			name:      "bacap_shape_long_plaintext",
 			key:       bytesPattern(0xcc, 32),
-			nonce:     bytesPattern(0xdd, 16),
+			nonce:     bytesPattern(0xdd, 12),
 			aad:       bytesPattern(0xdd, 32),
 			plaintext: bytesPattern(0xee, 512),
 		},
