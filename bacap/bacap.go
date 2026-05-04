@@ -287,8 +287,12 @@ func (m *MessageBoxIndex) EncryptForContext(owner *WriteCap, ctx []byte, plainte
 		panic(err) // Can't happen
 	}
 
-	// encrypt with AES-GCM-SIV:
-	cICtx = sivenc.Seal([]byte{}, mICtx[:16], plaintext, mICtx[:32])
+	// encrypt with AES-GCM-SIV. The nonce is the first 12 bytes of the box
+	// ID per RFC 8452, which mandates a 96-bit nonce. The AAD remains the
+	// full 32-byte box ID. (Earlier versions of this code passed mICtx[:16]
+	// as the nonce, which agl/gcmsiv silently accepted but no standards-
+	// conformant AES-GCM-SIV implementation does. See issue #96.)
+	cICtx = sivenc.Seal([]byte{}, mICtx[:12], plaintext, mICtx[:32])
 
 	// derive blinded private key specific to box index + context and sign the GCM-SIV ciphertext:
 	SICtx := owner.rootPrivateKey.Blind(kICtx[:])
@@ -320,7 +324,7 @@ func (m *MessageBoxIndex) DecryptForContext(box [BoxIDSize]byte, ctx []byte, cip
 	if err != nil {
 		return nil, err
 	}
-	if plaintext, err = sivdec.Open([]byte{}, box[:16], ciphertext, box[:]); err != nil {
+	if plaintext, err = sivdec.Open([]byte{}, box[:12], ciphertext, box[:]); err != nil {
 		return nil, err
 	}
 	return
