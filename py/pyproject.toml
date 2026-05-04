@@ -9,10 +9,37 @@ build-backend = "hatchling.build"
 name = "hpqc"
 version = "0.0.1"
 description = "Python port of katzenpost/hpqc: hybrid post-quantum cryptography and BACAP."
+readme = "README.md"
 requires-python = ">=3.10"
 license = "AGPL-3.0-only"
+license-files = ["LICENSE"]
 authors = [
     { name = "David Stainton" },
+]
+keywords = [
+    "cryptography",
+    "post-quantum",
+    "hybrid",
+    "bacap",
+    "mkem",
+    "ctidh",
+    "x25519",
+    "ed25519",
+    "katzenpost",
+    "mixnet",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: MacOS",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Security :: Cryptography",
 ]
 dependencies = [
     "pynacl>=1.6",
@@ -27,7 +54,9 @@ test = [
 ]
 
 [project.urls]
+Homepage = "https://katzenpost.network/"
 Repository = "https://github.com/katzenpost/hpqc"
+Issues = "https://github.com/katzenpost/hpqc/issues"
 
 [tool.hatch.build.targets.wheel]
 packages = ["hpqc"]
