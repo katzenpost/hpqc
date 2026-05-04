@@ -47,3 +47,23 @@ and `CTIDH512X448`. They are not corrected in this change because no
 internal code depends on them, and changing them silently would break
 any downstream consumer that has accommodated the existing layout. They
 should be either fixed or renamed in a future change.
+
+## KEM combiner SplitPRF input encoding
+
+`util.SplitPRF` now domain-separates and length-prefixes its inputs:
+
+	hash_i := BLAKE2b-256(
+	    "splitprf-v1" ||
+	    u32be(len(ss_i))    || ss_i ||
+	    u32be(n)            ||
+	    u32be(len(cct_1))   || cct_1 ||
+	    ...                 ||
+	    u32be(len(cct_n))   || cct_n
+	)
+
+Previously the input was the unprefixed `ss_i || cct_1 || ... || cct_n`.
+The change makes the construction unambiguous when sub-KEMs have
+variable-size shared secrets or ciphertexts, but it changes the bytes
+of every shared key produced by `kem/combiner` and the legacy
+`kem/hybrid`. Any deployed system that has persisted or compared a
+combiner shared secret across versions will see a mismatch.

@@ -177,7 +177,7 @@ func (sch *Scheme) Encapsulate(pk kem.PublicKey) (ct, ss []byte, err error) {
 		return nil, nil, err
 	}
 
-	combined, err := util.PairSplitPRF(ss1, ss2, ct1, ct2)
+	combined, err := util.SplitPRF([][]byte{ss1, ss2}, [][]byte{ct1, ct2})
 	if err != nil {
 		return nil, nil, err
 	}
@@ -206,7 +206,7 @@ func (sch *Scheme) Decapsulate(sk kem.PrivateKey, ct []byte) ([]byte, error) {
 		return nil, err
 	}
 
-	return util.PairSplitPRF(ss1, ss2, ct[:firstSize], ct[firstSize:])
+	return util.SplitPRF([][]byte{ss1, ss2}, [][]byte{ct[:firstSize], ct[firstSize:]})
 }
 
 func (sch *Scheme) UnmarshalBinaryPublicKey(buf []byte) (kem.PublicKey, error) {
