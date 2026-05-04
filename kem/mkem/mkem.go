@@ -15,8 +15,11 @@ import (
 	coreUtil "github.com/katzenpost/hpqc/util"
 )
 
-// DEKSize indicates the size in bytes of the DEK
-// within our Ciphertext type in it's DEKCiphertexts field.
+// DEKSize is the byte length of one DEK ciphertext under the AEAD used
+// here (ChaCha20-Poly1305 over a 32-byte msg_key): 12-byte nonce +
+// 32-byte ciphertext + 16-byte tag = 60. The constant is kept for
+// documentation and for sanity checks at the wire boundary; the in-
+// memory representation is a plain []byte.
 const DEKSize = 60
 
 // Scheme is an MKEM scheme.
@@ -109,13 +112,9 @@ func (s *Scheme) Encapsulate(keys []nike.PublicKey, payload []byte) (nike.Privat
 	}
 	ciphertext := s.encrypt(msgKey, payload)
 
-	outCiphertexts := make([]*[DEKSize]byte, len(secrets))
+	outCiphertexts := make([][]byte, len(secrets))
 	for i := 0; i < len(secrets); i++ {
-		outCiphertexts[i] = &[DEKSize]byte{}
-		copy(outCiphertexts[i][:], s.encrypt(secrets[i][:], msgKey))
-		if len(outCiphertexts[i]) != DEKSize {
-			panic("invalid ciphertext size")
-		}
+		outCiphertexts[i] = s.encrypt(secrets[i][:], msgKey)
 	}
 
 	c := &Ciphertext{
@@ -130,7 +129,7 @@ func (s *Scheme) Decapsulate(privkey nike.PrivateKey, ciphertext *Ciphertext) ([
 	ephSecret := hash.Sum256(s.nike.DeriveSecret(privkey, ciphertext.EphemeralPublicKey))
 	defer coreUtil.ExplicitBzero(ephSecret[:])
 	for i := 0; i < len(ciphertext.DEKCiphertexts); i++ {
-		msgKey, err := s.decrypt(ephSecret[:], ciphertext.DEKCiphertexts[i][:])
+		msgKey, err := s.decrypt(ephSecret[:], ciphertext.DEKCiphertexts[i])
 		if err != nil {
 			continue
 		}

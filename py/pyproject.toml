@@ -1,0 +1,43 @@
+# SPDX-FileCopyrightText: © 2026 David Stainton
+# SPDX-License-Identifier: AGPL-3.0-only
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "hpqc"
+version = "0.0.1"
+description = "Python port of katzenpost/hpqc: hybrid post-quantum cryptography and BACAP."
+requires-python = ">=3.10"
+license = "AGPL-3.0-only"
+authors = [
+    { name = "David Stainton" },
+]
+dependencies = [
+    "pynacl>=1.6",
+    "cryptography>=47.0",
+    "highctidh>=1.0.2025051200",
+    "cbor2>=6.0",
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest>=9.0",
+]
+
+[project.urls]
+Repository = "https://github.com/katzenpost/hpqc"
+
+[tool.hatch.build.targets.wheel]
+packages = ["hpqc"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "hpqc/",
+    "tests/",
+    "pyproject.toml",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

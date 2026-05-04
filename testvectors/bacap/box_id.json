@@ -1,0 +1,40 @@
+{
+  "format_version": 1,
+  "generator": "github.com/katzenpost/hpqc/testvectors/cmd/generate",
+  "primitive": "bacap_box_id",
+  "description": "Box-ID derivation vectors. For each vector, advance the WriteCap's first MessageBoxIndex by N, then derive the box ID. If use_context is true, BoxIDForContext is used (HKDFs the context into the blinding); otherwise DeriveMessageBoxID is used (blinds the root pubkey with the index's CurBlindingFactor directly).",
+  "vectors": [
+    {
+      "name": "derive_at_first_index",
+      "writecap_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b80100000000000000aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "advance_by": 0,
+      "ctx_hex": "",
+      "use_context": false,
+      "expected_box_id_hex": "9259a0005af542f3226f379530b291ce675762430ad5b3323c8b865a0440b7ba"
+    },
+    {
+      "name": "derive_after_advance_5",
+      "writecap_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b80100000000000000aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "advance_by": 5,
+      "ctx_hex": "",
+      "use_context": false,
+      "expected_box_id_hex": "22ba737b5357cf528207ab5a707a5e7878802ebcb7d0ba3ebda2b46b6dbfe7fd"
+    },
+    {
+      "name": "box_id_for_context_at_first_index",
+      "writecap_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b80100000000000000aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "advance_by": 0,
+      "ctx_hex": "687071632d62616361702d766563746f722d636f6e74657874",
+      "use_context": true,
+      "expected_box_id_hex": "f531e783791705744a462341483abb15052aa49c5687a28d09bc21b6087a17a1"
+    },
+    {
+      "name": "box_id_for_context_after_advance_3",
+      "writecap_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b80100000000000000aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "advance_by": 3,
+      "ctx_hex": "616c7465726e61746520636f6e74657874",
+      "use_context": true,
+      "expected_box_id_hex": "d1584c0c08428edec0663c97803cdb1e4229ddaaad2010ea69fa60c7d0b11e7b"
+    }
+  ]
+}

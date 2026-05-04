@@ -1,49 +1,32 @@
 name: Go cross compile
 
-on:
-  push:
-  pull_request:
-    branches: [ "main" ]
+on: [pull_request]
+
+permissions:
+  contents: read
 
 jobs:
   build:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         CC: ["clang"]
         ARCH: ["arm32v5", "arm32v7", "i386", "arm64", "mips64", "mips64le", "mips", "mipsle", "ppc64", "ppc64le", "s390x"]
-        go-version: [ '1.21.x', '1.24.x' ]
-        exclude:
-          # Exclude failing non-primary platform combinations
-          - ARCH: "arm32v7"
-            go-version: "1.21.x"
-          - ARCH: "arm64"
-            go-version: "1.21.x"
-          - ARCH: "ppc64le"
-            go-version: "1.21.x"
-          - ARCH: "mipsle"
-            go-version: "1.24.x"
-          - ARCH: "s390x"
-            go-version: "1.24.x"
-          - ARCH: "mips64le"
-            go-version: "1.21.x"
-      fail-fast: false
     steps:
-    - uses: actions/checkout@v4
-    - name: Setup Go ${{ matrix.go-version }}
-      uses: actions/setup-go@v5
-      with:
-        go-version: ${{ matrix.go-version }}
-    - name: Display Go version
-      run: go version
-    - name: Install Golang deps
-      run: sudo ./misc/install-debian-go-deps-by-arch.sh ${{ matrix.ARCH }}
-    - name: Install Go (from go.mod)
-      uses: actions/setup-go@v4
-      with:
-        go-version-file: go.mod
-        check-latest: true
-    - name: Run tests
-      run: go test -v ./...
-      env:
-        CGO_LDFLAGS: -Wl,-z,stack-size=0x1F40000
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: Install Golang cross-compilation deps
+        run: sudo ./misc/install-debian-go-deps-by-arch.sh ${{ matrix.ARCH }}
+      - name: Install Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+      - name: Display Go version
+        run: go version
+      - name: Run tests
+        env:
+          CGO_LDFLAGS: -Wl,-z,stack-size=0x1F40000
+        run: go test -v ./...

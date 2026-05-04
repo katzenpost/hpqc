@@ -1,0 +1,15 @@
+# Virtual environments
+.venv/
+venv/
+
+# Python build artefacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+
+# uv lockfile (TBD whether to commit; ignore for now)
+uv.lock

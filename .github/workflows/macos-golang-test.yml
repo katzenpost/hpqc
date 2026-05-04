@@ -1,23 +1,24 @@
 name: MacOS Golang build and test
 
-on: [push]
+on: [pull_request]
+
+permissions:
+  contents: read
 
 jobs:
   build:
-    runs-on: ${{ matrix.OS }}
-    strategy:
-      matrix:
-        OS: ["macos-14"]
-        go-version: ["1.23.0"]
-      fail-fast: false
+    runs-on: macos-14
 
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup Go ${{ matrix.go-version }}
-        uses: actions/setup-go@v5
+      - name: Checkout repository
+        uses: actions/checkout@v6
         with:
-          go-version: ${{ matrix.go-version }}
+          persist-credentials: false
+
+      - name: Install Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
 
       - name: Display Go version
         shell: bash
@@ -25,23 +26,22 @@ jobs:
 
       - name: Install golang dependencies
         shell: bash
-        run: |
-          export HIGHCTIDH_PORTABLE=1
-          export CGO_ENABLED=1
-          go get -v ./...
+        env:
+          HIGHCTIDH_PORTABLE: "1"
+          CGO_ENABLED: "1"
+        run: go get -v ./...
 
       - name: Build golang
         shell: bash
-        run: |
-          export HIGHCTIDH_PORTABLE=1
-          export CGO_ENABLED=1
-          go build -v ./...
+        env:
+          HIGHCTIDH_PORTABLE: "1"
+          CGO_ENABLED: "1"
+        run: go build -v ./...
 
       - name: Golang test
-        env:
-          CGO_LDFLAGS: -Wl,-stack_size,0x1F40000
         shell: bash
-        run: |
-          export HIGHCTIDH_PORTABLE=1
-          export CGO_ENABLED=1
-          go test -v ./...
+        env:
+          HIGHCTIDH_PORTABLE: "1"
+          CGO_ENABLED: "1"
+          CGO_LDFLAGS: -Wl,-stack_size,0x1F40000
+        run: go test -v ./...

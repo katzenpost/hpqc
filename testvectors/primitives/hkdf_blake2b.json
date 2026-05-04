@@ -1,0 +1,40 @@
+{
+  "format_version": 1,
+  "generator": "github.com/katzenpost/hpqc/testvectors/cmd/generate",
+  "primitive": "hkdf_blake2b",
+  "description": "HKDF-BLAKE2b-512 (RFC 5869 with BLAKE2b-512 as the hash). Go's signature is hkdf.New(hash, secret, salt, info); BACAP passes ctx as salt and the index as info, so the parameter ordering is the most common porting hazard.",
+  "vectors": [
+    {
+      "name": "empty_salt_empty_info_32",
+      "secret_hex": "0101010101010101010101010101010101010101010101010101010101010101",
+      "salt_hex": "",
+      "info_hex": "",
+      "length": 32,
+      "okm_hex": "5a3ef17d5bee0d9aeca5c1b6fa870a5b53c6950f98b623a06b79f6220c375d73"
+    },
+    {
+      "name": "ctx_as_salt_empty_info_32",
+      "secret_hex": "0202020202020202020202020202020202020202020202020202020202020202",
+      "salt_hex": "424143415020636f6e74657874206578616d706c65",
+      "info_hex": "",
+      "length": 32,
+      "okm_hex": "a69367b637b6d783cd0fa48582e65701622bd81289ead66c5b8fc3954c526a53"
+    },
+    {
+      "name": "ctx_as_salt_index_as_info_96",
+      "secret_hex": "0303030303030303030303030303030303030303030303030303030303030303",
+      "salt_hex": "",
+      "info_hex": "0700000000000000",
+      "length": 96,
+      "okm_hex": "01109061f6aedaf2d8ec93ae2219fe5a2a8cd0eca0c7ffc60e292f1b4dd0370f5f19c54195a79b6470710765db56390e9f640551943b09c20f865e831b0f949809a40c062777342bb08dc47bba5f83feb3cda7749056bea289ee5d0afe52a17e"
+    },
+    {
+      "name": "long_okm_to_catch_streaming_bugs",
+      "secret_hex": "0404040404040404040404040404040404040404040404040404040404040404",
+      "salt_hex": "73616c742d58",
+      "info_hex": "696e666f2d59",
+      "length": 200,
+      "okm_hex": "8b3a3bd24373fc4e76a8842d3f3613bd13518cc28cf5fc96818be8a67338e1b811ba81f09c91aa1c4c6e340dd215c9cb5c030fe9fa42f5de2ffc4013822225cbe573ede121c471f65f10db526983b723379aab609eb3fcb883c1763df81783a84df64624ce1910535e47b125e361f0b417c8c924a191cb4c282d0108e641574bbadb63189193ac76c8b6da24069be532955ba29a0b153966d3ed33f81a2dc22d6f72f75e137670e73d14fd48ebfba240678e5fb8c081ac801c0f6bd981e1fa3d50f19579edc22d34"
+    }
+  ]
+}

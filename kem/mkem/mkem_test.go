@@ -15,12 +15,12 @@ import (
 )
 
 func TestCiphertextMarshaling(t *testing.T) {
-	dek := [DEKSize]byte{}
-	_, err := rand.Reader.Read(dek[:])
+	dek := make([]byte, DEKSize)
+	_, err := rand.Reader.Read(dek)
 	require.NoError(t, err)
 	ic := &IntermediaryCiphertext{
 		EphemeralPublicKey: []byte("hello1"),
-		DEKCiphertexts:     []*[DEKSize]byte{&dek},
+		DEKCiphertexts:     [][]byte{dek},
 		Envelope:           []byte("hello i am ciphertext"),
 	}
 	blob1 := ic.Bytes()
@@ -83,13 +83,13 @@ func TestMKEMProtocol(t *testing.T) {
 
 	ct0 := &Ciphertext{
 		EphemeralPublicKey: envelope.EphemeralPublicKey,
-		DEKCiphertexts:     []*[DEKSize]byte{envelope.DEKCiphertexts[0]},
+		DEKCiphertexts:     [][]byte{envelope.DEKCiphertexts[0]},
 		Envelope:           envelope.Envelope,
 	}
 
 	ct1 := &Ciphertext{
 		EphemeralPublicKey: envelope.EphemeralPublicKey,
-		DEKCiphertexts:     []*[DEKSize]byte{envelope.DEKCiphertexts[1]},
+		DEKCiphertexts:     [][]byte{envelope.DEKCiphertexts[1]},
 		Envelope:           envelope.Envelope,
 	}
 

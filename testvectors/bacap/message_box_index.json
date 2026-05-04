@@ -1,0 +1,38 @@
+{
+  "format_version": 1,
+  "generator": "github.com/katzenpost/hpqc/testvectors/cmd/generate",
+  "primitive": "bacap_message_box_index",
+  "description": "MessageBoxIndex.AdvanceIndexTo vectors. The initial 104-byte MessageBoxIndex blob is advanced by N steps via the HKDF-BLAKE2b-512 chain; the expected 104-byte resulting blob is recorded.",
+  "vectors": [
+    {
+      "name": "advance_by_1",
+      "initial_index_hex": "0100000000000000aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "advance_to": 2,
+      "expected_index_hex": "0200000000000000d6afc0f178b9df3102c2f2054314d06942ee2cd0b54bb510fc03070775efaf154683f8eda97ee58a8fb03e68fd1fa29228e4d907c151021a4e700ee5e54a95ee89890efb132a4d0ffb004aacbb976aea2de9aa98687c912735f1ca02cac75322"
+    },
+    {
+      "name": "advance_by_2",
+      "initial_index_hex": "0100000000000000aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "advance_to": 3,
+      "expected_index_hex": "03000000000000006e25c22a3ccf35add5f32cbfee6f76323367406b6714362eae1684d1f4b87dcb6c99884c01bed7c84bb499436170d06a350970d40a4f95a0559f6b5e8736e6b5a3ec0e7e8edc575ac6b39e3f96482318ccb0eff457b379457aa74214846155cb"
+    },
+    {
+      "name": "advance_by_5",
+      "initial_index_hex": "0100000000000000aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "advance_to": 6,
+      "expected_index_hex": "060000000000000044f18de89182d8d7d8670a7bc005be059fcdad2a7d7eae3e209ad85ac97f55c68ac42c6b95dca574a7c0a50061e00e8eb1bde88f34ed4b6bcdfd60cc5664333325f1ce979d7a8d88b18cd0d6a71826b53c99f02972822457844db1816da7038c"
+    },
+    {
+      "name": "advance_by_100",
+      "initial_index_hex": "0100000000000000aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "advance_to": 101,
+      "expected_index_hex": "6500000000000000239b4070cb7fef59d9da6b8231bd5f23476fdab9bba8978e5087f9be87ab2e29d5cf263705eec897f66e152aa0e0d6769655d50e72c22d19dcc147f53a99a48fb5671d29b304438a6c3f0b24b6ea863c22324aa0f2c2a59832d782fb7f764f9d"
+    },
+    {
+      "name": "advance_by_1000",
+      "initial_index_hex": "0100000000000000aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "advance_to": 1001,
+      "expected_index_hex": "e9030000000000002f16e5fa12dd54b71a4431e48de467210514dbfcbca1df89cdced11ac863585029e644b9aed95f5e3d2ac04bea9ccb5b499ec61ff3e3b165c426a9a0bc6259caa8084122e96fc8c76fd4b9c614b2e5f9caa0f0778cbf2c3248723172e12e5dc8"
+    }
+  ]
+}
