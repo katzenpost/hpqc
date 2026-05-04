@@ -121,13 +121,14 @@ class HybridNIKE(Scheme):
     ) -> None:
         self._first = first
         self._second = second
-        # The default name is ``first.name-second.name`` but the Go side
-        # ships with a few mislabelled hybrid schemes whose ``name`` does
-        # not match their actual ``first``/``second`` field order (e.g.
-        # ``hybrid.CTIDH1024X25519`` is named "CTIDH1024-X25519" but lays
-        # out X25519 first on the wire). When interoperating with such
-        # cases the caller must supply the explicit ``name`` so that
-        # serialisation labels match.
+        # The default name is ``first.name-second.name`` but several Go
+        # hybrid schemes ship under names that disagree with their wire
+        # layout (e.g. ``hybrid.CTIDH1024X25519`` is named
+        # "CTIDH1024-X25519" but lays out X25519 first; the new
+        # ``hybrid.X25519CTIDH1024`` is binary-equivalent under the
+        # honest name). When interoperating with such cases the caller
+        # must supply the explicit ``name`` so that serialisation labels
+        # match.
         self._name = name if name is not None else f"{first.name}-{second.name}"
 
     @property

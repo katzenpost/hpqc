@@ -47,7 +47,9 @@ def test_mkem_decapsulate(vector: dict) -> None:
     # The Python side hardcodes the NIKE; the vector's nike_name field
     # is asserted as a sanity check so a future vector under a
     # different NIKE produces a clear failure.
-    nike = HybridNIKE(CTIDH1024(), X25519(), name="CTIDH1024-X25519")
+    # The legacy "CTIDH1024-X25519" Go scheme has X25519 first on the
+    # wire despite its name; we mirror that ordering here.
+    nike = HybridNIKE(X25519(), CTIDH1024(), name="CTIDH1024-X25519")
     assert vector["nike_name"] == "CTIDH1024-X25519", (
         f"expected CTIDH1024-X25519 vector, got {vector['nike_name']!r}"
     )

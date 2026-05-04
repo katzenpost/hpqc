@@ -32,7 +32,7 @@ def _all_schemes() -> list[Scheme]:
         CTIDH512(),
         CTIDH1024(),
         CTIDH2048(),
-        HybridNIKE(CTIDH1024(), X25519()),
+        HybridNIKE(X25519(), CTIDH1024()),
     ]
 
 
@@ -166,4 +166,4 @@ def test_hybrid_secret_layout_is_concatenation() -> None:
 
 
 def test_hybrid_name_is_dash_joined() -> None:
-    assert HybridNIKE(CTIDH1024(), X25519()).name == "ctidh1024-x25519"
+    assert HybridNIKE(X25519(), CTIDH1024()).name == "x25519-ctidh1024"
