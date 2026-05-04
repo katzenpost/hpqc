@@ -1,0 +1,85 @@
+# SPDX-FileCopyrightText: © 2026 David Stainton
+# SPDX-License-Identifier: AGPL-3.0-only
+#
+# Builds the hpqc Python distribution and publishes it via PyPI's
+# trusted-publishing flow (OIDC). No long-lived API tokens are
+# stored anywhere; PyPI authenticates the workflow run by matching
+# its OIDC claims against a publisher rule registered at
+# https://pypi.org/manage/account/publishing/ for project "hpqc",
+# repository "katzenpost/hpqc", workflow "publish-py.yml", and
+# environment "pypi" (and "testpypi" on test.pypi.org).
+#
+# Release flow:
+#   - bump version in py/pyproject.toml and py/hpqc/__init__.py
+#   - tag the commit "py/v<version>" and push the tag
+#   - this workflow builds and publishes to PyPI
+#
+# Dry runs to TestPyPI are available via the "Run workflow" button
+# in the Actions tab (workflow_dispatch).
+
+name: Publish hpqc Python to PyPI
+
+on:
+  push:
+    tags:
+      - 'py/v*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build sdist and wheel
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Build distributions
+        run: |
+          python -m pip install --upgrade build
+          python -m build py
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: python-package-distributions
+          path: py/dist/
+
+  publish-testpypi:
+    name: Publish to TestPyPI
+    if: github.event_name == 'workflow_dispatch'
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: testpypi
+      url: https://test.pypi.org/p/hpqc
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: python-package-distributions
+          path: dist/
+
+      - uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://test.pypi.org/legacy/
+
+  publish-pypi:
+    name: Publish to PyPI
+    if: startsWith(github.ref, 'refs/tags/py/v')
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/hpqc
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: python-package-distributions
+          path: dist/
+
+      - uses: pypa/gh-action-pypi-publish@release/v1
