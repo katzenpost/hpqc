@@ -14,6 +14,7 @@ import (
 	"github.com/katzenpost/hpqc/sign/circlsign"
 	"github.com/katzenpost/hpqc/sign/ed25519"
 	"github.com/katzenpost/hpqc/sign/hybrid"
+	"github.com/katzenpost/hpqc/sign/mldsa"
 	"github.com/katzenpost/hpqc/sign/sphincsplus"
 )
 
@@ -32,9 +33,17 @@ var allSchemes = []sign.Scheme{
 	ed25519.Scheme(),
 	circlsign.FromCircl(ed448.Scheme()),
 
+	// post quantum
+	mldsa.Scheme44(),
+	mldsa.Scheme65(),
+	mldsa.Scheme87(),
+
 	// hybrid post quantum
 	circlsign.FromCircl(eddilithium2.Scheme()),
 	circlsign.FromCircl(eddilithium3.Scheme()),
+	hybrid.MLDSA44Ed25519,
+	hybrid.MLDSA65Ed25519,
+	hybrid.MLDSA87Ed25519,
 }
 
 var allSchemeNames map[string]sign.Scheme
