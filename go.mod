@@ -20,10 +20,11 @@ require (
 	golang.org/x/crypto v0.49.0
 )
 
+require github.com/katzenpost/falcon v0.0.0-20260510085550-82544303fad7
+
 require (
 	filippo.io/mldsa v0.0.0-20260215214346-43d0283efc3e
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/katzenpost/falcon v0.0.0-00010101000000-000000000000
 	github.com/mattn/go-pointer v0.0.1 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
