@@ -13,6 +13,7 @@ import (
 	"github.com/katzenpost/hpqc/sign"
 	"github.com/katzenpost/hpqc/sign/circlsign"
 	"github.com/katzenpost/hpqc/sign/ed25519"
+	"github.com/katzenpost/hpqc/sign/falcon"
 	"github.com/katzenpost/hpqc/sign/hybrid"
 	"github.com/katzenpost/hpqc/sign/mldsa"
 	"github.com/katzenpost/hpqc/sign/sphincsplus"
@@ -21,11 +22,15 @@ import (
 var potentialSchemes = [...]sign.Scheme{
 	// post quantum
 	sphincsplus.Scheme(),
+	falcon.SchemePadded512(),
+	falcon.SchemePadded1024(),
 
 	// post quantum hybrids
 	hybrid.Ed25519Sphincs,
 	hybrid.Ed25519SphincsLegacy,
 	hybrid.Ed448Sphincs,
+	hybrid.FalconPadded512Ed25519,
+	hybrid.FalconPadded1024Ed25519,
 }
 
 var allSchemes = []sign.Scheme{

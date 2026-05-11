@@ -16,6 +16,36 @@ side, are also recorded in the repository-root
 Nothing here yet.
 
 
+## [0.0.2] - 2026-05-11
+
+### Added
+
+- Plain Ed25519 signature verification as a Scheme-shaped value
+  object (`hpqc.sign.ed25519.Ed25519Scheme`), alongside the
+  existing blinded variants used by BACAP.
+- Falcon-padded-512 signature verification
+  (`hpqc.sign.falcon.FalconPadded512Scheme`), backed by the
+  [`pqcrypto`](https://pypi.org/project/pqcrypto/) runtime
+  dependency, which vendors the same PQClean reference C reached
+  by the Go side. Verify-only by design; sign and key generation
+  remain Go-only.
+- Hybrid signature verification (`hpqc.sign.hybrid`): a generic
+  two-component combiner plus a pre-registered
+  `FalconPadded512Ed25519` instance, mirroring the Go-side
+  hybrid scheme of the same name.
+- Shared JSON test vectors for the three new verifiers under
+  `testvectors/primitives/`, so the Python and Go ports cannot
+  drift on the new sign surface.
+
+### Changed
+
+- `pqcrypto >= 0.4.0` is now a runtime dependency. The 0.4.0
+  release ships prebuilt wheels for Linux manylinux/musllinux,
+  macOS arm64, and Windows x86-64, across Python 3.9 to 3.14, so
+  the install path does not require a C compiler on the
+  supported wheels.
+
+
 ## [0.0.1] - 2026-05-04
 
 Initial public release.
@@ -43,5 +73,6 @@ Initial public release.
   downstream type checkers.
 
 
-[Unreleased]: https://github.com/katzenpost/hpqc/compare/py/v0.0.1...HEAD
+[Unreleased]: https://github.com/katzenpost/hpqc/compare/py/v0.0.2...HEAD
+[0.0.2]: https://github.com/katzenpost/hpqc/compare/py/v0.0.1...py/v0.0.2
 [0.0.1]: https://github.com/katzenpost/hpqc/releases/tag/py/v0.0.1

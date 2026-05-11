@@ -21,6 +21,7 @@ import (
 	"flag"
 	"fmt"
 	"hash"
+	"io"
 	"os"
 	"path/filepath"
 
@@ -28,12 +29,16 @@ import (
 	"golang.org/x/crypto/hkdf"
 
 	"github.com/agl/gcmsiv"
+	"github.com/katzenpost/falcon/padded1024"
+	"github.com/katzenpost/falcon/padded512"
 
 	"github.com/katzenpost/hpqc/bacap"
 	"github.com/katzenpost/hpqc/kem/mkem"
 	"github.com/katzenpost/hpqc/nike"
 	"github.com/katzenpost/hpqc/nike/hybrid"
+	"github.com/katzenpost/hpqc/sign"
 	"github.com/katzenpost/hpqc/sign/ed25519"
+	signhybrid "github.com/katzenpost/hpqc/sign/hybrid"
 )
 
 const (
@@ -62,6 +67,10 @@ func main() {
 	writeFile(*out, "primitives/hkdf_blake2b.json", genHKDFBlake2b())
 	writeFile(*out, "primitives/aes_gcm_siv.json", genAESGCMSIV())
 	writeFile(*out, "primitives/blinded_ed25519.json", genBlindedEd25519())
+	writeFile(*out, "primitives/ed25519.json", genEd25519())
+	writeFile(*out, "primitives/falcon_padded_512.json", genFalconPadded512())
+	writeFile(*out, "primitives/falcon_padded_512_ed25519.json", genFalconPadded512Ed25519())
+	writeFile(*out, "primitives/falcon_padded_1024_ed25519.json", genFalconPadded1024Ed25519())
 
 	writeFile(*out, "bacap/message_box_index.json", genBACAPMessageBoxIndex())
 	writeFile(*out, "bacap/box_id.json", genBACAPBoxID())
@@ -423,6 +432,195 @@ func computeBlindedEd25519Vector(name, provenance string, privKeyBytes, message 
 		BlindFactorsHex:  factorsHex,
 		BlindedPubKeyHex: hex.EncodeToString(blindedPub.Bytes()),
 		BlindedSigHex:    hex.EncodeToString(sig),
+	}
+}
+
+// Plain Ed25519, Falcon-padded-512, and the Falcon-padded-{512,1024}-Ed25519
+// hybrid sign/verify vectors share the same shape: a verifier consumes
+// (public_key, message, signature) and asserts true. Vectors are produced
+// deterministically so re-running the generator yields byte-identical output.
+
+type signVerifyVector struct {
+	Name         string `json:"name"`
+	PublicKeyHex string `json:"public_key_hex"`
+	MessageHex   string `json:"message_hex"`
+	SignatureHex string `json:"signature_hex"`
+}
+
+// signVerifyCase is the deterministic input set for the sign-verify generators.
+// Every vector below derives its keys and (where applicable) per-signature
+// randomness from a BLAKE2b-512-keyed HKDF stream over (label, name), so the
+// emitted bytes are stable across regenerations.
+type signVerifyCase struct {
+	name string
+	msg  []byte
+}
+
+var signVerifyCases = []signVerifyCase{
+	{"vec_1_empty_msg", []byte{}},
+	{"vec_2_short_ascii", []byte("the quick brown fox jumps over the lazy dog")},
+	{"vec_3_thirty_two_bytes", bytesPattern(0x5a, 32)},
+	{"vec_4_one_kilobyte", bytesPattern(0xa5, 1024)},
+	{"vec_5_random_short", deterministicBytes("sign_verify_msg", "vec_5_random_short", 17)},
+	{"vec_6_random_long", deterministicBytes("sign_verify_msg", "vec_6_random_long", 4096)},
+}
+
+// deterministicReader returns an HKDF-BLAKE2b-512 stream keyed on (label,
+// vectorName). Two readers built with the same arguments produce the same
+// bytes, which is what lets the Falcon vectors be deterministic despite
+// PQClean Falcon keygen and signing both consuming randomness internally.
+func deterministicReader(label, vectorName string) io.Reader {
+	h := func() hash.Hash { hh, _ := blake2b.New512(nil); return hh }
+	secret := append([]byte("hpqc-vector-seed-"), []byte(label)...)
+	info := []byte(vectorName)
+	return hkdf.New(h, secret, nil, info)
+}
+
+func deterministicBytes(label, vectorName string, n int) []byte {
+	out := make([]byte, n)
+	_, err := io.ReadFull(deterministicReader(label, vectorName), out)
+	must(err)
+	return out
+}
+
+// genEd25519 emits plain Ed25519 sign/verify vectors. Each vector's seed is
+// taken from a deterministic HKDF stream so the recorded outputs are stable.
+
+func genEd25519() vectorFile {
+	vs := make([]signVerifyVector, 0, len(signVerifyCases))
+	for _, c := range signVerifyCases {
+		seed := deterministicBytes("ed25519_seed", c.name, stded25519.SeedSize)
+		priv := stded25519.NewKeyFromSeed(seed)
+		pub := priv.Public().(stded25519.PublicKey)
+		sig := stded25519.Sign(priv, c.msg)
+		if !stded25519.Verify(pub, c.msg, sig) {
+			panic("ed25519 vector " + c.name + ": self-verify failed")
+		}
+		vs = append(vs, signVerifyVector{
+			Name:         c.name,
+			PublicKeyHex: hex.EncodeToString(pub),
+			MessageHex:   hex.EncodeToString(c.msg),
+			SignatureHex: hex.EncodeToString(sig),
+		})
+	}
+	return vectorFile{
+		FormatVersion: formatVersion,
+		Generator:     generatorName,
+		Primitive:     "ed25519",
+		Description:   "Plain Ed25519 (RFC 8032) sign/verify vectors. Each seed is deterministically derived via HKDF-BLAKE2b-512 over the vector name; the 32-byte public key is recorded along with a 64-byte signature over the message.",
+		Vectors:       vs,
+	}
+}
+
+// genFalconPadded512 emits Falcon-padded-512 sign/verify vectors. Falcon
+// keygen and signing both draw from PQClean's internal SHAKE256 PRNG, which
+// in our wrapper reads from a Go io.Reader (rng.go). SetTestRNG installs a
+// deterministic source for the duration of each vector so the recorded
+// (pub, sig) bytes are stable across regenerations.
+
+func genFalconPadded512() vectorFile {
+	vs := make([]signVerifyVector, 0, len(signVerifyCases))
+	for _, c := range signVerifyCases {
+		restore := padded512.SetTestRNG(deterministicReader("falcon_padded_512", c.name))
+		pk, sk, err := padded512.GenerateKey()
+		must(err)
+		sig, err := padded512.Sign(&sk, c.msg)
+		must(err)
+		restore()
+		if !padded512.Verify(&pk, c.msg, sig) {
+			panic("falcon-padded-512 vector " + c.name + ": self-verify failed")
+		}
+		vs = append(vs, signVerifyVector{
+			Name:         c.name,
+			PublicKeyHex: hex.EncodeToString(pk[:]),
+			MessageHex:   hex.EncodeToString(c.msg),
+			SignatureHex: hex.EncodeToString(sig),
+		})
+	}
+	return vectorFile{
+		FormatVersion: formatVersion,
+		Generator:     generatorName,
+		Primitive:     "falcon_padded_512",
+		Description:   "Falcon-padded-512 sign/verify vectors. Falcon keygen and signing both consume randomness, so each vector pins the deterministic HKDF stream that feeds PQClean's PRNG via katzenpost/falcon's SetTestRNG. Recorded fields: 897-byte public key and 666-byte fixed-length signature.",
+		Vectors:       vs,
+	}
+}
+
+// genFalconPadded512Ed25519 emits hybrid sign/verify vectors. The hybrid
+// public key is falcon_pub || ed25519_pub and the hybrid signature is
+// falcon_sig || ed25519_sig; the recorded bytes are constructed manually
+// here and then round-tripped through the registered hpqc hybrid scheme to
+// confirm the on-wire layout matches what UnmarshalBinaryPublicKey + Verify
+// expect.
+
+func genFalconPadded512Ed25519() vectorFile {
+	return genFalconHybrid(
+		"falcon_padded_512_ed25519",
+		"Falcon-padded-512-Ed25519 hybrid sign/verify vectors. The hybrid public key is the concatenation of the 897-byte Falcon-padded-512 public key and the 32-byte Ed25519 public key (929 bytes total); the hybrid signature is the concatenation of the 666-byte Falcon signature and the 64-byte Ed25519 signature (730 bytes total). Both halves are deterministic.",
+		signhybrid.FalconPadded512Ed25519,
+		func(r io.Reader, msg []byte) (pub, sig []byte) {
+			restore := padded512.SetTestRNG(r)
+			pk, sk, err := padded512.GenerateKey()
+			must(err)
+			s, err := padded512.Sign(&sk, msg)
+			must(err)
+			restore()
+			return pk[:], s
+		},
+	)
+}
+
+// genFalconPadded1024Ed25519 mirrors the 512-variant generator using the
+// padded-1024 Falcon parameter set.
+
+func genFalconPadded1024Ed25519() vectorFile {
+	return genFalconHybrid(
+		"falcon_padded_1024_ed25519",
+		"Falcon-padded-1024-Ed25519 hybrid sign/verify vectors. The hybrid public key is the concatenation of the 1793-byte Falcon-padded-1024 public key and the 32-byte Ed25519 public key (1825 bytes total); the hybrid signature is the concatenation of the 1280-byte Falcon signature and the 64-byte Ed25519 signature (1344 bytes total). Both halves are deterministic.",
+		signhybrid.FalconPadded1024Ed25519,
+		func(r io.Reader, msg []byte) (pub, sig []byte) {
+			restore := padded1024.SetTestRNG(r)
+			pk, sk, err := padded1024.GenerateKey()
+			must(err)
+			s, err := padded1024.Sign(&sk, msg)
+			must(err)
+			restore()
+			return pk[:], s
+		},
+	)
+}
+
+func genFalconHybrid(primitive, description string, scheme sign.Scheme, falconHalf func(io.Reader, []byte) ([]byte, []byte)) vectorFile {
+	vs := make([]signVerifyVector, 0, len(signVerifyCases))
+	for _, c := range signVerifyCases {
+		fPub, fSig := falconHalf(deterministicReader(primitive+"_falcon", c.name), c.msg)
+
+		edSeed := deterministicBytes(primitive+"_ed25519", c.name, stded25519.SeedSize)
+		edPriv := stded25519.NewKeyFromSeed(edSeed)
+		edPub := edPriv.Public().(stded25519.PublicKey)
+		edSig := stded25519.Sign(edPriv, c.msg)
+
+		pub := append(append([]byte{}, fPub...), edPub...)
+		sig := append(append([]byte{}, fSig...), edSig...)
+
+		hpk, err := scheme.UnmarshalBinaryPublicKey(pub)
+		must(err)
+		if !scheme.Verify(hpk, c.msg, sig, nil) {
+			panic("hybrid vector " + c.name + ": self-verify failed via " + scheme.Name())
+		}
+		vs = append(vs, signVerifyVector{
+			Name:         c.name,
+			PublicKeyHex: hex.EncodeToString(pub),
+			MessageHex:   hex.EncodeToString(c.msg),
+			SignatureHex: hex.EncodeToString(sig),
+		})
+	}
+	return vectorFile{
+		FormatVersion: formatVersion,
+		Generator:     generatorName,
+		Primitive:     primitive,
+		Description:   description,
+		Vectors:       vs,
 	}
 }
 
