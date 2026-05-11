@@ -20,7 +20,7 @@ require (
 	golang.org/x/crypto v0.49.0
 )
 
-require github.com/katzenpost/falcon v0.0.0-20260510085550-82544303fad7
+require github.com/katzenpost/falcon v0.1.0
 
 require (
 	filippo.io/mldsa v0.0.0-20260215214346-43d0283efc3e
