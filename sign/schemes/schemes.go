@@ -29,6 +29,8 @@ var potentialSchemes = [...]sign.Scheme{
 	hybrid.Ed25519Sphincs,
 	hybrid.Ed25519SphincsLegacy,
 	hybrid.Ed448Sphincs,
+	hybrid.FalconPadded512Ed25519,
+	hybrid.FalconPadded1024Ed25519,
 }
 
 var allSchemes = []sign.Scheme{
