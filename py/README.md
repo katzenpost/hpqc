@@ -33,8 +33,17 @@ in Go, see the
   sizes 511, 512, 1024, and 2048 (`hpqc.nike.ctidh{511,512,1024,2048}`,
   via the upstream `highctidh` package), and a generic `HybridNIKE`
   combiner (`hpqc.nike.hybrid`).
-* **Ed25519 signing** (`hpqc.sign.ed25519`), including the blinded
-  Ed25519 variant on which BACAP relies.
+* **Ed25519 signature verification** (`hpqc.sign.ed25519`): the
+  blinded Ed25519 variant on which BACAP relies, plus an
+  `Ed25519Scheme` verify-only wrapper for plain Ed25519.
+* **Falcon-padded-512 signature verification**
+  (`hpqc.sign.falcon.FalconPadded512Scheme`), backed by the
+  [`pqcrypto`](https://pypi.org/project/pqcrypto/) runtime
+  dependency, which vendors the same PQClean reference C used by
+  the Go side.
+* **Hybrid signature verification** (`hpqc.sign.hybrid`): generic
+  two-component combiner plus a pre-registered
+  `FalconPadded512Ed25519` instance.
 
 The Python and Go test suites read the same JSON vector files via
 per-file symlinks under `tests/.../vectors/`, so any byte-level
@@ -49,7 +58,7 @@ pip install hpqc
 ```
 
 Runtime dependencies (`pynacl`, `cryptography`, `cbor2`,
-`highctidh`) are pulled in automatically.
+`highctidh`, `pqcrypto`) are pulled in automatically.
 
 To install from a source checkout instead (for example to test an
 unreleased change):

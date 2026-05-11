@@ -116,10 +116,12 @@ hpqc/
 
 A Python port of selected hpqc primitives lives under `py/`. It is
 not a complete mirror of the Go reference, but it covers BACAP,
-MKEM, and the NIKE primitives those depend on, so Python
-applications and tooling that need these constructions can use them
-directly. The two ports share their JSON test vectors so neither
-side can drift silently from the other.
+MKEM, the NIKE primitives those depend on, and a verify-only
+slice of the signature surface (plain Ed25519, Falcon-padded-512,
+and the Falcon-padded-512-Ed25519 hybrid), so Python applications
+and tooling that need these constructions can use them directly.
+The two ports share their JSON test vectors so neither side can
+drift silently from the other.
 
 What is currently ported:
 
@@ -144,8 +146,16 @@ What is currently ported:
   attempts to mix keys across field sizes.
 * **NIKE concretes**: X25519 and `HybridNIKE`, a generic combiner
   that exposes two NIKEs as one.
-* **Ed25519 signing** (`hpqc.sign.ed25519`), including the blinded
-  Ed25519 variant that BACAP relies on.
+* **Ed25519 signature verification** (`hpqc.sign.ed25519`): the
+  blinded Ed25519 variant on which BACAP relies, plus an
+  `Ed25519Scheme` verify-only wrapper for plain Ed25519.
+* **Falcon-padded-512 signature verification**
+  (`hpqc.sign.falcon.FalconPadded512Scheme`), backed by the
+  [`pqcrypto`](https://pypi.org/project/pqcrypto/) PyPI dependency,
+  which vendors the same PQClean reference C used by the Go side.
+* **Hybrid signature verification** (`hpqc.sign.hybrid`): a generic
+  two-component combiner plus a pre-registered
+  `FalconPadded512Ed25519` instance.
 
 The Python and Go test suites read the same JSON vector files via
 per-file symlinks under `py/tests/.../vectors/`, so any divergence
@@ -438,8 +448,12 @@ CGO_LDFLAGS: -Wl,-stack_size,0x1F40000
 
 ## Cryptographic Primitives
 
+The tables below enumerate the full Go-side surface. The Python port
+covers a strict subset; see [Python port (cryptographic primitives)](#python-port-cryptographic-primitives)
+further down for the Python-side tables.
 
-| NIKE: Non-Interactive Key Exchange |
+
+| NIKE: Non-Interactive Key Exchange (Go) |
 |:---:|
 
 | Primitive | HPQC name | security |
@@ -452,7 +466,7 @@ CGO_LDFLAGS: -Wl,-stack_size,0x1F40000
 
 __________
 
-| KEM: Key Encapsulation Mechanism |
+| KEM: Key Encapsulation Mechanism (Go) |
 |:---:|
 
 
@@ -473,7 +487,7 @@ As well as all of the NIKE schemes through the KEM adapter, and any combinations
 
 ____________
 
-| SIGN: Cryptographic Signature Schemes |
+| SIGN: Cryptographic Signature Schemes (Go) |
 |:---:|
 
 
@@ -482,8 +496,59 @@ ____________
 | Ed25519 | "ed25519" | classic |
 | Ed448 | "ed448" | classic |
 | Sphincs+shake-256f | "Sphincs+" | post-quantum |
+| Falcon-padded-512 | "Falcon-padded-512" | post-quantum |
+| Falcon-padded-1024 | "Falcon-padded-1024" | post-quantum |
+| ML-DSA-44 | "ML-DSA-44" | post-quantum |
+| ML-DSA-65 | "ML-DSA-65" | post-quantum |
+| ML-DSA-87 | "ML-DSA-87" | post-quantum |
 | hybrids of Sphincs+ and ECC | "Ed25519-Sphincs+", "Ed448-Sphincs+" (legacy alias "Ed25519 Sphincs+" still resolves) | hybrid |
-|hybrids of Dilithium 2 and 3 with Ed25519 | "eddilithium2", "eddilithium3" | hybrid |
+| hybrids of Dilithium 2 and 3 with Ed25519 | "eddilithium2", "eddilithium3" | hybrid |
+| hybrids of ML-DSA and Ed25519 | "ML-DSA-44-Ed25519", "ML-DSA-65-Ed25519", "ML-DSA-87-Ed25519" | hybrid |
+| hybrids of Falcon-padded and Ed25519 | "Falcon-padded-512-Ed25519", "Falcon-padded-1024-Ed25519" | hybrid |
+
+
+### Python port (cryptographic primitives)
+
+The Python port at `py/hpqc` covers a deliberately narrow subset of
+the Go surface (see [Python port](#python-port) above for the
+rationale). The tables below enumerate everything the Python port
+exposes today; primitives absent from these tables are Go-only.
+
+
+| NIKE (Python port) |
+|:---:|
+
+
+| Primitive | HPQC name | security |
+|  --------  |  -------  |  -------  |
+| X25519 | "x25519" | classic |
+| Implementations of CTIDH | "ctidh511", "ctidh512", "ctidh1024", "ctidh2048" | post-quantum |
+| Generic two-NIKE combiner | `HybridNIKE` (constructed at call site) | hybrid |
+
+
+| KEM (Python port) |
+|:---:|
+
+
+| Primitive | HPQC name | security |
+|  --------  |  -------  |  -------  |
+| MKEM, the multi-recipient KEM, over any Python NIKE | `MKEMScheme` (constructed at call site) | hybrid |
+
+
+| SIGN (Python port) |
+|:---:|
+
+
+| Primitive | HPQC name | security |
+|  --------  |  -------  |  -------  |
+| Ed25519 (verify-only) | `Ed25519Scheme` ("Ed25519") | classic |
+| Blinded Ed25519 (sign and verify, BACAP) | `BlindableSigningKey`, `BlindableVerifyKey` | classic |
+| Falcon-padded-512 (verify-only) | `FalconPadded512Scheme` ("Falcon-padded-512") | post-quantum |
+| Falcon-padded-512 with Ed25519 (verify-only) | `FalconPadded512Ed25519` ("Falcon-padded-512-Ed25519") | hybrid |
+
+The verify-only entries use the `pqcrypto` PyPI package for Falcon
+and `pynacl` for Ed25519. Sign and key generation for the post-quantum
+schemes remain Go-only.
 
 
 ## Warning
