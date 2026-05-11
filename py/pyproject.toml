@@ -25,6 +25,7 @@ keywords = [
     "ctidh",
     "x25519",
     "ed25519",
+    "falcon",
     "katzenpost",
     "mixnet",
 ]
@@ -46,6 +47,7 @@ dependencies = [
     "cryptography>=47.0",
     "highctidh>=1.0.2025051200",
     "cbor2>=6.0",
+    "pqcrypto>=0.4.0",
 ]
 
 [project.optional-dependencies]
