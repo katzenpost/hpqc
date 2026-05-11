@@ -6,5 +6,6 @@ from .blinded25519 import (
     BlindedSigningKey,
     VerifyKey,
 )
+from .plain import Ed25519Scheme
 
-__all__ = ["SigningKey", "BlindedSigningKey", "VerifyKey"]
+__all__ = ["SigningKey", "BlindedSigningKey", "VerifyKey", "Ed25519Scheme"]
