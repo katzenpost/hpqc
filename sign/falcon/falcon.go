@@ -7,9 +7,9 @@
 // fixed-length, suitable for protocols where variable-length
 // signatures would complicate framing.
 //
-// The underlying C is PQClean's reference implementation. As is the
-// case for sphincsplus, the cgo dependency is gated out of Windows
-// builds via a stub.
+// The underlying C is PQClean's reference implementation, reached
+// through cgo on every platform katzenpost/falcon supports (Linux,
+// macOS, Windows MINGW64 and UCRT64).
 package falcon
 
 import (
