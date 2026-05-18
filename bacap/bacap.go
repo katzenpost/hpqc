@@ -167,8 +167,18 @@ func NewMessageBoxIndex(rng io.Reader) (*MessageBoxIndex, error) {
 	// an index of N informs them that we have sent *at most* N messages
 	// prior to introducing them, and we would like to minimize the
 	// disclosure of such facts.
-	idx64B[0] &= 0x2f // 0x2f leaves out the top two bits
-	idx64B[8] &= 0x2f
+	// Each summand is a little-endian uint64, so its most-significant
+	// byte is the last one (index 7 / index 15), not the first. Clear
+	// the top two bits of that byte (0x3f = 0b00111111) to bound each
+	// summand to [0, 2^62 - 1]; the sum is then in [0, 2^63 - 2],
+	// leaving at least 2^63 usable indices as the comment above
+	// intends. The previous code masked idx64B[0]/idx64B[8] (the
+	// least-significant bytes) with 0x2f, leaving the high bytes fully
+	// random: i_0 reached ~2^64, so a sequence could exhaust after a
+	// handful of messages and the disclosure-minimising distribution
+	// did not hold.
+	idx64B[7] &= 0x3f
+	idx64B[15] &= 0x3f
 	m.Idx64 = binary.LittleEndian.Uint64(idx64B[:8])
 	m.Idx64 += binary.LittleEndian.Uint64(idx64B[8:])
 	// believe this is called Irwin-Hall sum.
