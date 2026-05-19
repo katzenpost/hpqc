@@ -24,7 +24,7 @@ This library is divided into four parts:
 
 NIKE is what we usually think about when we say "Diffie-Hellman" key exchange. It allows two parties to each derive the same shared secret from each other's public keys, without any interaction beyond publishing those keys. By contrast, KEM is a mechanism where the encapsulation function takes a public key and produces both a ciphertext and a randomly generated shared secret; the recipient can then recover the same shared secret by decapsulating the ciphertext with their private key.
 
-This library includes CTIDH, currently the only post-quantum NIKE in existence, based on isogenies of supersingular elliptic curves. For post-quantum KEMs, we provide ML-KEM-768, FrodoKEM, Classic McEliece, and NTRU Prime. All of these can be combined with classical primitives like X25519 or X448 to form hybrid schemes.
+This library includes CTIDH, currently the only post-quantum NIKE in existence, based on isogenies of supersingular elliptic curves. For post-quantum KEMs, we provide ML-KEM-768, FrodoKEM, Classic McEliece, NTRU Prime, and HQC. All of these can be combined with classical primitives like X25519 or X448 to form hybrid schemes.
 
 The key to understanding and using this cryptography library is to review the `Scheme` interfaces, for NIKE, KEM and signature schemes, as well as the BACAP API:
 
@@ -60,6 +60,7 @@ hpqc/
 │   ├── interfaces.go          #   Scheme/PublicKey/PrivateKey interfaces
 │   ├── mlkem768/              #   ML-KEM-768
 │   ├── sntrup/                #   sntrup4591761 (NTRU Prime)
+│   ├── hqc/                   #   HQC (NIST round 4)
 │   ├── xwing/                 #   XWING (ML-KEM-768 + X25519)
 │   ├── circlkem/              #   FrodoKEM, Classic McEliece, Kyber via circl
 │   ├── adapter/               #   NIKE-to-KEM adapter (hashed ElGamal)
@@ -477,11 +478,13 @@ __________
 | The sntrup4591761 version of the NTRU cryptosystem. | "sntrup4591761" | post-quantum |
 | FrodoKEM-640-SHAKE |"FrodoKEM-640-SHAKE"| post-quantum|
 | Various forms of the McEliece cryptosystem| "mceliece348864", "mceliece348864f", "mceliece460896", "mceliece460896f", "mceliece6688128", "mceliece6688128f", "mceliece6960119", "mceliece6960119f", "mceliece8192128", "mceliece8192128f" | post-quantum|
+| The HQC code-based cryptosystem, in its three NIST parameter sets | "HQC-128", "HQC-192", "HQC-256" | post-quantum |
 |A hybrid of ML-KEM-768 and X25519. The [KEM Combiners paper](https://eprint.iacr.org/2018/024.pdf) is the reason we implemented our own combination in addition to including XWING. |"MLKEM768-X25519"| hybrid |
 |A hybrid of ML-KEM-768 and X448|"MLKEM768-X448"| hybrid |
 |A hybrid of FrodoKEM-640-SHAKE and X448|"FrodoKEM-640-SHAKE-X448"| hybrid |
 |A hybrid of NTRU and X448| "sntrup4591761-X448"| hybrid |
 |Hybrids of the McEliece primitives and X25519| "mceliece348864-X25519", "mceliece348864f-X25519", "mceliece460896-X25519", "mceliece460896f-X25519", "mceliece6688128-X25519", "mceliece6688128f-X25519", "mceliece6960119-X25519", "mceliece6960119f-X25519", "mceliece8192128-X25519", "mceliece8192128f-X25519" | hybrid|
+|Hybrids of HQC with X25519, and HQC-256 additionally with X448| "HQC-128-X25519", "HQC-192-X25519", "HQC-256-X25519", "HQC-256-X448" | hybrid|
 
 As well as all of the NIKE schemes through the KEM adapter, and any combinations of the above through the combiner.
 
