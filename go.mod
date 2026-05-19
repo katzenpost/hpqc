@@ -22,6 +22,8 @@ require (
 
 require github.com/katzenpost/falcon v0.1.0
 
+require github.com/shurlinet/go-hqc v0.1.1
+
 require (
 	filippo.io/mldsa v0.0.0-20260215214346-43d0283efc3e
 	github.com/davecgh/go-spew v1.1.1 // indirect

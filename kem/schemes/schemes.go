@@ -20,6 +20,7 @@ import (
 	"github.com/katzenpost/hpqc/kem/adapter"
 	"github.com/katzenpost/hpqc/kem/circlkem"
 	"github.com/katzenpost/hpqc/kem/combiner"
+	"github.com/katzenpost/hpqc/kem/hqc"
 	"github.com/katzenpost/hpqc/kem/mlkem768"
 	"github.com/katzenpost/hpqc/kem/sntrup"
 	"github.com/katzenpost/hpqc/kem/xwing"
@@ -85,6 +86,9 @@ var allSchemes = []kem.Scheme{
 
 	mlkem768.Scheme(),
 	sntrup.Scheme(),
+	hqc.Scheme128(),
+	hqc.Scheme192(),
+	hqc.Scheme256(),
 	circlkem.FromCircl(frodo640shake.Scheme()),
 	circlkem.FromCircl(mceliece348864.Scheme()),
 	circlkem.FromCircl(mceliece348864f.Scheme()),
@@ -124,6 +128,36 @@ var allSchemes = []kem.Scheme{
 		[]kem.Scheme{
 			adapter.FromNIKE(x448.Scheme(rand.Reader)),
 			mlkem768.Scheme(),
+		},
+	),
+
+	// HQC hybrids
+	mustCombine(
+		"HQC-128-X25519",
+		[]kem.Scheme{
+			adapter.FromNIKE(x25519.Scheme(rand.Reader)),
+			hqc.Scheme128(),
+		},
+	),
+	mustCombine(
+		"HQC-192-X25519",
+		[]kem.Scheme{
+			adapter.FromNIKE(x25519.Scheme(rand.Reader)),
+			hqc.Scheme192(),
+		},
+	),
+	mustCombine(
+		"HQC-256-X25519",
+		[]kem.Scheme{
+			adapter.FromNIKE(x25519.Scheme(rand.Reader)),
+			hqc.Scheme256(),
+		},
+	),
+	mustCombine(
+		"HQC-256-X448",
+		[]kem.Scheme{
+			adapter.FromNIKE(x448.Scheme(rand.Reader)),
+			hqc.Scheme256(),
 		},
 	),
 
