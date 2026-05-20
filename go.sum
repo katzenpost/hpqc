@@ -26,6 +26,8 @@ github.com/katzenpost/sntrup4591761 v0.0.0-20231024131303-8755eb1986b8 h1:TsKxH0
 github.com/katzenpost/sntrup4591761 v0.0.0-20231024131303-8755eb1986b8/go.mod h1:Hmcrwom7jcEmGdo0CsyuJNnldPeyS+M07FuCbo7I8fw=
 github.com/katzenpost/sphincsplus v0.0.2 h1:W1UWejLK62Lk0uK2R08H/sWEaQrRHWCaMEKO181SoOE=
 github.com/katzenpost/sphincsplus v0.0.2/go.mod h1:ChO9+ojgCH1yEuplGgW4mSI1FwZWtyEmEkG1xL3w264=
+github.com/katzenpost/sqisign/bindings/go v0.0.0-20260520205505-5e9bb658be4b h1:R6/HK04SFarjaZIdrrnJvz7yOhQhUA/6iItnC3pi1uo=
+github.com/katzenpost/sqisign/bindings/go v0.0.0-20260520205505-5e9bb658be4b/go.mod h1:CcVAF5BHgQtHH3lFCmwl3t2KKcXih+8ZcjLbxg8z3D0=
 github.com/mattn/go-pointer v0.0.1 h1:n+XhsuGeVO6MEAp7xyEukFINEa+Quek5psIR/ylA6o0=
 github.com/mattn/go-pointer v0.0.1/go.mod h1:2zXcozF6qYGgmsG+SeTZz3oAbFLdD3OWqnUbNvJZAlc=
 github.com/pkg/errors v0.9.1 h1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=
@@ -45,10 +47,10 @@ gitlab.com/elixxir/crypto v0.0.12 h1:yIQDA2eWEjQi4o0UwqLu2r+1ZSMHowNlx5C5NDWQf/o
 gitlab.com/elixxir/crypto v0.0.12/go.mod h1:sMMLZTODaummebijI9zq3wYO/lqm1zSF7x0QDhKxgfE=
 gitlab.com/xx_network/crypto v0.0.6 h1:+C44rBhclcbWrGa5EOic5yDF3NrXAbXScCb/mXmm3Ro=
 gitlab.com/xx_network/crypto v0.0.6/go.mod h1:C69/+XTiqJvKkYzcyA47+LdxvAofl9AzR/Nyo36y9hs=
-golang.org/x/crypto v0.49.0 h1:+Ng2ULVvLHnJ/ZFEq4KdcDd/cfjrrjjNSXNzxg0Y4U4=
-golang.org/x/crypto v0.49.0/go.mod h1:ErX4dUh2UM+CFYiXZRTcMpEcN8b/1gxEuv3nODoYtCA=
-golang.org/x/sys v0.43.0 h1:Rlag2XtaFTxp19wS8MXlJwTvoh8ArU6ezoyFsMyCTNI=
-golang.org/x/sys v0.43.0/go.mod h1:4GL1E5IUh+htKOUEOaiffhrAeqysfVGipDYzABqnCmw=
+golang.org/x/crypto v0.51.0 h1:IBPXwPfKxY7cWQZ38ZCIRPI50YLeevDLlLnyC5wRGTI=
+golang.org/x/crypto v0.51.0/go.mod h1:8AdwkbraGNABw2kOX6YFPs3WM22XqI4EXEd8g+x7Oc8=
+golang.org/x/sys v0.44.0 h1:ildZl3J4uzeKP07r2F++Op7E9B29JRUy+a27EibtBTQ=
+golang.org/x/sys v0.44.0/go.mod h1:4GL1E5IUh+htKOUEOaiffhrAeqysfVGipDYzABqnCmw=
 gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405 h1:yhCVgyC4o1eVCa2tZl7eS0r+SDo693bJlVdllGtEeKM=
 gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=
 gopkg.in/yaml.v3 v3.0.1 h1:fxVm/GzAzEWqLHuvctI91KS9hhNmmWOoWu0XTYJS7CA=
