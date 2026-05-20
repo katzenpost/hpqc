@@ -17,7 +17,7 @@ require (
 	github.com/stretchr/testify v1.8.4
 	gitlab.com/elixxir/crypto v0.0.12
 	gitlab.com/xx_network/crypto v0.0.6
-	golang.org/x/crypto v0.49.0
+	golang.org/x/crypto v0.51.0
 )
 
 require github.com/katzenpost/falcon v0.1.0
@@ -48,6 +48,6 @@ require (
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
-	golang.org/x/sys v0.43.0 // indirect
+	golang.org/x/sys v0.44.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

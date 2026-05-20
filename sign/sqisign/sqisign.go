@@ -6,6 +6,13 @@
 // github.com/katzenpost/sqisign/bindings/go binding, which links the
 // Rust port's sqisign-ffi staticlib through cgo.
 //
+// Randomness comes from hpqc/rand.Reader, not crypto/rand and not any
+// NIST CTR-DRBG. The binding exposes an io.Reader-driven API and we
+// thread hpqc/rand through it on every keypair and every signature;
+// no part of the production signing path touches the entropy-block
+// entries that the underlying C ABI still keeps for Rust-side KAT
+// replay.
+//
 // SQIsign is a NIST Round 2 candidate; this implementation has not been
 // audited. Treat it as experimental. See the upstream repository's
 // SECURITY.md before deploying it anywhere that matters.
@@ -14,13 +21,13 @@ package sqisign
 import (
 	"crypto"
 	"crypto/hmac"
-	"crypto/rand"
 	"io"
 
 	"golang.org/x/crypto/blake2b"
 
 	sqisignbinding "github.com/katzenpost/sqisign/bindings/go/sqisign"
 
+	hpqcrand "github.com/katzenpost/hpqc/rand"
 	"github.com/katzenpost/hpqc/sign"
 	"github.com/katzenpost/hpqc/sign/pem"
 )
@@ -37,11 +44,10 @@ const KeySeedSize = 32
 // guard at the bottom of this file rejects any silent drift in the
 // underlying binding.
 const (
-	publicKeySize    = sqisignbinding.PublicKeyBytes
-	privateKeySize   = sqisignbinding.SecretKeyBytes
-	signatureSize    = sqisignbinding.SignatureBytes
-	entropySize      = sqisignbinding.EntropyBytes
-	schemeName       = "SQIsign-lvl1"
+	publicKeySize  = sqisignbinding.PublicKeyBytes
+	privateKeySize = sqisignbinding.SecretKeyBytes
+	signatureSize  = sqisignbinding.SignatureBytes
+	schemeName     = "SQIsign-lvl1"
 )
 
 type scheme struct{}
@@ -60,11 +66,7 @@ func Scheme() sign.Scheme { return theScheme }
 func (s *scheme) Name() string { return schemeName }
 
 func (s *scheme) GenerateKey() (sign.PublicKey, sign.PrivateKey, error) {
-	entropy := make([]byte, entropySize)
-	if _, err := rand.Read(entropy); err != nil {
-		return nil, nil, err
-	}
-	pubBytes, privBytes, err := sqisignbinding.KeyGen(entropy)
+	pubBytes, privBytes, err := sqisignbinding.KeyGen(hpqcrand.Reader)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -78,11 +80,7 @@ func (s *scheme) Sign(sk sign.PrivateKey, message []byte, opts *sign.SignatureOp
 		panic(sign.ErrContextNotSupported)
 	}
 	priv := sk.(*privateKey)
-	entropy := make([]byte, entropySize)
-	if _, err := rand.Read(entropy); err != nil {
-		panic(err)
-	}
-	sig, err := sqisignbinding.Sign(priv.bytes, message, entropy)
+	sig, err := sqisignbinding.Sign(hpqcrand.Reader, priv.bytes, message)
 	if err != nil {
 		panic(err)
 	}
@@ -155,12 +153,15 @@ func (p *privateKey) Public() crypto.PublicKey {
 	return p.publicKey
 }
 
-func (p *privateKey) Sign(_ io.Reader, digest []byte, _ crypto.SignerOpts) ([]byte, error) {
-	entropy := make([]byte, entropySize)
-	if _, err := rand.Read(entropy); err != nil {
-		return nil, err
+func (p *privateKey) Sign(rng io.Reader, digest []byte, _ crypto.SignerOpts) ([]byte, error) {
+	// crypto.Signer hands us a randomness source. We honour it: if
+	// callers pass nil (the common case for hpqc's higher-level
+	// Scheme.Sign) we fall back on hpqc/rand so production callers
+	// never end up reading from crypto/rand's default Reader.
+	if rng == nil {
+		rng = hpqcrand.Reader
 	}
-	return sqisignbinding.Sign(p.bytes, digest, entropy)
+	return sqisignbinding.Sign(rng, p.bytes, digest)
 }
 
 func (p *privateKey) MarshalBinary() ([]byte, error) {
@@ -230,8 +231,5 @@ var _ = func() {
 	}
 	if signatureSize != 148 {
 		panic("hpqc/sign/sqisign: unexpected SQIsign lvl1 signature size")
-	}
-	if entropySize != 48 {
-		panic("hpqc/sign/sqisign: unexpected SQIsign lvl1 entropy size")
 	}
 }
