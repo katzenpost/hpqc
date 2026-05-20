@@ -110,8 +110,15 @@ class MessageBoxIndex:
             rng = os.urandom
         hkdf_state = rng(32)
         idx_bytes = bytearray(rng(16))
-        idx_bytes[0] &= 0x2F
-        idx_bytes[8] &= 0x2F
+        # Each half is read little-endian, so its most-significant
+        # byte is the last one (index 7 / index 15), not the first.
+        # Clear the top two bits of that byte (0x3F = 0b00111111) to
+        # bound each half to [0, 2^62 - 1]; the sum is then in
+        # [0, 2^63 - 2], leaving at least 2^63 usable indices. Masking
+        # idx_bytes[0]/idx_bytes[8] (the least-significant bytes) left
+        # the high bytes random, so idx reached ~2^64.
+        idx_bytes[7] &= 0x3F
+        idx_bytes[15] &= 0x3F
         a = int.from_bytes(idx_bytes[:8], "little")
         b = int.from_bytes(idx_bytes[8:], "little")
         # Go's uint64 addition wraps on overflow; mirror that.

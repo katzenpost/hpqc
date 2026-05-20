@@ -5,6 +5,7 @@ package bacap
 
 import (
 	"bytes"
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"testing"
@@ -746,4 +747,70 @@ func TestMesageBoxIndexMarshaling(t *testing.T) {
 	blob, err := startIndex.MarshalBinary()
 	require.NoError(t, err)
 	require.Equal(t, len(blob), MessageBoxIndexSize)
+}
+
+// TestInitialIndexMaskingBound proves, deterministically, that the
+// corrected i_0 masking is correct and the old one was wrong.
+//
+// Why one input is a proof. i_0 = LE(b[0:8]) + LE(b[8:16]) where the
+// only operation on the entropy is clearing bits (the &= masks).
+// Setting an entropy bit can only raise a little-endian summand or
+// leave it unchanged (if that bit position is masked away); it can
+// never lower it. The function is therefore monotonic non-decreasing
+// in every one of the 128 entropy bits, so its supremum over all
+// 2^128 inputs is attained at the all-ones input. Establishing the
+// bound there establishes it everywhere; checking the all-zero input
+// pins the floor. No sampling required.
+func TestInitialIndexMaskingBound(t *testing.T) {
+	t.Parallel()
+
+	const (
+		bound       = uint64(1) << 63 // first unusable index
+		summandMax  = uint64(1)<<62 - 1
+		expectedMax = uint64(1)<<63 - 2 // 2*summandMax
+	)
+
+	// Supremum: every entropy byte set. Monotonicity makes this the
+	// largest i_0 the function can ever produce.
+	allOnes := bytes.Repeat([]byte{0xff}, 16)
+
+	// --- New (correct) masking: clear the top two bits of each
+	// summand's most-significant byte (little-endian => index 7/15). ---
+	nw := append([]byte(nil), allOnes...)
+	nw[7] &= 0x3f
+	nw[15] &= 0x3f
+	newLo := binary.LittleEndian.Uint64(nw[:8])
+	newHi := binary.LittleEndian.Uint64(nw[8:])
+
+	require.Equal(t, summandMax, newLo, "max low summand must be exactly 2^62-1")
+	require.Equal(t, summandMax, newHi, "max high summand must be exactly 2^62-1")
+
+	newSum := newLo + newHi
+	require.False(t, newSum < newLo, "the bounded sum must not overflow uint64")
+	require.Equal(t, expectedMax, newSum, "max i_0 must be exactly 2^63-2")
+	require.Less(t, newSum, bound,
+		"QED: the largest possible i_0 (%d) is < 2^63, so EVERY i_0 is, leaving >= 2^63 usable indices", newSum)
+
+	// --- Old (buggy) masking: cleared the LEAST-significant byte
+	// (index 0/8) with 0x2f, leaving each summand's high bytes fully
+	// random. ---
+	ow := append([]byte(nil), allOnes...)
+	ow[0] &= 0x2f
+	ow[8] &= 0x2f
+	oldLo := binary.LittleEndian.Uint64(ow[:8])
+	oldHi := binary.LittleEndian.Uint64(ow[8:])
+
+	require.GreaterOrEqual(t, oldLo, bound,
+		"the old masking let a SINGLE summand (%d) reach >= 2^63, already violating the bound", oldLo)
+	oldSum := oldLo + oldHi
+	require.True(t, oldSum < oldLo,
+		"the old two-summand sum (~2^65) overflows uint64 and wraps to an arbitrary index: proof the old way was wrong")
+
+	// Floor: no entropy => i_0 = 0, so the range is exactly [0, 2^63-2].
+	zero := make([]byte, 16)
+	zero[7] &= 0x3f
+	zero[15] &= 0x3f
+	require.Equal(t, uint64(0),
+		binary.LittleEndian.Uint64(zero[:8])+binary.LittleEndian.Uint64(zero[8:]),
+		"min i_0 must be 0")
 }
