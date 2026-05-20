@@ -26,20 +26,6 @@ require github.com/shurlinet/go-hqc v0.1.1
 
 require github.com/katzenpost/sqisign/bindings/go v0.0.0-20260520191751-d4ef01ebd052
 
-// The sqisign Go binding's cgo directive statically links the
-// sqisign-ffi staticlib by a path relative to the binding's source
-// directory: ${SRCDIR}/../../../target/release/libsqisign_ffi.a. That
-// path only resolves when the source tree is on disk; when Go caches
-// the module under pkg/mod the surrounding target/ directory is not
-// present and the link fails. We therefore replace the module with
-// the local sqisign checkout, assuming the conventional layout where
-// hpqc/ and sqisign/ are siblings in the same parent directory.
-//
-// The proper fix is for the sqisign binding to source its LDFLAGS
-// from an environment variable (or pkg-config); until then this
-// replace is the simplest way to make hpqc actually build.
-replace github.com/katzenpost/sqisign/bindings/go => ../sqisign/bindings/go
-
 require (
 	filippo.io/mldsa v0.0.0-20260215214346-43d0283efc3e
 	github.com/davecgh/go-spew v1.1.1 // indirect
