@@ -24,7 +24,7 @@ require github.com/katzenpost/falcon v0.1.0
 
 require github.com/shurlinet/go-hqc v0.1.1
 
-require github.com/katzenpost/sqisign/bindings/go v0.0.0-20260520183512-d62bbe8df44f
+require github.com/katzenpost/sqisign/bindings/go v0.0.0-20260520191751-d4ef01ebd052
 
 // The sqisign Go binding's cgo directive statically links the
 // sqisign-ffi staticlib by a path relative to the binding's source
