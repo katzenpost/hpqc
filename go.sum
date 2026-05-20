@@ -26,8 +26,8 @@ github.com/katzenpost/sntrup4591761 v0.0.0-20231024131303-8755eb1986b8 h1:TsKxH0
 github.com/katzenpost/sntrup4591761 v0.0.0-20231024131303-8755eb1986b8/go.mod h1:Hmcrwom7jcEmGdo0CsyuJNnldPeyS+M07FuCbo7I8fw=
 github.com/katzenpost/sphincsplus v0.0.2 h1:W1UWejLK62Lk0uK2R08H/sWEaQrRHWCaMEKO181SoOE=
 github.com/katzenpost/sphincsplus v0.0.2/go.mod h1:ChO9+ojgCH1yEuplGgW4mSI1FwZWtyEmEkG1xL3w264=
-github.com/katzenpost/sqisign/bindings/go v0.0.0-20260520202325-bed7e14fe6e9 h1:lD8XXDem+bAI3O1gN3tYst6pVqCS5QZKvp1CQ0rz138=
-github.com/katzenpost/sqisign/bindings/go v0.0.0-20260520202325-bed7e14fe6e9/go.mod h1:CcVAF5BHgQtHH3lFCmwl3t2KKcXih+8ZcjLbxg8z3D0=
+github.com/katzenpost/sqisign/bindings/go v0.0.0-20260520205505-5e9bb658be4b h1:R6/HK04SFarjaZIdrrnJvz7yOhQhUA/6iItnC3pi1uo=
+github.com/katzenpost/sqisign/bindings/go v0.0.0-20260520205505-5e9bb658be4b/go.mod h1:CcVAF5BHgQtHH3lFCmwl3t2KKcXih+8ZcjLbxg8z3D0=
 github.com/mattn/go-pointer v0.0.1 h1:n+XhsuGeVO6MEAp7xyEukFINEa+Quek5psIR/ylA6o0=
 github.com/mattn/go-pointer v0.0.1/go.mod h1:2zXcozF6qYGgmsG+SeTZz3oAbFLdD3OWqnUbNvJZAlc=
 github.com/pkg/errors v0.9.1 h1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=
