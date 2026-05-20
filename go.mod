@@ -24,7 +24,7 @@ require github.com/katzenpost/falcon v0.1.0
 
 require github.com/shurlinet/go-hqc v0.1.1
 
-require github.com/katzenpost/sqisign/bindings/go v0.0.0-20260520191751-d4ef01ebd052
+require github.com/katzenpost/sqisign/bindings/go v0.0.0-20260520190630-ecbf83c95934
 
 require (
 	filippo.io/mldsa v0.0.0-20260215214346-43d0283efc3e
