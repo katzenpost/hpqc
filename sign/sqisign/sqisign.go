@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: (c) 2026 David Stainton
 // SPDX-License-Identifier: AGPL-3.0-only
 
+//go:build sqisign_cgo
+
 // Package sqisign implements the hpqc sign.Scheme interface for SQIsign
 // level 1. The actual cryptographic work is performed by the
 // github.com/katzenpost/sqisign/bindings/go binding, which links the
@@ -12,6 +14,17 @@
 // no part of the production signing path touches the entropy-block
 // entries that the underlying C ABI still keeps for Rust-side KAT
 // replay.
+//
+// Build tag. This package is gated by `sqisign_cgo` because building
+// it requires the sqisign-ffi staticlib to be reachable at link time;
+// the binding's cgo directive expects the file at
+// ${SRCDIR}/../../../target/release/libsqisign_ffi.a, which only
+// resolves when the sqisign tree is checked out and built. Without
+// the tag the package is invisible to `go build ./...` and `go test
+// ./...`, which keeps hpqc CI green for everyone who does not yet
+// care about SQIsign. Opt in with `-tags=sqisign_cgo` after `cargo
+// build --release -p sqisign-ffi` in a sibling sqisign checkout (or
+// after wiring an equivalent staticlib path via CGO_LDFLAGS).
 //
 // SQIsign is a NIST Round 2 candidate; this implementation has not been
 // audited. Treat it as experimental. See the upstream repository's
