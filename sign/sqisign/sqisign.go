@@ -1,12 +1,12 @@
 // SPDX-FileCopyrightText: (c) 2026 David Stainton
 // SPDX-License-Identifier: AGPL-3.0-only
 
-//go:build sqisign_cgo
+//go:build linux && amd64
 
 // Package sqisign implements the hpqc sign.Scheme interface for SQIsign
 // level 1. The actual cryptographic work is performed by the
-// github.com/katzenpost/sqisign/bindings/go binding, which links the
-// Rust port's sqisign-ffi staticlib through cgo.
+// github.com/katzenpost/sqisign/bindings/go binding, which links a
+// vendored copy of the Rust port's sqisign-ffi staticlib through cgo.
 //
 // Randomness comes from hpqc/rand.Reader, not crypto/rand and not any
 // NIST CTR-DRBG. The binding exposes an io.Reader-driven API and we
@@ -15,16 +15,12 @@
 // entries that the underlying C ABI still keeps for Rust-side KAT
 // replay.
 //
-// Build tag. This package is gated by `sqisign_cgo` because building
-// it requires the sqisign-ffi staticlib to be reachable at link time;
-// the binding's cgo directive expects the file at
-// ${SRCDIR}/../../../target/release/libsqisign_ffi.a, which only
-// resolves when the sqisign tree is checked out and built. Without
-// the tag the package is invisible to `go build ./...` and `go test
-// ./...`, which keeps hpqc CI green for everyone who does not yet
-// care about SQIsign. Opt in with `-tags=sqisign_cgo` after `cargo
-// build --release -p sqisign-ffi` in a sibling sqisign checkout (or
-// after wiring an equivalent staticlib path via CGO_LDFLAGS).
+// Platform support. The binding currently vendors a prebuilt
+// libsqisign_ffi.a for linux/amd64 only, and falls back to a
+// pure-Go stub on every other GOOS/GOARCH (returning ErrUnsupported).
+// This wrapper matches that reach with a `//go:build linux && amd64`
+// constraint; on other platforms the package is empty and the
+// SQIsignLvl1Ed25519 hybrid in sign/hybrid is not defined either.
 //
 // SQIsign is a NIST Round 2 candidate; this implementation has not been
 // audited. Treat it as experimental. See the upstream repository's
