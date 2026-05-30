@@ -1,0 +1,379 @@
+
+/*
+BACAP - Blinded Cryptographic Capability System
+
+Overview
+--------
+BACAP enables a Writer (Alice) to post an infinite sequence of
+single-use message boxes that only a designated Reader (Bob) can
+decrypt, but any observer can verify a box's signature. The boxes are signed with 
+a per-box blinded key derived from a root key, while the messages are encrypted with 
+per-box symmetric keys. 
+
+Two capability types:
+  WriteCap  - (skR, Hj, j): root Ed25519 private key + initial HKDF state and index. 
+              We will simplify this to (skR, H0). 
+              Lets the holder derive BoxIDs, encrypt/decrypt payloads, and sign boxes.
+
+  ReadCap   - (pkR=pk(skR), Hj, j): root Ed25519 public key + initial HKDF state and index.
+              We will simplify this to (pkR, H0).
+              Lets the holder derive BoxIDs, and encrypt/decrypt payloads.
+
+Alice creates both the WriteCap and ReadCap, and shares the ReadCap with Bob out-of-band.
+
+HKDF chain:
+  HKDF(H_i, i) -> H_{i+1} || E_i || K_i
+    H_{i+1}  next HKDF state
+    E_i      symmetric encryption key
+    K_i      blinding factor (scalar for Ed25519 key blinding)
+
+Per-message derivation (with optional context value ctx):
+  K_i^ctx  = HKDF(K_i, ctx)                   context-specific blinding factor
+  E_i^ctx  = HKDF(E_i, ctx)                   context-specific encryption key
+  BoxID_i  = Blind(pkR, K_i^ctx)              blinded public key (for both signature verification and indexing messages)
+  ct_i     = AESGCMSIV(E_i^ctx, msg)          the ciphertext (AES-GCM-SIV encrypted message payload)
+  sig_i    = Sign(Blind(skR,K_i^ctx), ct_i)   an Ed25519 signature over ct_i by the blinded private key
+
+A box/message is (BoxID_i, ct_i, sig_i). These values are public and transmitted by Alice 
+to the network, and so anyone can verify that a box is valid by checking the signature. To receive the message, 
+Bob computes the BoxID_i, verifies the signature using BoxID_i as the public key, 
+and decrypts ct_i using E_i^ctx derived from his ReadCap.
+
+Signing with Blind(skR,K_i^ctx) can be verified with Blind(pkR, K_i^ctx) by the Ed25519 blinding property: 
+the blinded key pair is a valid key pair, so standard verify/sign semantics apply at the blinded level.
+
+Lemmae:
+    - session_exists         - executability / sanity check
+    - message_secrecy        - adversary cannot read ct_i without ReadCap
+    - message_authenticity   - every valid box was created by the WriteCap holder
+    - read_cap_cannot_forge  - ReadCap holders cannot forge a valid box
+    - forward_secrecy        - HKDF chain state snapshot does not expose past messages
+    - group_messaging_exists - two distinct readers can both receive the same box
+*/
+
+theory BACAP
+begin
+
+builtins: signing, symmetric-encryption
+
+/*
+We establish the following functions:
+
+hkdfH(H_i) = H_{i+1}: iterating to the next HKDF state
+hkdfE(H_i) = E_i    : symmetric encryption key for the current step
+hkdfK(H_i) = K_i    : blinding factor for the current step (Ed25519 scalar)
+
+ctxK(K_i, ctx) = K_i^ctx: context-specific blinding factor
+ctxE(E_i, ctx) = E_i^ctx: context-specific encryption key
+
+Ed25519 key blinding (EC multiplication):
+   blindPk(pkR, K_i^ctx)  = Blind(pkR, K_i^ctx): blinded public key (= BoxID)
+   blindSk(skR, K_i^ctx) = Blind(skR, K_i^ctx): blinded private key (used to sign)
+*/
+
+
+functions: hkdfH/1, hkdfE/1, hkdfK/1,
+           ctxK/2, ctxE/2,
+           blindPk/2, blindSk/2
+
+  
+
+equations:
+    verify(sign(m, blindSk(sk, k)), m, blindPk(pk(sk), k)) = true
+
+
+/*
+Create a WriteCap for party A.
+   Fr(~skR) - fresh Ed25519 root private key
+   Fr(~H0)  - fresh initial HKDF state
+We need the WriteCap to persist.
+*/
+
+rule CreateWriteCap:
+    [ Fr(~skR)
+    , Fr(~H0)
+    ]
+  --[ CreateWriteCap($A, pk(~skR)) ]->
+    [ !WriteCap($A, ~skR, ~H0) ]
+
+/*
+Derive and share a ReadCap from the WriteCap.
+
+ReadCap contains the public key pkR = pk(~skR) and the initial HKDF state ~H0.
+This models Bob receiving (pkR, H0) out-of-band from Alice.
+We can give the !ReadCap to multiple users to initiate a sequence of messages we would write to a group chat.
+*/
+
+
+rule ShareReadCap:
+    [ !WriteCap($A, ~skR, ~H0) ]
+  --[ ShareReadCap($A, $B, pk(~skR)) ]->
+    [ !ReadCap($B, $A, pk(~skR), ~H0) ]
+
+/*
+Initialise Alice's write-state chain from her WriteCap.
+WriteState is consumed and re-emitted by Writer_Send, modelling the advance of MessageBoxIndex.
+Executing Writer_Init again from the same !WriteCap creates an independent second chain starting from H0, 
+enabling multiple readers for the message sequance (e.g. in a group chat).
+*/
+
+rule Writer_Init:
+    [ !WriteCap($A, ~skR, ~H0) ]
+  --[ WriteStep($A, ~H0) ]->
+    [ WriteState($A, ~skR, ~H0) ]
+
+
+/*
+Writer sends a message box at the current HKDF state Hi.
+     Ki     = hkdfK(Hi)          K_i: blinding factor from HKDF
+     Ei     = hkdfE(Hi)          E_i: encryption key from HKDF
+     Kctx   = ctxK(Ki, 'ctx')    K_i^ctx: context-specific blinding
+     Ectx   = ctxE(Ei, 'ctx')    E_i^ctx: context-specific enc. key
+     boxID  = blindPk(pk(~skR), Kctx)   BoxID doubles as verif. key
+     ct     = senc(~msg, Ectx)   ciphertext (AES-GCM-SIV in Go)
+     sig    = sign(ct, blindSk(~skR, Kctx))  signed with blinded sk
+
+   State advances: WriteState consumes Hi, re-emits hkdfH(Hi) = H_{i+1}
+   Posts the box to the network visible to the adversary.
+*/
+
+
+rule Writer_Send:
+    let Ki    = hkdfK(Hi)
+        Ei    = hkdfE(Hi)
+        Kctx  = ctxK(Ki,  'ctx')
+        Ectx  = ctxE(Ei,  'ctx')
+        boxID = blindPk(pk(~skR), Kctx)
+        ct    = senc(~msg, Ectx)
+        sig   = sign(ct, blindSk(~skR, Kctx))
+    in
+    [ WriteState($A, ~skR, Hi)
+    , Fr(~msg)
+    ]
+  --[ Sent($A, boxID, ~msg)
+    , WriteStep($A, hkdfH(Hi))
+    ]->
+    [ WriteState($A, ~skR, hkdfH(Hi))
+    , Out(<boxID, ct, sig>)
+    ]
+
+/*
+Initialise Bob's read-state chain from his ReadCap.
+*/
+
+
+rule Reader_Init:
+    [ !ReadCap($B, $A, pkR, H0) ]
+  -->
+    [ ReadState($B, $A, pkR, H0) ]
+
+
+/*
+Reader fetches and processes one message box at current HKDF state Hi:
+Compute BoxID, fetch ct=senc(msg, Ectx) and sig from network, verify signature, decrypt ciphertext.
+State advances to hkdfH(Hi), keeping reader in sync with writer.
+*/
+
+rule Reader_Recv:
+    let Kctx  = ctxK(hkdfK(Hi), 'ctx')
+        Ectx  = ctxE(hkdfE(Hi), 'ctx')
+        boxID = blindPk(pkR, Kctx)
+    in
+    [ ReadState($B, $A, pkR, Hi)
+    , In(<senc(msg, Ectx), sig>)
+    ]
+  --[ Eq(verify(sig, senc(msg, Ectx), boxID), true)
+    , Recv($B, $A, boxID, msg)
+    ]->
+    [ ReadState($B, $A, pkR, hkdfH(Hi)) ]
+
+
+
+// Make sure the cases where signature verification fails are pruned.
+
+restriction Eq:
+    "All x y #i. Eq(x, y) @ i ==> x = y"
+
+
+/*
+Model WriteCap compromise at time 0. 
+Leaking skR will allow the adversary to derive all BoxIDs, encrypt, sign, and
+decrypt.
+*/    
+  
+
+rule RevealWriteCap:
+    [ !WriteCap($A, ~skR, ~H0) ]
+  --[ WriteCapReveal($A) ]->
+    [ Out(<~skR, ~H0>) ]
+
+
+/*
+Model ReadCap compromise at time 0. 
+Leaking pkR + H0 will allow the adversary to derive all BoxIDs, encrypt, and decrypt
+ciphertexts, but not forge signatures.
+*/
+
+
+rule RevealReadCap:
+    [ !ReadCap($B, $A, pkR, H0) ]
+  --[ ReadCapReveal($B, $A) ]->
+    [ Out(<pkR, H0>) ]
+
+
+/*
+Model a snapshot compromise of the writer's current HKDF chain state at time i.
+The adversary learns Hi, enabling it to compute all future states and derived keys,
+but not past states, since hkdfH has no defined inverse. 
+The WriteState is re-emitted unchanged to model a passive memory read.
+*/
+
+
+rule RevealWriteState:
+    [ WriteState($A, ~skR, Hi) ]
+  --[ WriteStateReveal($A, Hi) ]->
+    [ WriteState($A, ~skR, Hi)
+    , Out(Hi)
+    ]
+
+/*
+Sources lemma necessary to break a RevealWriteState re-emission cycle.
+*/
+
+lemma writestate_source [sources]:
+  "All A Hi #r.
+    WriteStateReveal(A, Hi) @ #r
+    ==>
+    Ex #s. WriteStep(A, Hi) @ #s & #s < #r
+  "
+
+
+
+// Security Lemmas
+// ===============
+
+
+
+
+/*
+Executability / sanity check
+
+A trace is found where:
+   - Alice sent a box with some message under boxID
+   - Bob received and successfully decrypted the same boxID and message
+   - Neither the WriteCap nor ReadCap was compromised
+*/
+
+lemma session_exists:
+  exists-trace
+  "
+    Ex A B boxID msg #i #j.
+      Sent(A, boxID, msg) @ #i
+    & Recv(B, A, boxID, msg) @ #j
+    & not(Ex #r. WriteCapReveal(A) @ r)
+    & not(Ex #r. ReadCapReveal(B, A) @ r)
+  "
+
+/*
+Message secrecy
+
+The Dolev-Yao adversary cannot learn the plaintext ~msg of any box sent by writer A, provided
+it has neither the WriteCap nor the ReadCap for A.
+
+There does not exist a trace wehere the adversary learns msg at some time j that Alice sends at time i, 
+while there is no time r where A's WriteCap was revealed, and no time r where any B's ReadCap for A was revealed.
+*/
+
+lemma message_secrecy:
+  "
+    not(
+      Ex A boxID msg #i #j.
+        Sent(A, boxID, msg) @ #i
+      & K(msg) @ #j
+      & not(Ex #r. WriteCapReveal(A) @ r)
+      & not(Ex B #r. ReadCapReveal(B, A) @ r)
+    )
+  "
+
+/*
+Message authenticity
+
+Every box that passes signature verification was created by a WriteCap holder.
+
+   Recv(B, A, boxID, msg) @ #i  - Bob accepted a box at some time i
+   Sent(A, boxID, msg)   @ #j   - Alice actually sent that box at some time j
+
+If Bob accepts a box with boxID and msg at time i, then either:
+  - Alice actually sent that box with that boxID and msg at some time j, or
+  - some WriteCap was revealed at some time r, enabling the adversary to forge messages.
+*/
+
+lemma message_authenticity:
+  "
+    All B A boxID msg #i.
+      Recv(B, A, boxID, msg) @ #i
+      ==>
+        ( Ex #j. Sent(A, boxID, msg) @ #j )
+      | ( Ex #r. WriteCapReveal(A) @ r )
+  "
+
+/*
+Read-cap holders cannot forge a message
+
+A ReadCap holder knows (pkR, H0) and can derive all BoxIDs and decrypt
+all ciphertexts. However, signing requires blindSk(skR, Kctx), which
+needs the root private key skR - not derivable from pkR alone.
+*/
+
+
+lemma read_cap_cannot_forge:
+  "
+    All B A boxID msg #i.
+      Recv(B, A, boxID, msg) @ #i
+    & (Ex #r. ReadCapReveal(B, A) @ r)
+    ==>
+        ( Ex #j. Sent(A, boxID, msg) @ #j )
+      | ( Ex #r. WriteCapReveal(A) @ r )
+  "
+
+/* Forward secrecy
+
+BACAP inherits computational post-quantum forward-security from the irreversibility of the KDF function.
+
+RevealWriteState models a snapshot compromise of the live chain state Hi.
+The adversary learns Hi and can compute all future states hkdfH(Hi), hkdfH(hkdfH(Hi)),... 
+But cannot recover any H_{r}, for r<i used in the past.
+*/
+
+lemma forward_secrecy:
+  "All A boxID msg #i.
+    Sent(A, boxID, msg) @ #i 
+    ==>
+    not (Ex #j. K(msg) @ #j)
+    | (Ex Hi #r. WriteStateReveal(A, Hi) @ #r & #r < #i)
+    | (Ex #w. WriteCapReveal(A) @ #w)
+    | (Ex B #c. ReadCapReveal(B, A) @ #c)
+  "
+
+  
+/*
+Group messaging executability
+
+Two distinct readers holding a ReadCap for the same sequence can both successfully 
+receive and decrypt the same box.
+*/
+
+lemma group_messaging_exists:
+  exists-trace
+  "
+    Ex A B1 B2 boxID msg #i #j #k.
+      Sent(A, boxID, msg) @ #i
+    & Recv(B1, A, boxID, msg) @ #j
+    & Recv(B2, A, boxID, msg) @ #k
+    & not(B1 = B2)
+    & not(Ex #r. WriteCapReveal(A) @ r)
+    & not(Ex #r. ReadCapReveal(B1, A) @ r)
+    & not(Ex #r. ReadCapReveal(B2, A) @ r)
+  "
+
+end
