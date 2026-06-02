@@ -13,10 +13,10 @@ Layering:
   - ``SignedPleaseAdd`` wraps the CBOR of a ``PleaseAdd`` with a plain
     Ed25519 signature made by the read cap's root signing key.
   - ``VoucherPayload`` is what goes into VoucherStream box 0: the
-    ``SignedPleaseAdd`` plus the reply-stream public key.
+    ``SignedPleaseAdd`` plus the VoucherKeypair public key.
   - ``VoucherReply`` is the sealed plaintext the inductor returns: the
-    opaque WhoReply blob plus the VoucherSalt that becomes the live
-    MessageStream context.
+    opaque WhoReply blob plus the VoucherSalt that re-seeds the
+    joiner's MessageStream KDF ratchet.
 """
 from __future__ import annotations
 
@@ -100,16 +100,16 @@ class SignedPleaseAdd:
 
 @dataclasses.dataclass(frozen=True)
 class VoucherPayload:
-    """VoucherStream box 0 content: the SignedPleaseAdd and the reply pub key."""
+    """VoucherStream box 0 content: the SignedPleaseAdd and the voucher pub key."""
 
     signed_please_add: bytes  # CBOR-encoded SignedPleaseAdd
-    reply_pub_key: bytes  # ReplyStream hybrid NIKE public key
+    voucher_pub_key: bytes  # VoucherKeypair hybrid NIKE public key
 
     def to_bytes(self) -> bytes:
         return cbor2.dumps(
             {
                 "SignedPleaseAdd": self.signed_please_add,
-                "ReplyPubKey": self.reply_pub_key,
+                "VoucherPubKey": self.voucher_pub_key,
             },
             canonical=True,
         )
@@ -119,7 +119,7 @@ class VoucherPayload:
         d = _load_map(data, "VoucherPayload")
         return cls(
             bytes(_field(d, "SignedPleaseAdd", "VoucherPayload")),
-            bytes(_field(d, "ReplyPubKey", "VoucherPayload")),
+            bytes(_field(d, "VoucherPubKey", "VoucherPayload")),
         )
 
 

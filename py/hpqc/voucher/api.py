@@ -39,7 +39,7 @@ class MintResult:
 
     ``voucher`` is the 32-byte token handed to the inductor out of band.
     ``voucher_payload`` is published to VoucherStream box 0. The caller
-    persists ``reply_private_key`` to open the reply later, and uses the
+    persists ``voucher_secret_key`` to open the reply later, and uses the
     stream caps to publish box 0 and poll box 1.
     """
 
@@ -47,23 +47,23 @@ class MintResult:
     voucher_payload: bytes
     voucher_write_cap: bytes
     voucher_read_cap: bytes
-    reply_private_key: bytes
-    reply_public_key: bytes
+    voucher_secret_key: bytes
+    voucher_public_key: bytes
 
 
 @dataclasses.dataclass(frozen=True)
 class InductResult:
     """What :func:`voucher_induct` returns.
 
-    ``message_read_cap`` is the joiner's MessageStream read cap, which the
-    inductor adds as a peer. ``sealed_reply`` is written to VoucherStream
-    box 1; the stream caps let the caller write box 1 and tombstone box 0.
-    ``salt`` is the VoucherSalt that becomes the joiner's live MessageStream
-    context.
+    ``mutated_message_read_cap`` is the joiner's MessageStream read cap after
+    the VoucherSalt has been applied: the live read cap the inductor hands the
+    group. ``sealed_reply`` is written to VoucherStream box 1; the stream caps
+    let the caller write box 1 and tombstone box 0. ``salt`` is the VoucherSalt
+    the inductor minted.
     """
 
     display_name: str
-    message_read_cap: bytes
+    mutated_message_read_cap: bytes
     sealed_reply: bytes
     voucher_write_cap: bytes
     voucher_read_cap: bytes
@@ -72,11 +72,14 @@ class InductResult:
 
 @dataclasses.dataclass(frozen=True)
 class OpenReplyResult:
-    """What :func:`voucher_open_reply` returns: the opaque WhoReply blob and
-    the VoucherSalt."""
+    """What :func:`voucher_open_reply` returns: the opaque WhoReply blob, the
+    VoucherSalt, and ``mutated_message_write_cap``, the joiner's MessageStream
+    write cap after the salt has been applied (the live write cap to write real
+    messages with)."""
 
     who_reply: bytes
     salt: bytes
+    mutated_message_write_cap: bytes
 
 
 @dataclasses.dataclass(frozen=True)
@@ -91,14 +94,16 @@ def voucher_mint(
     message_write_cap: bytes,
     display_name: str,
     *,
-    reply_seed: Optional[bytes] = None,
+    keypair_seed: Optional[bytes] = None,
 ) -> MintResult:
     """Mints a Voucher from the joiner's MessageStream write cap."""
     write_cap = WriteCap.from_bytes(bytes(message_write_cap))
-    reply_private_key, reply_public_key = stateless.new_reply_keypair(seed=reply_seed)
+    voucher_secret_key, voucher_public_key = stateless.new_voucher_keypair(
+        seed=keypair_seed
+    )
     signed_please_add = stateless.make_signed_please_add(write_cap, display_name)
     voucher, voucher_payload = stateless.assemble_voucher_payload(
-        signed_please_add, reply_public_key
+        signed_please_add, voucher_public_key
     )
     vwrite, vread = stateless.derive_voucher_stream(voucher)
     return MintResult(
@@ -106,8 +111,8 @@ def voucher_mint(
         voucher_payload=voucher_payload,
         voucher_write_cap=vwrite.to_bytes(),
         voucher_read_cap=vread.to_bytes(),
-        reply_private_key=reply_private_key,
-        reply_public_key=reply_public_key,
+        voucher_secret_key=voucher_secret_key,
+        voucher_public_key=voucher_public_key,
     )
 
 
@@ -130,11 +135,13 @@ def voucher_induct(
     if salt is None:
         salt = stateless.new_salt()
     sealed_reply = stateless.seal_reply(
-        parsed.reply_pub_key, bytes(who_reply), salt, seal_seed=seal_seed
+        parsed.voucher_pub_key, bytes(who_reply), salt, seal_seed=seal_seed
     )
+    # Mutate the joiner's read cap by the salt: the live read cap for the group.
+    mutated_read_cap = parsed.message_read_cap.mutate_kdf_state(salt)
     return InductResult(
         display_name=parsed.display_name,
-        message_read_cap=parsed.message_read_cap.to_bytes(),
+        mutated_message_read_cap=mutated_read_cap.to_bytes(),
         sealed_reply=sealed_reply,
         voucher_write_cap=vwrite.to_bytes(),
         voucher_read_cap=vread.to_bytes(),
@@ -142,14 +149,25 @@ def voucher_induct(
     )
 
 
-def voucher_open_reply(reply_private_key: bytes, sealed_reply: bytes) -> OpenReplyResult:
-    """Opens the inductor's sealed reply with the joiner's reply private key.
+def voucher_open_reply(
+    voucher_secret_key: bytes, sealed_reply: bytes, message_write_cap: bytes
+) -> OpenReplyResult:
+    """Opens the inductor's sealed reply with the joiner's VoucherSecretKey.
+
+    Recovers the VoucherSalt and mutates ``message_write_cap`` by it, returning
+    the live write cap the joiner writes real messages with.
 
     Raises :class:`hpqc.voucher.SealOpenFailed` if the ciphertext does not
     authenticate under this key or the recovered plaintext is malformed.
     """
-    reply = stateless.open_sealed_reply(bytes(reply_private_key), bytes(sealed_reply))
-    return OpenReplyResult(who_reply=reply.who_reply, salt=reply.salt)
+    reply = stateless.open_sealed_reply(bytes(voucher_secret_key), bytes(sealed_reply))
+    write_cap = WriteCap.from_bytes(bytes(message_write_cap))
+    mutated_write_cap = write_cap.mutate_kdf_state(reply.salt)
+    return OpenReplyResult(
+        who_reply=reply.who_reply,
+        salt=reply.salt,
+        mutated_message_write_cap=mutated_write_cap.to_bytes(),
+    )
 
 
 def derive_voucher_stream(voucher: bytes) -> VoucherStream:

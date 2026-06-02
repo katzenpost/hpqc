@@ -7,13 +7,13 @@ bytes or values; the caller performs all pigeonhole reads, writes, the
 COPY all-or-nothing, and the box-0 tombstone. See the protocol narration
 at ``website/content/en/docs/specs/contact_voucher_narration.md``.
 
-The three streams:
+The two streams and the seal keypair:
 
   - **MessageStream** is an ordinary BACAP stream; the joiner keeps its
     WriteCap and the ReadCap travels inside the SignedPleaseAdd.
-  - **ReplyStream** is the seal keypair, a hybrid post-quantum NIKE
+  - **VoucherKeypair** is the seal keypair, a hybrid post-quantum NIKE
     keypair (CTIDH1024-X25519). The inductor seals the reply to its
-    public key; only the joiner, holding the private key, can open it.
+    public key; only the joiner, holding the secret key, can open it.
   - **VoucherStream** is the rendezvous BACAP stream, derived
     deterministically from the Voucher hash so both parties reproduce
     it. Box 0 holds the VoucherPayload, box 1 the sealed reply.
@@ -49,7 +49,7 @@ from .messages import (
     VoucherReply,
 )
 
-#: The ReplyStream seal: MKEM over the same hybrid PQ NIKE the pigeonhole
+#: The VoucherKeypair seal: MKEM over the same hybrid PQ NIKE the pigeonhole
 #: couriers use (CTIDH1024-X25519). Lowest bandwidth of the PQ options and
 #: maximal reuse. All reply keys must come from this one scheme instance,
 #: since MKEM's NIKE checks key/scheme identity. The component order is
@@ -60,7 +60,7 @@ from .messages import (
 SEAL_NIKE = HybridNIKE(X25519(), CTIDH1024(), name="CTIDH1024-X25519")
 SEAL_MKEM = MKEMScheme(SEAL_NIKE)
 
-#: Size of a VoucherSalt, which becomes the live MessageStream BACAP ctx.
+#: Size of a VoucherSalt, which re-seeds the joiner's MessageStream KDF ratchet.
 VOUCHER_SALT_SIZE: int = 32
 
 
@@ -70,7 +70,7 @@ class ParsedPayload:
 
     display_name: str
     message_read_cap: ReadCap
-    reply_pub_key: bytes
+    voucher_pub_key: bytes
     signed_please_add: bytes  # CBOR SignedPleaseAdd, for the group Introduction
 
 
@@ -105,10 +105,10 @@ def shake_reader(seed: bytes) -> Callable[[int], bytes]:
     return read
 
 
-# ----- ReplyStream seal keypair -----
+# ----- VoucherKeypair seal keypair -----
 
-def new_reply_keypair(seed: Optional[bytes] = None) -> Tuple[bytes, bytes]:
-    """Generates a ReplyStream keypair. Returns (private_bytes, public_bytes).
+def new_voucher_keypair(seed: Optional[bytes] = None) -> Tuple[bytes, bytes]:
+    """Generates a VoucherKeypair. Returns (secret_bytes, public_bytes).
 
     With ``seed`` the keypair is derived deterministically from
     ``SHAKE256(seed)`` (for the cross-language vectors); without it the
@@ -157,11 +157,11 @@ def verify_signed_please_add(spa: SignedPleaseAdd) -> PleaseAdd:
 # ----- VoucherPayload and the Voucher hash -----
 
 def assemble_voucher_payload(
-    signed_please_add: SignedPleaseAdd, reply_pub_key: bytes
+    signed_please_add: SignedPleaseAdd, voucher_pub_key: bytes
 ) -> Tuple[bytes, bytes]:
     """Assembles the VoucherPayload. Returns (voucher_hash, payload_bytes)."""
     payload_bytes = VoucherPayload(
-        signed_please_add.to_bytes(), bytes(reply_pub_key)
+        signed_please_add.to_bytes(), bytes(voucher_pub_key)
     ).to_bytes()
     return sum256(payload_bytes), payload_bytes
 
@@ -178,7 +178,7 @@ def parse_and_verify_payload(voucher: bytes, payload_bytes: bytes) -> ParsedPayl
     return ParsedPayload(
         display_name=please_add.display_name,
         message_read_cap=please_add.message_read_cap,
-        reply_pub_key=payload.reply_pub_key,
+        voucher_pub_key=payload.voucher_pub_key,
         signed_please_add=payload.signed_please_add,
     )
 
@@ -203,12 +203,12 @@ def derive_voucher_stream(voucher: bytes) -> Tuple[WriteCap, ReadCap]:
 # ----- the seal -----
 
 def seal_reply(
-    reply_pub_key: bytes,
+    voucher_pub_key: bytes,
     who_reply: bytes,
     salt: bytes,
     seal_seed: Optional[bytes] = None,
 ) -> bytes:
-    """Seals (who_reply, salt) to the ReplyStream public key. Returns ciphertext bytes.
+    """Seals (who_reply, salt) to the VoucherKeypair public key. Returns ciphertext bytes.
 
     With ``seal_seed`` the MKEM ephemeral key and nonces are drawn from
     ``SHAKE256(seal_seed)``, so the sealed bytes are reproducible (for the
@@ -216,25 +216,25 @@ def seal_reply(
     """
     if len(salt) != VOUCHER_SALT_SIZE:
         raise InvalidArgument(f"salt must be {VOUCHER_SALT_SIZE} bytes")
-    reply_pub = SEAL_NIKE.public_key_from_bytes(bytes(reply_pub_key))
+    voucher_pub = SEAL_NIKE.public_key_from_bytes(bytes(voucher_pub_key))
     plaintext = VoucherReply(bytes(who_reply), bytes(salt)).to_bytes()
     entropy = shake_reader(seal_seed) if seal_seed is not None else None
     _ephemeral_priv, ciphertext = SEAL_MKEM.encapsulate(
-        [reply_pub], plaintext, entropy=entropy
+        [voucher_pub], plaintext, entropy=entropy
     )
     return ciphertext.marshal()
 
 
-def open_sealed_reply(reply_priv_key: bytes, sealed: bytes) -> VoucherReply:
-    """Opens a sealed reply with the ReplyStream private key.
+def open_sealed_reply(voucher_secret_key: bytes, sealed: bytes) -> VoucherReply:
+    """Opens a sealed reply with the VoucherKeypair secret key.
 
     Raises ``SealOpenFailed`` if the ciphertext does not authenticate under
     this key or the recovered plaintext is malformed.
     """
-    reply_priv = SEAL_NIKE.private_key_from_bytes(bytes(reply_priv_key))
+    voucher_priv = SEAL_NIKE.private_key_from_bytes(bytes(voucher_secret_key))
     try:
         ciphertext = SEAL_MKEM.ciphertext_from_bytes(bytes(sealed))
-        plaintext = SEAL_MKEM.decapsulate(reply_priv, ciphertext)
+        plaintext = SEAL_MKEM.decapsulate(voucher_priv, ciphertext)
     except (ValueError, InvalidTag) as e:
         raise SealOpenFailed("could not open sealed reply") from e
     try:

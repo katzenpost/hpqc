@@ -25,14 +25,14 @@ def test_mint_vector():
     mint = voucher_mint(
         _uh(inp["message_write_cap"]),
         inp["display_name"],
-        reply_seed=_uh(inp["reply_seed"]),
+        keypair_seed=_uh(inp["keypair_seed"]),
     )
     assert mint.voucher.hex() == want["voucher"]
     assert mint.voucher_payload.hex() == want["voucher_payload"]
     assert mint.voucher_write_cap.hex() == want["voucher_write_cap"]
     assert mint.voucher_read_cap.hex() == want["voucher_read_cap"]
-    assert mint.reply_private_key.hex() == want["reply_private_key"]
-    assert mint.reply_public_key.hex() == want["reply_public_key"]
+    assert mint.voucher_secret_key.hex() == want["voucher_secret_key"]
+    assert mint.voucher_public_key.hex() == want["voucher_public_key"]
 
 
 def test_induct_vector():
@@ -45,7 +45,7 @@ def test_induct_vector():
         seal_seed=_uh(inp["seal_seed"]),
     )
     assert induct.display_name == want["display_name"]
-    assert induct.message_read_cap.hex() == want["message_read_cap"]
+    assert induct.mutated_message_read_cap.hex() == want["mutated_message_read_cap"]
     assert induct.sealed_reply.hex() == want["sealed_reply"]
     assert induct.voucher_write_cap.hex() == want["voucher_write_cap"]
     assert induct.voucher_read_cap.hex() == want["voucher_read_cap"]
@@ -53,7 +53,12 @@ def test_induct_vector():
 
 
 def test_open_reply_vector():
-    mn, ind, want = _VEC["mint"], _VEC["induct"], _VEC["open"]
-    opened = voucher_open_reply(_uh(mn["reply_private_key"]), _uh(ind["sealed_reply"]))
+    inp, mn, ind, want = _VEC["inputs"], _VEC["mint"], _VEC["induct"], _VEC["open"]
+    opened = voucher_open_reply(
+        _uh(mn["voucher_secret_key"]),
+        _uh(ind["sealed_reply"]),
+        _uh(inp["message_write_cap"]),
+    )
     assert opened.who_reply.hex() == want["who_reply"]
     assert opened.salt.hex() == want["salt"]
+    assert opened.mutated_message_write_cap.hex() == want["mutated_message_write_cap"]

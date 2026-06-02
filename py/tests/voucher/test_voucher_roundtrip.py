@@ -38,24 +38,33 @@ def test_full_handshake_roundtrip():
 
     induct = voucher_induct(mint.voucher, mint.voucher_payload, WHO_REPLY)
     assert induct.display_name == "bob"
-    assert induct.message_read_cap == bob.read_cap().to_bytes()
+    # The inductor returns Bob's salt-mutated read cap, not the raw one.
+    assert induct.mutated_message_read_cap == (
+        bob.read_cap().mutate_kdf_state(induct.salt).to_bytes()
+    )
+    assert induct.mutated_message_read_cap != bob.read_cap().to_bytes()
     assert induct.voucher_write_cap == mint.voucher_write_cap
 
-    opened = voucher_open_reply(mint.reply_private_key, induct.sealed_reply)
+    opened = voucher_open_reply(
+        mint.voucher_secret_key, induct.sealed_reply, bob.to_bytes()
+    )
     assert opened.who_reply == WHO_REPLY
     assert opened.salt == induct.salt
+    # The crux: Bob's mutated write cap and Alice's mutated read cap meet.
+    mutated_wc = WriteCap.from_bytes(opened.mutated_message_write_cap)
+    assert mutated_wc.read_cap().to_bytes() == induct.mutated_message_read_cap
 
 
-def test_mint_is_deterministic_with_reply_seed():
+def test_mint_is_deterministic_with_keypair_seed():
     bob = WriteCap.generate().to_bytes()
-    m1 = voucher_mint(bob, "bob", reply_seed=REPLY_SEED)
-    m2 = voucher_mint(bob, "bob", reply_seed=REPLY_SEED)
+    m1 = voucher_mint(bob, "bob", keypair_seed=REPLY_SEED)
+    m2 = voucher_mint(bob, "bob", keypair_seed=REPLY_SEED)
     assert m1 == m2
 
 
 def test_induct_is_deterministic_with_salt_and_seal_seed():
     bob = WriteCap.generate().to_bytes()
-    mint = voucher_mint(bob, "bob", reply_seed=REPLY_SEED)
+    mint = voucher_mint(bob, "bob", keypair_seed=REPLY_SEED)
     i1 = voucher_induct(
         mint.voucher, mint.voucher_payload, WHO_REPLY, salt=SALT, seal_seed=SEAL_SEED
     )
@@ -65,16 +74,16 @@ def test_induct_is_deterministic_with_salt_and_seal_seed():
     assert i1 == i2
     assert i1.salt == SALT
     # and it round-trips
-    opened = voucher_open_reply(mint.reply_private_key, i1.sealed_reply)
+    opened = voucher_open_reply(mint.voucher_secret_key, i1.sealed_reply, bob)
     assert opened.who_reply == WHO_REPLY
     assert opened.salt == SALT
 
 
-def test_reply_key_layout_is_x25519_first():
+def test_voucher_key_layout_is_x25519_first():
     # X25519 public (32) + CTIDH1024 public (128) = 160; private = 32 + 130 = 162.
     mint = voucher_mint(WriteCap.generate().to_bytes(), "bob")
-    assert len(mint.reply_public_key) == 160
-    assert len(mint.reply_private_key) == 162
+    assert len(mint.voucher_public_key) == 160
+    assert len(mint.voucher_secret_key) == 162
 
 
 def test_hash_mismatch_is_detected():
@@ -91,18 +100,18 @@ def test_bad_signature_is_rejected():
     # that genuinely hashes to its payload, so the hash check passes and the
     # signature check is what fails.
     bob = WriteCap.generate()
-    _reply_priv, reply_pub = stateless.new_reply_keypair()
+    _voucher_priv, voucher_pub = stateless.new_voucher_keypair()
     good = stateless.make_signed_please_add(bob, "bob")
     forged = SignedPleaseAdd(good.please_add, bytes(64))
-    voucher_hash, payload = stateless.assemble_voucher_payload(forged, reply_pub)
+    voucher_hash, payload = stateless.assemble_voucher_payload(forged, voucher_pub)
     with pytest.raises(SignatureVerificationFailed):
         voucher_induct(voucher_hash, payload, WHO_REPLY)
 
 
-def test_wrong_reply_key_cannot_open_seal():
+def test_wrong_voucher_key_cannot_open_seal():
     bob = WriteCap.generate().to_bytes()
     mint_a = voucher_mint(bob, "bob")
     mint_b = voucher_mint(WriteCap.generate().to_bytes(), "carol")
     induct = voucher_induct(mint_a.voucher, mint_a.voucher_payload, WHO_REPLY)
     with pytest.raises(SealOpenFailed):
-        voucher_open_reply(mint_b.reply_private_key, induct.sealed_reply)
+        voucher_open_reply(mint_b.voucher_secret_key, induct.sealed_reply, bob)
