@@ -45,6 +45,10 @@ _Ed25519PrivateKeySize: int = 64  # seed || pubkey, matching Go's encoding
 WriteCapSize: int = _Ed25519PrivateKeySize + MessageBoxIndexSize  # 168
 ReadCapSize: int = BoxIDSize + MessageBoxIndexSize  # 136
 
+# HKDF info (domain-separation) label for MutateKDFState. Must match the Go
+# constant bacap.mutateKDFStateLabel so the two ports agree byte-for-byte.
+_MUTATE_KDF_STATE_LABEL: bytes = b"bacap-mutate-kdf-state-v1"
+
 
 def _hkdf_blake2b(secret: bytes, salt: bytes, info: bytes, length: int) -> bytes:
     """HKDF-BLAKE2b-512 per RFC 5869.
@@ -174,6 +178,29 @@ class MessageBoxIndex:
 
     def next_index(self) -> "MessageBoxIndex":
         return self.advance_index_to(self.idx_64 + 1)
+
+    def mutate_kdf_state(self, ctx: bytes) -> "MessageBoxIndex":
+        """Returns a copy with its KDF ratchet state re-seeded by ctx.
+
+        Mixes the current hkdf_state with ctx through HKDF-BLAKE2b under a
+        dedicated domain label, then re-derives the per-box encryption key and
+        blinding factor (read order H, E, K, matching advance_index_to);
+        idx_64 is preserved. The mutated index addresses a fresh sequence of
+        boxes that cannot be found without ctx, while the root key (held by
+        the cap) is untouched.
+
+        This is the BACAP primitive behind the Contact Voucher's VoucherSalt:
+        the joiner mutates their WriteCap and the inductor mutates the paired
+        ReadCap by the same ctx, so writer and readers land on the same
+        mutated sequence.
+        """
+        okm = _hkdf_blake2b(
+            secret=self.hkdf_state,
+            salt=ctx,
+            info=_MUTATE_KDF_STATE_LABEL,
+            length=96,
+        )
+        return MessageBoxIndex(self.idx_64, okm[64:96], okm[32:64], okm[:32])
 
     # ----- box-ID derivation -----
 
@@ -338,6 +365,18 @@ class WriteCap:
         """Returns the ReadCap derived from this WriteCap."""
         return ReadCap(self.root_public_key, self.first_message_box_index)
 
+    def mutate_kdf_state(self, ctx: bytes) -> "WriteCap":
+        """Returns a new WriteCap with its first index re-seeded by ctx.
+
+        See MessageBoxIndex.mutate_kdf_state. The root key is shared; applying
+        this with the same ctx as ReadCap.mutate_kdf_state on the paired read
+        cap keeps writer and readers in lockstep.
+        """
+        return WriteCap(
+            self.root_private_key,
+            self.first_message_box_index.mutate_kdf_state(ctx),
+        )
+
     def derive_box_id(self, message_box_index: MessageBoxIndex) -> bytes:
         return message_box_index.derive_message_box_id(self.root_public_key)
 
@@ -366,3 +405,14 @@ class ReadCap:
 
     def derive_box_id(self, message_box_index: MessageBoxIndex) -> bytes:
         return message_box_index.derive_message_box_id(self.root_public_key)
+
+    def mutate_kdf_state(self, ctx: bytes) -> "ReadCap":
+        """Returns a new ReadCap with its first index re-seeded by ctx.
+
+        See MessageBoxIndex.mutate_kdf_state. Matches WriteCap.mutate_kdf_state
+        applied to the paired write cap with the same ctx.
+        """
+        return ReadCap(
+            self.root_public_key,
+            self.first_message_box_index.mutate_kdf_state(ctx),
+        )

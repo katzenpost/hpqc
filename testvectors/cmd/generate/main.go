@@ -75,6 +75,7 @@ func main() {
 	writeFile(*out, "bacap/message_box_index.json", genBACAPMessageBoxIndex())
 	writeFile(*out, "bacap/box_id.json", genBACAPBoxID())
 	writeFile(*out, "bacap/encrypt.json", genBACAPEncrypt())
+	writeFile(*out, "bacap/mutate_kdf_state.json", genBACAPMutateKDFState())
 
 	writeFile(*out, "kem/mkem.json", genKEMMkem())
 
@@ -887,6 +888,71 @@ func repeatByte(b byte, n int) []byte {
 		out[i] = b
 	}
 	return out
+}
+
+// MutateKDFState vectors. Pin the re-seed operation behind the Contact
+// Voucher's VoucherSalt: a WriteCap's first MessageBoxIndex is advanced by N,
+// re-seeded by the salt, and the resulting 104-byte index recorded along with
+// the box ID derived from it under a read context. The box ID is taken through
+// the read cap, so a consumer that mis-derives either the mutation or the
+// downstream blinding is caught.
+
+type bacapMutateVector struct {
+	Name             string `json:"name"`
+	WriteCapHex      string `json:"writecap_hex"`
+	AdvanceBy        uint64 `json:"advance_by"`
+	SaltHex          string `json:"salt_hex"`
+	ReadCtxHex       string `json:"read_ctx_hex"`
+	ExpectedIndexHex string `json:"expected_mutated_index_hex"`
+	ExpectedBoxIDHex string `json:"expected_mutated_box_id_hex"`
+}
+
+func genBACAPMutateKDFState() vectorFile {
+	wcBytes := fixedBACAPWriteCapBytes()
+	wc, err := bacap.NewWriteCapFromBytes(wcBytes)
+	must(err)
+	rc := wc.ReadCap()
+
+	cases := []struct {
+		name      string
+		advanceBy uint64
+		salt      []byte
+		readCtx   []byte
+	}{
+		{"mutate_at_first_index", 0, bytesPattern(0x11, 32), []byte("pigeonhole context")},
+		{"mutate_after_advance_5", 5, bytesPattern(0x22, 32), []byte("pigeonhole context")},
+		{"mutate_distinct_salt", 0, bytesPattern(0x33, 32), []byte("alternate context")},
+	}
+
+	vs := make([]bacapMutateVector, 0, len(cases))
+	for _, c := range cases {
+		idx := wc.GetFirstMessageBoxIndex()
+		if c.advanceBy > 0 {
+			advanced, err := idx.AdvanceIndexTo(idx.Idx64 + c.advanceBy)
+			must(err)
+			idx = advanced
+		}
+		mutated := idx.MutateKDFState(c.salt)
+		mutatedBytes, err := mutated.MarshalBinary()
+		must(err)
+		boxID := mutated.BoxIDForContext(rc, c.readCtx).Bytes()
+		vs = append(vs, bacapMutateVector{
+			Name:             c.name,
+			WriteCapHex:      hex.EncodeToString(wcBytes),
+			AdvanceBy:        c.advanceBy,
+			SaltHex:          hex.EncodeToString(c.salt),
+			ReadCtxHex:       hex.EncodeToString(c.readCtx),
+			ExpectedIndexHex: hex.EncodeToString(mutatedBytes),
+			ExpectedBoxIDHex: hex.EncodeToString(boxID),
+		})
+	}
+	return vectorFile{
+		FormatVersion: formatVersion,
+		Generator:     generatorName,
+		Primitive:     "bacap_mutate_kdf_state",
+		Description:   "MessageBoxIndex.MutateKDFState vectors. For each vector, the WriteCap's first MessageBoxIndex is advanced by N, then re-seeded by the salt via HKDF-BLAKE2b-512 under the domain label \"bacap-mutate-kdf-state-v1\" (salt slot = the salt, read order H,E,K, Idx64 preserved). Records the resulting 104-byte mutated index and the box ID derived from it under the read context. This is the BACAP primitive behind the Contact Voucher VoucherSalt.",
+		Vectors:       vs,
+	}
 }
 
 // ===== MKEM vectors =====

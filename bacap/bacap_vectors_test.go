@@ -107,6 +107,41 @@ func TestBACAPBoxIDVectors(t *testing.T) {
 	}
 }
 
+func TestBACAPMutateKDFStateVectors(t *testing.T) {
+	var vectors []struct {
+		Name             string `json:"name"`
+		WriteCapHex      string `json:"writecap_hex"`
+		AdvanceBy        uint64 `json:"advance_by"`
+		SaltHex          string `json:"salt_hex"`
+		ReadCtxHex       string `json:"read_ctx_hex"`
+		ExpectedIndexHex string `json:"expected_mutated_index_hex"`
+		ExpectedBoxIDHex string `json:"expected_mutated_box_id_hex"`
+	}
+	loadBACAPVectorFile(t, "mutate_kdf_state.json", "bacap_mutate_kdf_state", &vectors)
+	require.NotEmpty(t, vectors)
+
+	for _, v := range vectors {
+		t.Run(v.Name, func(t *testing.T) {
+			wc, err := NewWriteCapFromBytes(mustHexBytes(t, v.WriteCapHex))
+			require.NoError(t, err)
+			rc := wc.ReadCap()
+			idx := wc.GetFirstMessageBoxIndex()
+			if v.AdvanceBy > 0 {
+				idx, err = idx.AdvanceIndexTo(idx.Idx64 + v.AdvanceBy)
+				require.NoError(t, err)
+			}
+
+			mutated := idx.MutateKDFState(mustHexBytes(t, v.SaltHex))
+			actual, err := mutated.MarshalBinary()
+			require.NoError(t, err)
+			require.Equal(t, mustHexBytes(t, v.ExpectedIndexHex), actual, "mutated index mismatch")
+
+			boxID := mutated.BoxIDForContext(rc, mustHexBytes(t, v.ReadCtxHex)).Bytes()
+			require.Equal(t, mustHexBytes(t, v.ExpectedBoxIDHex), boxID, "mutated box ID mismatch")
+		})
+	}
+}
+
 func TestBACAPEncryptVectors(t *testing.T) {
 	var vectors []struct {
 		Name                 string `json:"name"`

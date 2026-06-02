@@ -93,6 +93,12 @@ const (
 	errNextIndexIsNil                   = "next index is nil"
 	errNextIndexIsNilCannotParseReply   = "next index is nil, cannot parse reply"
 	errInvalidMessageBoxIndexBinarySize = "invalid MessageBoxIndex binary size"
+
+	// mutateKDFStateLabel is the HKDF info (domain-separation) label used by
+	// MutateKDFState. It keeps a re-seeded ratchet state from ever colliding
+	// with a state produced by ordinary chain advancement (which uses an empty
+	// salt and the index as info).
+	mutateKDFStateLabel = "bacap-mutate-kdf-state-v1"
 )
 
 // MessageBoxIndex type encapsulates all the various low level cryptographic operations
@@ -384,6 +390,34 @@ func (m *MessageBoxIndex) NextIndex() (*MessageBoxIndex, error) {
 	return m.AdvanceIndexTo(m.Idx64 + 1)
 }
 
+// MutateKDFState returns a copy of this MessageBoxIndex whose KDF ratchet state
+// has been re-seeded by the given context. It mixes the current HKDFState with
+// ctx through HKDF-BLAKE2b under a dedicated domain label, then re-derives the
+// per-box encryption key and blinding factor from the result; Idx64 is
+// preserved. The mutated index addresses a fresh sequence of boxes that cannot
+// be found without ctx, while the root key (held by the cap) is untouched.
+//
+// This is the BACAP primitive behind the Contact Voucher's VoucherSalt: the
+// joiner mutates their WriteCap and the inductor mutates the paired ReadCap by
+// the same ctx, so writer and readers land on the same mutated sequence. Unlike
+// BoxIDForContext, which derives a single box ID without disturbing the
+// ratchet, this advances the ratchet itself.
+func (m *MessageBoxIndex) MutateKDFState(ctx []byte) *MessageBoxIndex {
+	hashFn := func() hash.Hash {
+		h, _ := blake2b.New512(nil)
+		return h
+	}
+	kdf := hkdf.New(hashFn, m.HKDFState[:], ctx, []byte(mutateKDFStateLabel))
+	next := &MessageBoxIndex{Idx64: m.Idx64}
+	// Same read order as AdvanceIndexTo: H_{i+1}, then E_i, then K_i.
+	for _, field := range [][]byte{next.HKDFState[:], next.CurEncryptionKey[:], next.CurBlindingFactor[:]} {
+		if n, err := kdf.Read(field); err != nil || n != len(field) {
+			panic("hkdf failed, not reachable")
+		}
+	}
+	return next
+}
+
 // DeriveMessageBoxID derives the blinded public key, the mailbox ID, given the root public key.
 func (m *MessageBoxIndex) DeriveMessageBoxID(rootPublicKey *ed25519.PublicKey) *ed25519.PublicKey {
 	return rootPublicKey.Blind(m.CurBlindingFactor[:])
@@ -459,6 +493,19 @@ func (o *WriteCap) ReadCap() *ReadCap {
 		HKDFState:         o.firstMessageBoxIndex.HKDFState,
 	}
 	return &ret
+}
+
+// MutateKDFState returns a new WriteCap whose first MessageBoxIndex has had its
+// KDF ratchet state re-seeded by ctx (see MessageBoxIndex.MutateKDFState). The
+// root key is shared with the receiver; only the index is mutated. Applying
+// this with the same ctx as ReadCap.MutateKDFState on the paired read cap keeps
+// writer and readers in lockstep.
+func (o *WriteCap) MutateKDFState(ctx []byte) *WriteCap {
+	return &WriteCap{
+		rootPrivateKey:       o.rootPrivateKey,
+		rootPublicKey:        o.rootPublicKey,
+		firstMessageBoxIndex: o.firstMessageBoxIndex.MutateKDFState(ctx),
+	}
 }
 
 // GetFirstMessageBoxIndex returns a copy of the first message box index.
@@ -570,6 +617,17 @@ func (u *ReadCap) UnmarshalBinary(data []byte) error {
 		return err
 	}
 	return nil
+}
+
+// MutateKDFState returns a new ReadCap whose first MessageBoxIndex has had its
+// KDF ratchet state re-seeded by ctx (see MessageBoxIndex.MutateKDFState),
+// matching WriteCap.MutateKDFState applied to the paired write cap with the
+// same ctx. The root public key is shared with the receiver.
+func (u *ReadCap) MutateKDFState(ctx []byte) *ReadCap {
+	return &ReadCap{
+		rootPublicKey:        u.rootPublicKey,
+		firstMessageBoxIndex: u.firstMessageBoxIndex.MutateKDFState(ctx),
+	}
 }
 
 // GetFirstMessageBoxIndex returns a copy of the first message box index.
