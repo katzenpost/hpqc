@@ -31,8 +31,8 @@ import (
 	"github.com/katzenpost/hpqc/nike/schemes"
 )
 
-// VoucherSaltSize is the size of a VoucherSalt, which becomes the joiner's
-// live MessageStream BACAP context.
+// VoucherSaltSize is the size of a VoucherSalt, which re-seeds the joiner's
+// MessageStream KDF ratchet (see bacap.WriteCap.MutateKDFState).
 const VoucherSaltSize = 32
 
 var (
@@ -48,7 +48,7 @@ var (
 	ErrSealOpenFailed = errors.New("voucher: could not open sealed reply")
 )
 
-// sealNike is the ReplyStream seal's hybrid NIKE: CTIDH1024-X25519, X25519
+// sealNike is the VoucherKeypair seal's hybrid NIKE: CTIDH1024-X25519, X25519
 // first, the same scheme the storage replicas use. sealMKEM wraps it.
 var (
 	sealNike = schemes.ByName("CTIDH1024-X25519")
@@ -66,33 +66,37 @@ func shakeReader(seed []byte) io.Reader {
 
 // MintResult is what VoucherMint returns. Voucher is the 32-byte token handed
 // to the inductor out of band; VoucherPayload is published to VoucherStream
-// box 0. The caller persists ReplyPrivateKey to open the reply later.
+// box 0. The caller persists VoucherSecretKey to open the reply later.
 type MintResult struct {
-	Voucher         []byte
-	VoucherPayload  []byte
-	VoucherWriteCap []byte
-	VoucherReadCap  []byte
-	ReplyPrivateKey []byte
-	ReplyPublicKey  []byte
+	Voucher          []byte
+	VoucherPayload   []byte
+	VoucherWriteCap  []byte
+	VoucherReadCap   []byte
+	VoucherSecretKey []byte
+	VoucherPublicKey []byte
 }
 
-// InductResult is what VoucherInduct returns. MessageReadCap is the joiner's
-// MessageStream read cap, which the inductor adds as a peer; SealedReply is
-// written to VoucherStream box 1; Salt is the VoucherSalt.
+// InductResult is what VoucherInduct returns. MutatedMessageReadCap is the
+// joiner's MessageStream read cap after the VoucherSalt has been applied: the
+// live read cap the inductor hands the group. SealedReply is written to
+// VoucherStream box 1; Salt is the VoucherSalt the inductor minted.
 type InductResult struct {
-	DisplayName     string
-	MessageReadCap  []byte
-	SealedReply     []byte
-	VoucherWriteCap []byte
-	VoucherReadCap  []byte
-	Salt            []byte
+	DisplayName           string
+	MutatedMessageReadCap []byte
+	SealedReply           []byte
+	VoucherWriteCap       []byte
+	VoucherReadCap        []byte
+	Salt                  []byte
 }
 
-// OpenReplyResult is what VoucherOpenReply returns: the opaque WhoReply blob
-// and the VoucherSalt.
+// OpenReplyResult is what VoucherOpenReply returns: the opaque WhoReply blob,
+// the VoucherSalt, and MutatedMessageWriteCap, the joiner's MessageStream
+// write cap after the salt has been applied (the live write cap to write
+// real messages with).
 type OpenReplyResult struct {
-	WhoReply []byte
-	Salt     []byte
+	WhoReply               []byte
+	Salt                   []byte
+	MutatedMessageWriteCap []byte
 }
 
 // VoucherStreamResult is what DeriveVoucherStream returns: the rendezvous
@@ -102,9 +106,9 @@ type VoucherStreamResult struct {
 	VoucherReadCap  []byte
 }
 
-// newReplyKeypair generates a ReplyStream keypair, deterministically from
+// newVoucherKeypair generates a VoucherKeypair, deterministically from
 // SHAKE256(seed) when seed is non-nil, otherwise at random.
-func newReplyKeypair(seed []byte) (priv, pub []byte, err error) {
+func newVoucherKeypair(seed []byte) (priv, pub []byte, err error) {
 	var pubKey nike.PublicKey
 	var privKey nike.PrivateKey
 	if seed == nil {
@@ -119,8 +123,8 @@ func newReplyKeypair(seed []byte) (priv, pub []byte, err error) {
 }
 
 // VoucherMint mints a Voucher from the joiner's MessageStream write cap.
-// replySeed may be nil for a random reply keypair.
-func VoucherMint(messageWriteCap []byte, displayName string, replySeed []byte) (*MintResult, error) {
+// keypairSeed may be nil for a random VoucherKeypair.
+func VoucherMint(messageWriteCap []byte, displayName string, keypairSeed []byte) (*MintResult, error) {
 	writeCap, err := bacap.NewWriteCapFromBytes(messageWriteCap)
 	if err != nil {
 		return nil, ErrInvalidArgument
@@ -129,7 +133,7 @@ func VoucherMint(messageWriteCap []byte, displayName string, replySeed []byte) (
 	if err != nil {
 		return nil, err
 	}
-	replyPriv, replyPub, err := newReplyKeypair(replySeed)
+	voucherPriv, voucherPub, err := newVoucherKeypair(keypairSeed)
 	if err != nil {
 		return nil, err
 	}
@@ -149,7 +153,7 @@ func VoucherMint(messageWriteCap []byte, displayName string, replySeed []byte) (
 		return nil, err
 	}
 
-	vp := &voucherPayload{SignedPleaseAdd: spaBytes, ReplyPubKey: replyPub}
+	vp := &voucherPayload{SignedPleaseAdd: spaBytes, VoucherPubKey: voucherPub}
 	payloadBytes, err := vp.marshal()
 	if err != nil {
 		return nil, err
@@ -161,12 +165,12 @@ func VoucherMint(messageWriteCap []byte, displayName string, replySeed []byte) (
 		return nil, err
 	}
 	return &MintResult{
-		Voucher:         voucher[:],
-		VoucherPayload:  payloadBytes,
-		VoucherWriteCap: stream.VoucherWriteCap,
-		VoucherReadCap:  stream.VoucherReadCap,
-		ReplyPrivateKey: replyPriv,
-		ReplyPublicKey:  replyPub,
+		Voucher:          voucher[:],
+		VoucherPayload:   payloadBytes,
+		VoucherWriteCap:  stream.VoucherWriteCap,
+		VoucherReadCap:   stream.VoucherReadCap,
+		VoucherSecretKey: voucherPriv,
+		VoucherPublicKey: voucherPub,
 	}, nil
 }
 
@@ -209,7 +213,18 @@ func VoucherInduct(voucher, voucherPayload, whoReply, salt, sealSeed []byte) (*I
 	if len(salt) != VoucherSaltSize {
 		return nil, ErrInvalidArgument
 	}
-	sealed, err := sealReply(vp.ReplyPubKey, whoReply, salt, sealSeed)
+	sealed, err := sealReply(vp.VoucherPubKey, whoReply, salt, sealSeed)
+	if err != nil {
+		return nil, err
+	}
+
+	// Mutate the joiner's read cap by the salt: this is the live read cap the
+	// inductor hands the group, addressing the salt-determined box sequence.
+	readCap, err := bacap.ReadCapFromBytes(pa.MessageReadCap)
+	if err != nil {
+		return nil, ErrInvalidArgument
+	}
+	mutatedReadCap, err := readCap.MutateKDFState(salt).MarshalBinary()
 	if err != nil {
 		return nil, err
 	}
@@ -219,19 +234,22 @@ func VoucherInduct(voucher, voucherPayload, whoReply, salt, sealSeed []byte) (*I
 		return nil, err
 	}
 	return &InductResult{
-		DisplayName:     pa.DisplayName,
-		MessageReadCap:  pa.MessageReadCap,
-		SealedReply:     sealed,
-		VoucherWriteCap: stream.VoucherWriteCap,
-		VoucherReadCap:  stream.VoucherReadCap,
-		Salt:            salt,
+		DisplayName:           pa.DisplayName,
+		MutatedMessageReadCap: mutatedReadCap,
+		SealedReply:           sealed,
+		VoucherWriteCap:       stream.VoucherWriteCap,
+		VoucherReadCap:        stream.VoucherReadCap,
+		Salt:                  salt,
 	}, nil
 }
 
-// VoucherOpenReply opens the inductor's sealed reply with the joiner's reply
-// private key.
-func VoucherOpenReply(replyPrivateKey, sealedReply []byte) (*OpenReplyResult, error) {
-	priv, err := sealNike.UnmarshalBinaryPrivateKey(replyPrivateKey)
+// VoucherOpenReply opens the inductor's sealed reply with the joiner's
+// VoucherSecretKey, recovers the VoucherSalt, and mutates the joiner's
+// MessageStream write cap by it. The returned MutatedMessageWriteCap is the
+// live write cap with which the joiner writes real messages; it lands on the
+// same box sequence as the read cap the inductor mutated and handed the group.
+func VoucherOpenReply(voucherSecretKey, sealedReply, messageWriteCap []byte) (*OpenReplyResult, error) {
+	priv, err := sealNike.UnmarshalBinaryPrivateKey(voucherSecretKey)
 	if err != nil {
 		return nil, ErrInvalidArgument
 	}
@@ -247,7 +265,20 @@ func VoucherOpenReply(replyPrivateKey, sealedReply []byte) (*OpenReplyResult, er
 	if err != nil {
 		return nil, ErrSealOpenFailed
 	}
-	return &OpenReplyResult{WhoReply: reply.WhoReply, Salt: reply.VoucherSalt}, nil
+
+	writeCap, err := bacap.NewWriteCapFromBytes(messageWriteCap)
+	if err != nil {
+		return nil, ErrInvalidArgument
+	}
+	mutatedWriteCap, err := writeCap.MutateKDFState(reply.VoucherSalt).MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+	return &OpenReplyResult{
+		WhoReply:               reply.WhoReply,
+		Salt:                   reply.VoucherSalt,
+		MutatedMessageWriteCap: mutatedWriteCap,
+	}, nil
 }
 
 // DeriveVoucherStream derives the VoucherStream caps deterministically from
@@ -275,8 +306,8 @@ func deriveStream(voucher []byte) (*VoucherStreamResult, error) {
 	return &VoucherStreamResult{VoucherWriteCap: wcBytes, VoucherReadCap: rcBytes}, nil
 }
 
-func sealReply(replyPubKey, whoReply, salt, sealSeed []byte) ([]byte, error) {
-	replyPub, err := sealNike.UnmarshalBinaryPublicKey(replyPubKey)
+func sealReply(voucherPubKey, whoReply, salt, sealSeed []byte) ([]byte, error) {
+	voucherPub, err := sealNike.UnmarshalBinaryPublicKey(voucherPubKey)
 	if err != nil {
 		return nil, ErrInvalidArgument
 	}
@@ -286,9 +317,9 @@ func sealReply(replyPubKey, whoReply, salt, sealSeed []byte) ([]byte, error) {
 	}
 	var ct *mkem.Ciphertext
 	if sealSeed == nil {
-		_, ct = sealMKEM.Encapsulate([]nike.PublicKey{replyPub}, plaintext)
+		_, ct = sealMKEM.Encapsulate([]nike.PublicKey{voucherPub}, plaintext)
 	} else {
-		_, ct = sealMKEM.EncapsulateWithEntropy([]nike.PublicKey{replyPub}, plaintext, shakeReader(sealSeed))
+		_, ct = sealMKEM.EncapsulateWithEntropy([]nike.PublicKey{voucherPub}, plaintext, shakeReader(sealSeed))
 	}
 	return ct.Marshal(), nil
 }

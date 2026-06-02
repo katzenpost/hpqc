@@ -57,10 +57,10 @@ func signedPleaseAddFromBytes(data []byte) (*signedPleaseAdd, error) {
 }
 
 // voucherPayload is VoucherStream box 0's content: the signedPleaseAdd and
-// the ReplyStream public key.
+// the VoucherKeypair public key.
 type voucherPayload struct {
 	SignedPleaseAdd []byte `cbor:"SignedPleaseAdd"`
-	ReplyPubKey     []byte `cbor:"ReplyPubKey"`
+	VoucherPubKey   []byte `cbor:"VoucherPubKey"`
 }
 
 func (v *voucherPayload) marshal() ([]byte, error) { return ccbor.Marshal(v) }
@@ -74,7 +74,7 @@ func voucherPayloadFromBytes(data []byte) (*voucherPayload, error) {
 }
 
 // voucherReply is the sealed reply plaintext: an opaque WhoReply blob plus
-// the VoucherSalt that becomes the joiner's live MessageStream context.
+// the VoucherSalt that re-seeds the joiner's MessageStream KDF ratchet.
 type voucherReply struct {
 	WhoReply    []byte `cbor:"WhoReply"`
 	VoucherSalt []byte `cbor:"VoucherSalt"`

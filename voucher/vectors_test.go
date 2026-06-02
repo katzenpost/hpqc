@@ -18,30 +18,31 @@ type vectors struct {
 	Inputs struct {
 		MessageWriteCap string `json:"message_write_cap"`
 		DisplayName     string `json:"display_name"`
-		ReplySeed       string `json:"reply_seed"`
+		KeypairSeed     string `json:"keypair_seed"`
 		Salt            string `json:"salt"`
 		SealSeed        string `json:"seal_seed"`
 		WhoReply        string `json:"who_reply"`
 	} `json:"inputs"`
 	Mint struct {
-		Voucher         string `json:"voucher"`
-		VoucherPayload  string `json:"voucher_payload"`
-		VoucherWriteCap string `json:"voucher_write_cap"`
-		VoucherReadCap  string `json:"voucher_read_cap"`
-		ReplyPrivateKey string `json:"reply_private_key"`
-		ReplyPublicKey  string `json:"reply_public_key"`
+		Voucher          string `json:"voucher"`
+		VoucherPayload   string `json:"voucher_payload"`
+		VoucherWriteCap  string `json:"voucher_write_cap"`
+		VoucherReadCap   string `json:"voucher_read_cap"`
+		VoucherSecretKey string `json:"voucher_secret_key"`
+		VoucherPublicKey string `json:"voucher_public_key"`
 	} `json:"mint"`
 	Induct struct {
-		DisplayName     string `json:"display_name"`
-		MessageReadCap  string `json:"message_read_cap"`
-		SealedReply     string `json:"sealed_reply"`
-		VoucherWriteCap string `json:"voucher_write_cap"`
-		VoucherReadCap  string `json:"voucher_read_cap"`
-		Salt            string `json:"salt"`
+		DisplayName           string `json:"display_name"`
+		MutatedMessageReadCap string `json:"mutated_message_read_cap"`
+		SealedReply           string `json:"sealed_reply"`
+		VoucherWriteCap       string `json:"voucher_write_cap"`
+		VoucherReadCap        string `json:"voucher_read_cap"`
+		Salt                  string `json:"salt"`
 	} `json:"induct"`
 	Open struct {
-		WhoReply string `json:"who_reply"`
-		Salt     string `json:"salt"`
+		WhoReply               string `json:"who_reply"`
+		Salt                   string `json:"salt"`
+		MutatedMessageWriteCap string `json:"mutated_message_write_cap"`
 	} `json:"open"`
 }
 
@@ -79,7 +80,7 @@ func TestVectorsMint(t *testing.T) {
 	mint, err := VoucherMint(
 		unhex(t, v.Inputs.MessageWriteCap),
 		v.Inputs.DisplayName,
-		unhex(t, v.Inputs.ReplySeed),
+		unhex(t, v.Inputs.KeypairSeed),
 	)
 	if err != nil {
 		t.Fatal(err)
@@ -88,8 +89,8 @@ func TestVectorsMint(t *testing.T) {
 	eqHex(t, "voucher_payload", mint.VoucherPayload, v.Mint.VoucherPayload)
 	eqHex(t, "voucher_write_cap", mint.VoucherWriteCap, v.Mint.VoucherWriteCap)
 	eqHex(t, "voucher_read_cap", mint.VoucherReadCap, v.Mint.VoucherReadCap)
-	eqHex(t, "reply_private_key", mint.ReplyPrivateKey, v.Mint.ReplyPrivateKey)
-	eqHex(t, "reply_public_key", mint.ReplyPublicKey, v.Mint.ReplyPublicKey)
+	eqHex(t, "voucher_secret_key", mint.VoucherSecretKey, v.Mint.VoucherSecretKey)
+	eqHex(t, "voucher_public_key", mint.VoucherPublicKey, v.Mint.VoucherPublicKey)
 }
 
 func TestVectorsInduct(t *testing.T) {
@@ -107,7 +108,7 @@ func TestVectorsInduct(t *testing.T) {
 	if induct.DisplayName != v.Induct.DisplayName {
 		t.Errorf("display name: got %q want %q", induct.DisplayName, v.Induct.DisplayName)
 	}
-	eqHex(t, "message_read_cap", induct.MessageReadCap, v.Induct.MessageReadCap)
+	eqHex(t, "mutated_message_read_cap", induct.MutatedMessageReadCap, v.Induct.MutatedMessageReadCap)
 	eqHex(t, "sealed_reply", induct.SealedReply, v.Induct.SealedReply)
 	eqHex(t, "voucher_write_cap", induct.VoucherWriteCap, v.Induct.VoucherWriteCap)
 	eqHex(t, "salt", induct.Salt, v.Induct.Salt)
@@ -116,12 +117,14 @@ func TestVectorsInduct(t *testing.T) {
 func TestVectorsOpenReply(t *testing.T) {
 	v := loadVectors(t)
 	open, err := VoucherOpenReply(
-		unhex(t, v.Mint.ReplyPrivateKey),
+		unhex(t, v.Mint.VoucherSecretKey),
 		unhex(t, v.Induct.SealedReply),
+		unhex(t, v.Inputs.MessageWriteCap),
 	)
 	if err != nil {
 		t.Fatal(err)
 	}
 	eqHex(t, "who_reply", open.WhoReply, v.Open.WhoReply)
 	eqHex(t, "salt", open.Salt, v.Open.Salt)
+	eqHex(t, "mutated_message_write_cap", open.MutatedMessageWriteCap, v.Open.MutatedMessageWriteCap)
 }

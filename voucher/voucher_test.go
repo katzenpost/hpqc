@@ -60,14 +60,15 @@ func TestRoundTrip(t *testing.T) {
 	if induct.DisplayName != "bob" {
 		t.Errorf("display name: got %q", induct.DisplayName)
 	}
-	wantReadCap, _ := bobWC.ReadCap().MarshalBinary()
-	if !bytes.Equal(induct.MessageReadCap, wantReadCap) {
-		t.Error("message read cap mismatch")
+	// The inductor returns Bob's salt-mutated read cap, not the raw one.
+	wantMutatedReadCap, _ := bobWC.ReadCap().MutateKDFState(induct.Salt).MarshalBinary()
+	if !bytes.Equal(induct.MutatedMessageReadCap, wantMutatedReadCap) {
+		t.Error("mutated message read cap mismatch")
 	}
 	if !bytes.Equal(induct.VoucherWriteCap, mint.VoucherWriteCap) {
 		t.Error("voucher write cap mismatch between mint and induct")
 	}
-	opened, err := VoucherOpenReply(mint.ReplyPrivateKey, induct.SealedReply)
+	opened, err := VoucherOpenReply(mint.VoucherSecretKey, induct.SealedReply, bob)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -76,6 +77,15 @@ func TestRoundTrip(t *testing.T) {
 	}
 	if !bytes.Equal(opened.Salt, induct.Salt) {
 		t.Error("salt mismatch")
+	}
+	// The crux: Bob's mutated write cap and Alice's mutated read cap meet.
+	mutatedWC, err := bacap.NewWriteCapFromBytes(opened.MutatedMessageWriteCap)
+	if err != nil {
+		t.Fatal(err)
+	}
+	mutatedWCRead, _ := mutatedWC.ReadCap().MarshalBinary()
+	if !bytes.Equal(mutatedWCRead, induct.MutatedMessageReadCap) {
+		t.Error("mutated write cap's read cap does not match the inductor's mutated read cap")
 	}
 }
 
@@ -98,7 +108,7 @@ func TestWrongReplyKeyCannotOpen(t *testing.T) {
 	mintA, _ := VoucherMint(a, "alice", nil)
 	mintB, _ := VoucherMint(b, "bob", nil)
 	induct, _ := VoucherInduct(mintA.Voucher, mintA.VoucherPayload, []byte("x"), nil, nil)
-	if _, err := VoucherOpenReply(mintB.ReplyPrivateKey, induct.SealedReply); err != ErrSealOpenFailed {
+	if _, err := VoucherOpenReply(mintB.VoucherSecretKey, induct.SealedReply, b); err != ErrSealOpenFailed {
 		t.Errorf("expected seal open failed, got %v", err)
 	}
 }
