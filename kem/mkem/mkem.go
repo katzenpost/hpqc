@@ -8,6 +8,7 @@ import (
 	"crypto/cipher"
 	"crypto/rand"
 	"errors"
+	"io"
 
 	"github.com/katzenpost/chacha20poly1305"
 	"github.com/katzenpost/hpqc/hash"
@@ -54,6 +55,17 @@ func (s *Scheme) encrypt(key []byte, plaintext []byte) []byte {
 	nonce := make([]byte, aead.NonceSize())
 	_, err := rand.Reader.Read(nonce)
 	if err != nil {
+		panic(err)
+	}
+	return aead.Seal(nonce, nonce, plaintext, nil)
+}
+
+// encryptWithRNG is encrypt with the AEAD nonce drawn from rng rather than
+// crypto/rand, so a deterministic rng yields a reproducible ciphertext.
+func (s *Scheme) encryptWithRNG(key []byte, plaintext []byte, rng io.Reader) []byte {
+	aead := s.createCipher(key)
+	nonce := make([]byte, aead.NonceSize())
+	if _, err := io.ReadFull(rng, nonce); err != nil {
 		panic(err)
 	}
 	return aead.Seal(nonce, nonce, plaintext, nil)
@@ -115,6 +127,48 @@ func (s *Scheme) Encapsulate(keys []nike.PublicKey, payload []byte) (nike.Privat
 	outCiphertexts := make([][]byte, len(secrets))
 	for i := 0; i < len(secrets); i++ {
 		outCiphertexts[i] = s.encrypt(secrets[i][:], msgKey)
+	}
+
+	c := &Ciphertext{
+		EphemeralPublicKey: ephPub,
+		DEKCiphertexts:     outCiphertexts,
+		Envelope:           ciphertext,
+	}
+	return ephPriv, c
+}
+
+// EncapsulateWithEntropy is Encapsulate with all randomness drawn from rng:
+// the ephemeral keypair, the 32-byte message key, the envelope nonce, then
+// one nonce per recipient DEK, in that fixed order. With a deterministic rng
+// (e.g. a SHAKE256 stream) the whole ciphertext is reproducible, which is how
+// the contact-voucher seal and the cross-language test vectors are built. The
+// Python MKEMScheme.encapsulate(..., entropy=...) consumes in the same order.
+func (s *Scheme) EncapsulateWithEntropy(keys []nike.PublicKey, payload []byte, rng io.Reader) (nike.PrivateKey, *Ciphertext) {
+	ephPub, ephPriv, err := s.nike.GenerateKeyPairFromEntropy(rng)
+	if err != nil {
+		panic(err)
+	}
+
+	secrets := make([][hash.HashSize]byte, len(keys))
+	defer func() {
+		for i := range secrets {
+			coreUtil.ExplicitBzero(secrets[i][:])
+		}
+	}()
+	for i := 0; i < len(keys); i++ {
+		secrets[i] = hash.Sum256(s.nike.DeriveSecret(ephPriv, keys[i]))
+	}
+
+	msgKey := make([]byte, 32)
+	defer coreUtil.ExplicitBzero(msgKey)
+	if _, err := io.ReadFull(rng, msgKey); err != nil {
+		panic(err)
+	}
+	ciphertext := s.encryptWithRNG(msgKey, payload, rng)
+
+	outCiphertexts := make([][]byte, len(secrets))
+	for i := 0; i < len(secrets); i++ {
+		outCiphertexts[i] = s.encryptWithRNG(secrets[i][:], msgKey, rng)
 	}
 
 	c := &Ciphertext{

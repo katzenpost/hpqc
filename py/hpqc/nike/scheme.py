@@ -25,7 +25,7 @@ A NIKE has three roles, the Python names map directly onto Go's:
 from __future__ import annotations
 
 import abc
-from typing import TYPE_CHECKING, Tuple
+from typing import TYPE_CHECKING, Callable, Tuple
 
 if TYPE_CHECKING:
     from typing import Self
@@ -103,6 +103,18 @@ class Scheme(abc.ABC):
     @abc.abstractmethod
     def generate_keypair(self) -> Tuple[PublicKey, PrivateKey]:
         """Returns a freshly-generated (public, private) pair."""
+
+    @abc.abstractmethod
+    def generate_keypair_from_entropy(
+        self, read: Callable[[int], bytes]
+    ) -> Tuple[PublicKey, PrivateKey]:
+        """Returns a (public, private) pair derived from a byte source.
+
+        ``read(n)`` must return exactly ``n`` bytes. Given a deterministic
+        source the keypair is reproducible, which is how deterministic MKEM
+        encapsulation and the cross-language test vectors are built. Mirrors
+        Go's ``nike.Scheme.GenerateKeyPairFromEntropy(rng io.Reader)``.
+        """
 
     @abc.abstractmethod
     def derive_public_key(self, priv: PrivateKey) -> PublicKey:

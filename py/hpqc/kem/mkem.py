@@ -30,7 +30,7 @@ from __future__ import annotations
 
 import dataclasses
 import os
-from typing import List, Tuple
+from typing import Callable, List, Optional, Tuple
 
 import cbor2
 from cryptography.exceptions import InvalidTag
@@ -95,8 +95,11 @@ class MKEMScheme:
     # ----- internal AEAD helpers -----
 
     @staticmethod
-    def _encrypt(key: bytes, plaintext: bytes) -> bytes:
-        nonce = os.urandom(_NONCE_SIZE)
+    def _encrypt(
+        key: bytes, plaintext: bytes, nonce: Optional[bytes] = None
+    ) -> bytes:
+        if nonce is None:
+            nonce = os.urandom(_NONCE_SIZE)
         ct = ChaCha20Poly1305(key).encrypt(nonce, plaintext, None)
         return nonce + ct
 
@@ -147,23 +150,39 @@ class MKEMScheme:
         self,
         keys: List[PublicKey],
         payload: bytes,
+        *,
+        entropy: Optional[Callable[[int], bytes]] = None,
     ) -> Tuple[PrivateKey, Ciphertext]:
         """Encapsulates ``payload`` to one or more recipient pubkeys.
 
         Returns the ephemeral private key (so the sender can also
         decrypt later replies sent under it) and the Ciphertext.
+
+        When ``entropy`` is given it must return exactly ``n`` bytes per
+        call and supplies all randomness, in this fixed order: the
+        ephemeral keypair, the 32-byte message key, the envelope nonce,
+        then one nonce per recipient DEK. With a deterministic source the
+        whole ciphertext is reproducible (used for the voucher seal and
+        the cross-language vectors). Go's ``EncapsulateWithEntropy``
+        consumes its ``io.Reader`` in the same order.
         """
         if not keys:
             raise ValueError("encapsulate requires at least one recipient key")
-        eph_pub, eph_priv = self._nike.generate_keypair()
+        if entropy is None:
+            eph_pub, eph_priv = self._nike.generate_keypair()
+            msg_key = os.urandom(_MSG_KEY_SIZE)
+        else:
+            eph_pub, eph_priv = self._nike.generate_keypair_from_entropy(entropy)
+            msg_key = entropy(_MSG_KEY_SIZE)
         secrets = [
             sum256(self._nike.derive_secret(eph_priv, k)) for k in keys
         ]
-        msg_key = os.urandom(_MSG_KEY_SIZE)
-        envelope = self._encrypt(msg_key, payload)
+        envelope = self._encrypt(
+            msg_key, payload, entropy(_NONCE_SIZE) if entropy else None
+        )
         dek_cts: List[bytes] = []
         for s in secrets:
-            ct = self._encrypt(s, msg_key)
+            ct = self._encrypt(s, msg_key, entropy(_NONCE_SIZE) if entropy else None)
             if len(ct) != DEKSize:
                 raise AssertionError("invalid DEK ciphertext size")
             dek_cts.append(ct)

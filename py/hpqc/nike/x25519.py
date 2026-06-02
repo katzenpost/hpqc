@@ -9,7 +9,7 @@ shared secrets are 32 bytes.
 from __future__ import annotations
 
 import os
-from typing import Tuple
+from typing import Callable, Tuple
 
 from nacl.bindings import crypto_scalarmult, crypto_scalarmult_base
 
@@ -70,6 +70,12 @@ class X25519(Scheme):
 
     def generate_keypair(self) -> Tuple[X25519PublicKey, X25519PrivateKey]:
         priv = X25519PrivateKey(os.urandom(_KEY_SIZE))
+        return priv.public_key(), priv
+
+    def generate_keypair_from_entropy(
+        self, read: Callable[[int], bytes]
+    ) -> Tuple[X25519PublicKey, X25519PrivateKey]:
+        priv = X25519PrivateKey(read(_KEY_SIZE))
         return priv.public_key(), priv
 
     def derive_public_key(self, priv: PrivateKey) -> X25519PublicKey:
