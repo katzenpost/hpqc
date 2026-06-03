@@ -18,7 +18,6 @@
 package voucher
 
 import (
-	"crypto/ed25519"
 	"crypto/rand"
 	"crypto/sha3"
 	"errors"
@@ -143,10 +142,7 @@ func VoucherMint(messageWriteCap []byte, displayName string, keypairSeed []byte)
 	if err != nil {
 		return nil, err
 	}
-	// The root signing key is the first ed25519.PrivateKeySize bytes of the
-	// serialized write cap (rootPrivateKey || firstMessageBoxIndex).
-	rootPriv := ed25519.PrivateKey(messageWriteCap[:ed25519.PrivateKeySize])
-	sig := ed25519.Sign(rootPriv, paBytes)
+	sig := writeCap.RootPrivateKey().SignMessage(paBytes)
 	spa := &signedPleaseAdd{PleaseAdd: paBytes, Signature: sig}
 	spaBytes, err := spa.marshal()
 	if err != nil {
@@ -196,11 +192,11 @@ func VoucherInduct(voucher, voucherPayload, whoReply, salt, sealSeed []byte) (*I
 	if err != nil {
 		return nil, ErrInvalidArgument
 	}
-	if len(pa.MessageReadCap) < ed25519.PublicKeySize {
+	readCap, err := bacap.ReadCapFromBytes(pa.MessageReadCap)
+	if err != nil {
 		return nil, ErrInvalidArgument
 	}
-	rootPub := ed25519.PublicKey(pa.MessageReadCap[:ed25519.PublicKeySize])
-	if !ed25519.Verify(rootPub, spa.PleaseAdd, spa.Signature) {
+	if !readCap.RootPublicKey().Verify(spa.Signature, spa.PleaseAdd) {
 		return nil, ErrSignatureVerificationFailed
 	}
 
@@ -220,10 +216,6 @@ func VoucherInduct(voucher, voucherPayload, whoReply, salt, sealSeed []byte) (*I
 
 	// Mutate the joiner's read cap by the salt: this is the live read cap the
 	// inductor hands the group, addressing the salt-determined box sequence.
-	readCap, err := bacap.ReadCapFromBytes(pa.MessageReadCap)
-	if err != nil {
-		return nil, ErrInvalidArgument
-	}
 	mutatedReadCap, err := readCap.MutateKDFState(salt).MarshalBinary()
 	if err != nil {
 		return nil, err

@@ -508,6 +508,14 @@ func (o *WriteCap) MutateKDFState(ctx []byte) *WriteCap {
 	}
 }
 
+// RootPrivateKey returns the write cap's root signing key. A plain signature
+// made with it verifies against the corresponding read cap's root public key
+// (see ReadCap.RootPublicKey), so callers need not know the write cap's
+// serialized byte layout to sign with the root key.
+func (o *WriteCap) RootPrivateKey() *ed25519.PrivateKey {
+	return o.rootPrivateKey
+}
+
 // GetFirstMessageBoxIndex returns a copy of the first message box index.
 func (o *WriteCap) GetFirstMessageBoxIndex() *MessageBoxIndex {
 	return &MessageBoxIndex{
@@ -628,6 +636,14 @@ func (u *ReadCap) MutateKDFState(ctx []byte) *ReadCap {
 		rootPublicKey:        u.rootPublicKey,
 		firstMessageBoxIndex: u.firstMessageBoxIndex.MutateKDFState(ctx),
 	}
+}
+
+// RootPublicKey returns the read cap's root public key, against which a
+// signature made by the corresponding WriteCap.RootPrivateKey verifies. It
+// lets callers verify such a signature without knowing the read cap's
+// serialized byte layout.
+func (u *ReadCap) RootPublicKey() *ed25519.PublicKey {
+	return u.rootPublicKey
 }
 
 // GetFirstMessageBoxIndex returns a copy of the first message box index.
