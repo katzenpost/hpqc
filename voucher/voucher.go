@@ -18,6 +18,7 @@
 package voucher
 
 import (
+	"crypto/hmac"
 	"crypto/rand"
 	"crypto/sha3"
 	"errors"
@@ -177,7 +178,7 @@ func VoucherInduct(voucher, voucherPayload, whoReply, salt, sealSeed []byte) (*I
 		return nil, ErrInvalidArgument
 	}
 	got := hash.Sum256(voucherPayload)
-	if !constantTimeEqual(got[:], voucher) {
+	if !hmac.Equal(got[:], voucher) {
 		return nil, ErrVoucherHashMismatch
 	}
 	vp, err := voucherPayloadFromBytes(voucherPayload)
@@ -314,16 +315,4 @@ func sealReply(voucherPubKey, whoReply, salt, sealSeed []byte) ([]byte, error) {
 		_, ct = sealMKEM.EncapsulateWithEntropy([]nike.PublicKey{voucherPub}, plaintext, shakeReader(sealSeed))
 	}
 	return ct.Marshal(), nil
-}
-
-// constantTimeEqual reports whether two equal-length byte slices are equal.
-func constantTimeEqual(a, b []byte) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	var v byte
-	for i := range a {
-		v |= a[i] ^ b[i]
-	}
-	return v == 0
 }
