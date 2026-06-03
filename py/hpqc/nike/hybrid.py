@@ -17,7 +17,7 @@ required. See ``hpqc/kem/combiner`` on the Go side for that case.
 """
 from __future__ import annotations
 
-from typing import Tuple
+from typing import Callable, Tuple
 
 from .scheme import PrivateKey, PublicKey, Scheme
 
@@ -154,6 +154,19 @@ class HybridNIKE(Scheme):
     def generate_keypair(self) -> Tuple[HybridPublicKey, HybridPrivateKey]:
         pub1, priv1 = self._first.generate_keypair()
         pub2, priv2 = self._second.generate_keypair()
+        return (
+            HybridPublicKey(pub1, pub2, self),
+            HybridPrivateKey(priv1, priv2, self),
+        )
+
+    def generate_keypair_from_entropy(
+        self, read: Callable[[int], bytes]
+    ) -> Tuple[HybridPublicKey, HybridPrivateKey]:
+        # Consume the first component's entropy, then the second's, from the
+        # same source. The Go hybrid must consume in this same (first, second)
+        # order for the cross-language vectors to agree.
+        pub1, priv1 = self._first.generate_keypair_from_entropy(read)
+        pub2, priv2 = self._second.generate_keypair_from_entropy(read)
         return (
             HybridPublicKey(pub1, pub2, self),
             HybridPrivateKey(priv1, priv2, self),

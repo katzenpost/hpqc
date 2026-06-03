@@ -13,7 +13,7 @@ sizes (a CTIDH-1024 public key is not a CTIDH-511 public key).
 """
 from __future__ import annotations
 
-from typing import Tuple, Type
+from typing import Callable, Tuple, Type
 
 from highctidh import ctidh as _ctidh
 
@@ -80,6 +80,21 @@ def make_ctidh_classes(
 
         def generate_keypair(self) -> Tuple[CTIDHPublicKey, CTIDHPrivateKey]:
             sk = impl.generate_secret_key()
+            pk = impl.derive_public_key(sk)
+            return CTIDHPublicKey(pk), CTIDHPrivateKey(sk)
+
+        def generate_keypair_from_entropy(
+            self, read: Callable[[int], bytes]
+        ) -> Tuple[CTIDHPublicKey, CTIDHPrivateKey]:
+            # highctidh fills ``buf`` (a uint8 memoryview) per rejection-
+            # sampling round; ``read`` must return exactly len(buf) bytes.
+            # Feeding the same byte stream to the Go binding's
+            # GenerateKeyPairFromEntropy yields a byte-identical key, which
+            # is what makes the cross-language voucher vectors possible.
+            def fill(buf, context) -> None:  # noqa: ANN001 - highctidh callback
+                buf[:] = read(len(buf))
+
+            sk = impl.generate_secret_key(rng=fill)
             pk = impl.derive_public_key(sk)
             return CTIDHPublicKey(pk), CTIDHPrivateKey(sk)
 

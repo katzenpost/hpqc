@@ -1,0 +1,35 @@
+{
+  "format_version": 1,
+  "generator": "github.com/katzenpost/hpqc/testvectors/cmd/generate",
+  "primitive": "bacap_mutate_kdf_state",
+  "description": "MessageBoxIndex.MutateKDFState vectors. For each vector, the WriteCap's first MessageBoxIndex is advanced by N, then re-seeded by the salt via HKDF-BLAKE2b-512 under the domain label \"bacap-mutate-kdf-state-v1\" (salt slot = the salt, read order H,E,K, Idx64 preserved). Records the resulting 104-byte mutated index and the box ID derived from it under the read context. This is the BACAP primitive behind the Contact Voucher VoucherSalt.",
+  "vectors": [
+    {
+      "name": "mutate_at_first_index",
+      "writecap_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b80100000000000000aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "advance_by": 0,
+      "salt_hex": "1111111111111111111111111111111111111111111111111111111111111111",
+      "read_ctx_hex": "706967656f6e686f6c6520636f6e74657874",
+      "expected_mutated_index_hex": "0100000000000000a06051cc559359d914185df750dc054c42353ba282ac7dca25fdd3020121c12e46f705fcfd6ee113489b2dfdff94d7644581c58ef3c650e1f82404ec558595e11ef0f192d46891de88af7f695d8f0d8d22ad842f932e5d95ef7033efb6064a8d",
+      "expected_mutated_box_id_hex": "94b3e990e8367741d3b34bb4415707b5549f40f812ead9dc72b179cd1c281290"
+    },
+    {
+      "name": "mutate_after_advance_5",
+      "writecap_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b80100000000000000aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "advance_by": 5,
+      "salt_hex": "2222222222222222222222222222222222222222222222222222222222222222",
+      "read_ctx_hex": "706967656f6e686f6c6520636f6e74657874",
+      "expected_mutated_index_hex": "0600000000000000b13c623aba93a6bb6cf555158d076bbfa28d6fea31b564209b3a83f995c2ab922e6677060a9ca8ba27760d6dc3962f6edf81eb35432e81ca3135a478c1c5afda5228d4b51efd629d48e6245fffcf03a2b61c757893ef2f8cdc4a7c0c612e352f",
+      "expected_mutated_box_id_hex": "0dd7d3c6f6c043e1ae6bd76e28309cf6eec2b399a850fc53971aec3e060c951f"
+    },
+    {
+      "name": "mutate_distinct_salt",
+      "writecap_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b80100000000000000aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "advance_by": 0,
+      "salt_hex": "3333333333333333333333333333333333333333333333333333333333333333",
+      "read_ctx_hex": "616c7465726e61746520636f6e74657874",
+      "expected_mutated_index_hex": "0100000000000000f4cfcd04d30aeb52ed2f667df4efc256054767dc29a3c7b94440e991c3949e68df8cd5998e7049922310bcea4298192a7f42158bef2436f33aa5346d3f979451d1b668298f6b2fb2fddd4776c7747016a3e66ca2300e239d9a05fc5941f88054",
+      "expected_mutated_box_id_hex": "95ad9f3d4e0c3da7c2bbc61ee4c4211bcbaf082320c7a7495aacbb7e4700c0c8"
+    }
+  ]
+}

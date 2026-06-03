@@ -80,6 +80,33 @@ def test_box_id(vector: dict) -> None:
     assert got == expected, "box ID mismatch"
 
 
+# ----- mutate_kdf_state -----
+
+
+@pytest.mark.parametrize(
+    "vector",
+    _load("mutate_kdf_state.json", "bacap_mutate_kdf_state"),
+    ids=lambda v: v["name"],
+)
+def test_mutate_kdf_state(vector: dict) -> None:
+    wc = WriteCap.from_bytes(bytes.fromhex(vector["writecap_hex"]))
+    rc = wc.read_cap()
+    idx = wc.first_message_box_index
+    advance_by = vector["advance_by"]
+    if advance_by:
+        idx = idx.advance_index_to(idx.idx_64 + advance_by)
+
+    mutated = idx.mutate_kdf_state(bytes.fromhex(vector["salt_hex"]))
+    assert mutated.to_bytes() == bytes.fromhex(
+        vector["expected_mutated_index_hex"]
+    ), "mutated index mismatch"
+
+    box_id = mutated.box_id_for_context(rc, bytes.fromhex(vector["read_ctx_hex"]))
+    assert box_id == bytes.fromhex(
+        vector["expected_mutated_box_id_hex"]
+    ), "mutated box ID mismatch"
+
+
 # ----- encrypt_for_context -----
 
 
