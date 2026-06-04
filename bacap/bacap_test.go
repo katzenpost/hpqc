@@ -170,10 +170,10 @@ func TestReadCap(t *testing.T) {
 	_, err = ReadCapFromBytes(blob)
 	require.NoError(t, err)
 
-	require.Equal(t, writecap.firstMessageBoxIndex.Idx64, readcap.firstMessageBoxIndex.Idx64)
+	require.Equal(t, writecap.messageBoxIndex.Idx64, readcap.messageBoxIndex.Idx64)
 	require.Equal(t, writecap.rootPublicKey, readcap.rootPublicKey)
 
-	mb1 := readcap.firstMessageBoxIndex
+	mb1 := readcap.messageBoxIndex
 	mb2, err := mb1.NextIndex()
 	require.NoError(t, err)
 	mb2_id := mb2.DeriveMessageBoxID(readcap.rootPublicKey)
@@ -186,7 +186,7 @@ func TestMake1000(t *testing.T) {
 	owner, err := NewWriteCap(rand.Reader)
 	require.NoError(t, err)
 	uread := owner.ReadCap()
-	mb_cur := uread.firstMessageBoxIndex
+	mb_cur := uread.messageBoxIndex
 	for i := 0; i < 1000; i++ {
 		mb_cur, err = mb_cur.NextIndex()
 		require.NoError(t, err)
@@ -205,7 +205,7 @@ func TestEncryptDecrypt(t *testing.T) {
 	require.NoError(t, err)
 	uread := owner.ReadCap()
 
-	boxCurrent := uread.firstMessageBoxIndex
+	boxCurrent := uread.messageBoxIndex
 	for i := 0; i < 3; i++ {
 		boxCurrent, err = boxCurrent.NextIndex()
 		require.NoError(t, err)
@@ -485,7 +485,7 @@ func TestStatefulWriterFailures(t *testing.T) {
 	owner := &WriteCap{
 		rootPrivateKey:       new(ed25519.PrivateKey),
 		rootPublicKey:        new(ed25519.PublicKey),
-		firstMessageBoxIndex: &MessageBoxIndex{},
+		messageBoxIndex: &MessageBoxIndex{},
 	}
 
 	// Missing context
@@ -686,7 +686,7 @@ func TestNewStatefulReaderWithIndexStateConsistency(t *testing.T) {
 	uread := owner.ReadCap()
 
 	// Create a specific index to start from (advance from the first index)
-	startIndex, err := uread.firstMessageBoxIndex.NextIndex()
+	startIndex, err := uread.messageBoxIndex.NextIndex()
 	require.NoError(t, err)
 	startIndex, err = startIndex.NextIndex()
 	require.NoError(t, err)
@@ -706,7 +706,7 @@ func TestNewStatefulReaderWithIndexStateConsistency(t *testing.T) {
 	require.Nil(t, reader.LastInboxRead)
 	require.NotNil(t, reader.NextIndex)
 	// Verify the index is what we expect (original + 2)
-	require.Equal(t, uread.firstMessageBoxIndex.Idx64+2, reader.NextIndex.Idx64)
+	require.Equal(t, uread.messageBoxIndex.Idx64+2, reader.NextIndex.Idx64)
 
 	// Verify that after reading a message, LastInboxRead gets properly set
 	// First, let's create a writer to generate a message
@@ -741,7 +741,7 @@ func TestMesageBoxIndexMarshaling(t *testing.T) {
 	require.NoError(t, err)
 
 	uread := owner.ReadCap()
-	startIndex, err := uread.firstMessageBoxIndex.NextIndex()
+	startIndex, err := uread.messageBoxIndex.NextIndex()
 	require.NoError(t, err)
 
 	blob, err := startIndex.MarshalBinary()
