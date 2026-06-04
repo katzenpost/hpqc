@@ -84,7 +84,7 @@ func TestBACAPBoxIDVectors(t *testing.T) {
 			wc, err := NewWriteCapFromBytes(mustHexBytes(t, v.WriteCapHex))
 			require.NoError(t, err)
 			rc := wc.ReadCap()
-			idx := wc.GetFirstMessageBoxIndex()
+			idx := wc.GetMessageBoxIndex()
 			if v.AdvanceBy > 0 {
 				idx, err = idx.AdvanceIndexTo(idx.Idx64 + v.AdvanceBy)
 				require.NoError(t, err)
@@ -125,7 +125,7 @@ func TestBACAPMutateKDFStateVectors(t *testing.T) {
 			wc, err := NewWriteCapFromBytes(mustHexBytes(t, v.WriteCapHex))
 			require.NoError(t, err)
 			rc := wc.ReadCap()
-			idx := wc.GetFirstMessageBoxIndex()
+			idx := wc.GetMessageBoxIndex()
 			if v.AdvanceBy > 0 {
 				idx, err = idx.AdvanceIndexTo(idx.Idx64 + v.AdvanceBy)
 				require.NoError(t, err)
@@ -160,7 +160,7 @@ func TestBACAPEncryptVectors(t *testing.T) {
 		t.Run(v.Name, func(t *testing.T) {
 			wc, err := NewWriteCapFromBytes(mustHexBytes(t, v.WriteCapHex))
 			require.NoError(t, err)
-			idx := wc.GetFirstMessageBoxIndex()
+			idx := wc.GetMessageBoxIndex()
 			if v.AdvanceBy > 0 {
 				idx, err = idx.AdvanceIndexTo(idx.Idx64 + v.AdvanceBy)
 				require.NoError(t, err)

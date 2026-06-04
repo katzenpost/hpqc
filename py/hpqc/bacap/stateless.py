@@ -331,7 +331,7 @@ class WriteCap:
     """
 
     root_private_key: BlindableSigningKey
-    first_message_box_index: MessageBoxIndex
+    message_box_index: MessageBoxIndex
 
     @property
     def root_public_key(self) -> BlindableVerifyKey:
@@ -349,7 +349,7 @@ class WriteCap:
         return cls(sk, MessageBoxIndex.random(rng))
 
     def to_bytes(self) -> bytes:
-        return _ed25519_64byte_private(self.root_private_key) + self.first_message_box_index.to_bytes()
+        return _ed25519_64byte_private(self.root_private_key) + self.message_box_index.to_bytes()
 
     @classmethod
     def from_bytes(cls, data: bytes) -> "WriteCap":
@@ -363,7 +363,7 @@ class WriteCap:
 
     def read_cap(self) -> "ReadCap":
         """Returns the ReadCap derived from this WriteCap."""
-        return ReadCap(self.root_public_key, self.first_message_box_index)
+        return ReadCap(self.root_public_key, self.message_box_index)
 
     def mutate_kdf_state(self, ctx: bytes) -> "WriteCap":
         """Returns a new WriteCap with its first index re-seeded by ctx.
@@ -374,8 +374,18 @@ class WriteCap:
         """
         return WriteCap(
             self.root_private_key,
-            self.first_message_box_index.mutate_kdf_state(ctx),
+            self.message_box_index.mutate_kdf_state(ctx),
         )
+
+    def with_message_box_index(self, idx: MessageBoxIndex) -> "WriteCap":
+        """Returns a copy of this WriteCap re-based to idx, leaving self unchanged.
+
+        Re-basing a cap to a chosen position (e.g. the live edge) before handing
+        it out means the recipient learns nothing about indices before idx.
+        """
+        if idx is None:
+            raise InvalidArgument("with_message_box_index: nil index")
+        return WriteCap(self.root_private_key, idx)
 
     def derive_box_id(self, message_box_index: MessageBoxIndex) -> bytes:
         return message_box_index.derive_message_box_id(self.root_public_key)
@@ -390,10 +400,10 @@ class ReadCap:
     """
 
     root_public_key: BlindableVerifyKey
-    first_message_box_index: MessageBoxIndex
+    message_box_index: MessageBoxIndex
 
     def to_bytes(self) -> bytes:
-        return bytes(self.root_public_key) + self.first_message_box_index.to_bytes()
+        return bytes(self.root_public_key) + self.message_box_index.to_bytes()
 
     @classmethod
     def from_bytes(cls, data: bytes) -> "ReadCap":
@@ -414,5 +424,16 @@ class ReadCap:
         """
         return ReadCap(
             self.root_public_key,
-            self.first_message_box_index.mutate_kdf_state(ctx),
+            self.message_box_index.mutate_kdf_state(ctx),
         )
+
+    def with_message_box_index(self, idx: MessageBoxIndex) -> "ReadCap":
+        """Returns a copy of this ReadCap re-based to idx, leaving self unchanged.
+
+        Re-basing to the current position before sharing means the recipient
+        starts there and cannot iterate the one-way ratchet back to count
+        earlier messages.
+        """
+        if idx is None:
+            raise InvalidArgument("with_message_box_index: nil index")
+        return ReadCap(self.root_public_key, idx)

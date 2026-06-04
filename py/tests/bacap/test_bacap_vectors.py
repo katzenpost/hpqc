@@ -61,7 +61,7 @@ def test_box_id(vector: dict) -> None:
     wc_bytes = bytes.fromhex(vector["writecap_hex"])
     wc = WriteCap.from_bytes(wc_bytes)
     rc = wc.read_cap()
-    idx = wc.first_message_box_index
+    idx = wc.message_box_index
     advance_by = vector["advance_by"]
     if advance_by:
         idx = idx.advance_index_to(idx.idx_64 + advance_by)
@@ -91,7 +91,7 @@ def test_box_id(vector: dict) -> None:
 def test_mutate_kdf_state(vector: dict) -> None:
     wc = WriteCap.from_bytes(bytes.fromhex(vector["writecap_hex"]))
     rc = wc.read_cap()
-    idx = wc.first_message_box_index
+    idx = wc.message_box_index
     advance_by = vector["advance_by"]
     if advance_by:
         idx = idx.advance_index_to(idx.idx_64 + advance_by)
@@ -117,7 +117,7 @@ def test_mutate_kdf_state(vector: dict) -> None:
 )
 def test_encrypt_for_context(vector: dict) -> None:
     wc = WriteCap.from_bytes(bytes.fromhex(vector["writecap_hex"]))
-    idx = wc.first_message_box_index
+    idx = wc.message_box_index
     advance_by = vector["advance_by"]
     if advance_by:
         idx = idx.advance_index_to(idx.idx_64 + advance_by)

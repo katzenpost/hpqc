@@ -432,7 +432,7 @@ type WriteCap struct {
 	// in-memory only:
 	rootPublicKey *ed25519.PublicKey
 
-	firstMessageBoxIndex *MessageBoxIndex
+	messageBoxIndex *MessageBoxIndex
 }
 
 // WriteCapSize is the size in bytes of a serialized BoxOwnerCap
@@ -452,7 +452,7 @@ func NewWriteCap(rng io.Reader) (*WriteCap, error) {
 	}
 	o.rootPrivateKey = sk
 	o.rootPublicKey = pk
-	o.firstMessageBoxIndex, err = NewMessageBoxIndex(rng)
+	o.messageBoxIndex, err = NewMessageBoxIndex(rng)
 	if err != nil {
 		return nil, err
 	}
@@ -475,7 +475,7 @@ func NewEmptyWriteCap() *WriteCap {
 	return &WriteCap{
 		rootPrivateKey:       new(ed25519.PrivateKey),
 		rootPublicKey:        new(ed25519.PublicKey),
-		firstMessageBoxIndex: NewEmptyMessageBoxIndex(),
+		messageBoxIndex: NewEmptyMessageBoxIndex(),
 	}
 }
 
@@ -485,12 +485,12 @@ func (o *WriteCap) ReadCap() *ReadCap {
 	ret.rootPublicKey = o.rootPublicKey
 	// NB: o is the firstIndex that we know about/can read,
 	// not necessarily the first index in the conversation:
-	// Create a copy of the firstMessageBoxIndex to avoid pointer sharing
-	ret.firstMessageBoxIndex = &MessageBoxIndex{
-		Idx64:             o.firstMessageBoxIndex.Idx64,
-		CurBlindingFactor: o.firstMessageBoxIndex.CurBlindingFactor,
-		CurEncryptionKey:  o.firstMessageBoxIndex.CurEncryptionKey,
-		HKDFState:         o.firstMessageBoxIndex.HKDFState,
+	// Create a copy of the messageBoxIndex to avoid pointer sharing
+	ret.messageBoxIndex = &MessageBoxIndex{
+		Idx64:             o.messageBoxIndex.Idx64,
+		CurBlindingFactor: o.messageBoxIndex.CurBlindingFactor,
+		CurEncryptionKey:  o.messageBoxIndex.CurEncryptionKey,
+		HKDFState:         o.messageBoxIndex.HKDFState,
 	}
 	return &ret
 }
@@ -504,7 +504,7 @@ func (o *WriteCap) MutateKDFState(ctx []byte) *WriteCap {
 	return &WriteCap{
 		rootPrivateKey:       o.rootPrivateKey,
 		rootPublicKey:        o.rootPublicKey,
-		firstMessageBoxIndex: o.firstMessageBoxIndex.MutateKDFState(ctx),
+		messageBoxIndex: o.messageBoxIndex.MutateKDFState(ctx),
 	}
 }
 
@@ -516,13 +516,34 @@ func (o *WriteCap) RootPrivateKey() *ed25519.PrivateKey {
 	return o.rootPrivateKey
 }
 
-// GetFirstMessageBoxIndex returns a copy of the first message box index.
-func (o *WriteCap) GetFirstMessageBoxIndex() *MessageBoxIndex {
+// GetMessageBoxIndex returns a copy of the cap's message box index (the index
+// the cap currently points at, which is the first only for a freshly-minted cap).
+func (o *WriteCap) GetMessageBoxIndex() *MessageBoxIndex {
 	return &MessageBoxIndex{
-		Idx64:             o.firstMessageBoxIndex.Idx64,
-		CurBlindingFactor: o.firstMessageBoxIndex.CurBlindingFactor,
-		CurEncryptionKey:  o.firstMessageBoxIndex.CurEncryptionKey,
-		HKDFState:         o.firstMessageBoxIndex.HKDFState,
+		Idx64:             o.messageBoxIndex.Idx64,
+		CurBlindingFactor: o.messageBoxIndex.CurBlindingFactor,
+		CurEncryptionKey:  o.messageBoxIndex.CurEncryptionKey,
+		HKDFState:         o.messageBoxIndex.HKDFState,
+	}
+}
+
+// WithMessageBoxIndex returns a copy of the write cap whose embedded message box
+// index is a copy of idx, leaving the receiver unchanged. Use it to re-base a cap
+// to a chosen position (e.g. the live edge) before handing it out, so the holder
+// of the new cap learns nothing about indices before idx.
+func (o *WriteCap) WithMessageBoxIndex(idx *MessageBoxIndex) *WriteCap {
+	if idx == nil {
+		panic("WithMessageBoxIndex: nil index")
+	}
+	return &WriteCap{
+		rootPrivateKey: o.rootPrivateKey,
+		rootPublicKey:  o.rootPublicKey,
+		messageBoxIndex: &MessageBoxIndex{
+			Idx64:             idx.Idx64,
+			CurBlindingFactor: idx.CurBlindingFactor,
+			CurEncryptionKey:  idx.CurEncryptionKey,
+			HKDFState:         idx.HKDFState,
+		},
 	}
 }
 
@@ -539,7 +560,7 @@ func (o *WriteCap) MarshalBinary() ([]byte, error) {
 	if _, err := buf.Write(o.rootPrivateKey.Bytes()); err != nil {
 		return nil, err
 	}
-	if err := binary.Write(&buf, binary.LittleEndian, o.firstMessageBoxIndex); err != nil {
+	if err := binary.Write(&buf, binary.LittleEndian, o.messageBoxIndex); err != nil {
 		return nil, err
 	}
 	return buf.Bytes(), nil
@@ -557,19 +578,19 @@ func (o *WriteCap) UnmarshalBinary(data []byte) error {
 		return err
 	}
 	o.rootPublicKey = o.rootPrivateKey.PublicKey()
-	o.firstMessageBoxIndex = &MessageBoxIndex{}
-	if err := o.firstMessageBoxIndex.UnmarshalBinary(data[ed25519.PrivateKeySize:]); err != nil {
+	o.messageBoxIndex = &MessageBoxIndex{}
+	if err := o.messageBoxIndex.UnmarshalBinary(data[ed25519.PrivateKeySize:]); err != nil {
 		return err
 	}
 	return nil
 }
 
 // ReadCap is a read capability can be used to compute BACAP boxes
-// and decrypt their message payloads for indices >= firstMessageBoxIndex
+// and decrypt their message payloads for indices >= messageBoxIndex
 type ReadCap struct {
 	rootPublicKey *ed25519.PublicKey
 
-	firstMessageBoxIndex *MessageBoxIndex
+	messageBoxIndex *MessageBoxIndex
 }
 
 // ReadCapSize is the size in bytes of the ReadCap struct type.
@@ -582,7 +603,7 @@ var _ encoding.BinaryUnmarshaler = (*ReadCap)(nil)
 func NewEmptyReadCap() *ReadCap {
 	return &ReadCap{
 		rootPublicKey:        new(ed25519.PublicKey),
-		firstMessageBoxIndex: NewEmptyMessageBoxIndex(),
+		messageBoxIndex: NewEmptyMessageBoxIndex(),
 	}
 }
 
@@ -602,7 +623,7 @@ func (u *ReadCap) MarshalBinary() ([]byte, error) {
 	if _, err := buf.Write(u.rootPublicKey.Bytes()); err != nil {
 		return nil, err
 	}
-	mboxBytes, err := u.firstMessageBoxIndex.MarshalBinary()
+	mboxBytes, err := u.messageBoxIndex.MarshalBinary()
 	if err != nil {
 		return nil, err
 	}
@@ -620,8 +641,8 @@ func (u *ReadCap) UnmarshalBinary(data []byte) error {
 	if err != nil {
 		return err
 	}
-	u.firstMessageBoxIndex = &MessageBoxIndex{}
-	if err := u.firstMessageBoxIndex.UnmarshalBinary(data[ed25519.PublicKeySize:]); err != nil {
+	u.messageBoxIndex = &MessageBoxIndex{}
+	if err := u.messageBoxIndex.UnmarshalBinary(data[ed25519.PublicKeySize:]); err != nil {
 		return err
 	}
 	return nil
@@ -634,7 +655,7 @@ func (u *ReadCap) UnmarshalBinary(data []byte) error {
 func (u *ReadCap) MutateKDFState(ctx []byte) *ReadCap {
 	return &ReadCap{
 		rootPublicKey:        u.rootPublicKey,
-		firstMessageBoxIndex: u.firstMessageBoxIndex.MutateKDFState(ctx),
+		messageBoxIndex: u.messageBoxIndex.MutateKDFState(ctx),
 	}
 }
 
@@ -646,13 +667,33 @@ func (u *ReadCap) RootPublicKey() *ed25519.PublicKey {
 	return u.rootPublicKey
 }
 
-// GetFirstMessageBoxIndex returns a copy of the first message box index.
-func (u *ReadCap) GetFirstMessageBoxIndex() *MessageBoxIndex {
+// GetMessageBoxIndex returns a copy of the cap's message box index (the index
+// the cap currently points at, which is the first only for a freshly-minted cap).
+func (u *ReadCap) GetMessageBoxIndex() *MessageBoxIndex {
 	return &MessageBoxIndex{
-		Idx64:             u.firstMessageBoxIndex.Idx64,
-		CurBlindingFactor: u.firstMessageBoxIndex.CurBlindingFactor,
-		CurEncryptionKey:  u.firstMessageBoxIndex.CurEncryptionKey,
-		HKDFState:         u.firstMessageBoxIndex.HKDFState,
+		Idx64:             u.messageBoxIndex.Idx64,
+		CurBlindingFactor: u.messageBoxIndex.CurBlindingFactor,
+		CurEncryptionKey:  u.messageBoxIndex.CurEncryptionKey,
+		HKDFState:         u.messageBoxIndex.HKDFState,
+	}
+}
+
+// WithMessageBoxIndex returns a copy of the read cap whose embedded message box
+// index is a copy of idx, leaving the receiver unchanged. Re-basing a read cap to
+// the current position before sharing it means the recipient starts there and
+// cannot iterate the one-way ratchet back to count earlier messages.
+func (u *ReadCap) WithMessageBoxIndex(idx *MessageBoxIndex) *ReadCap {
+	if idx == nil {
+		panic("WithMessageBoxIndex: nil index")
+	}
+	return &ReadCap{
+		rootPublicKey: u.rootPublicKey,
+		messageBoxIndex: &MessageBoxIndex{
+			Idx64:             idx.Idx64,
+			CurBlindingFactor: idx.CurBlindingFactor,
+			CurEncryptionKey:  idx.CurEncryptionKey,
+			HKDFState:         idx.HKDFState,
+		},
 	}
 }
 
@@ -693,8 +734,8 @@ func NewStatefulReader(urcap *ReadCap, ctx []byte) (*StatefulReader, error) {
 	sr := &StatefulReader{
 		Rcap:          urcap,
 		Ctx:           ctxCopy,
-		LastInboxRead: urcap.firstMessageBoxIndex,
-		NextIndex:     urcap.firstMessageBoxIndex,
+		LastInboxRead: urcap.messageBoxIndex,
+		NextIndex:     urcap.messageBoxIndex,
 	}
 	return sr, nil
 }
@@ -871,7 +912,7 @@ func NewStatefulWriter(owner *WriteCap, ctx []byte) (*StatefulWriter, error) {
 		Wcap:          owner,
 		Ctx:           ctxCopy,
 		LastOutboxIdx: nil,                        // No messages written yet
-		NextIndex:     owner.firstMessageBoxIndex, // Start at firstMessage boxIndex (not skipping)
+		NextIndex:     owner.messageBoxIndex, // start at the cap's message box index (not skipping)
 	}
 	return sw, nil
 }

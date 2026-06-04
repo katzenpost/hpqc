@@ -774,7 +774,7 @@ func genBACAPBoxID() vectorFile {
 
 	vs := make([]bacapBoxIDVector, 0, len(cases))
 	for _, c := range cases {
-		idx := wc.GetFirstMessageBoxIndex()
+		idx := wc.GetMessageBoxIndex()
 		if c.advanceBy > 0 {
 			advanced, err := idx.AdvanceIndexTo(idx.Idx64 + c.advanceBy)
 			must(err)
@@ -847,7 +847,7 @@ func genBACAPEncrypt() vectorFile {
 
 	vs := make([]bacapEncryptVector, 0, len(cases))
 	for _, c := range cases {
-		idx := wc.GetFirstMessageBoxIndex()
+		idx := wc.GetMessageBoxIndex()
 		if c.advanceBy > 0 {
 			advanced, err := idx.AdvanceIndexTo(idx.Idx64 + c.advanceBy)
 			must(err)
@@ -926,7 +926,7 @@ func genBACAPMutateKDFState() vectorFile {
 
 	vs := make([]bacapMutateVector, 0, len(cases))
 	for _, c := range cases {
-		idx := wc.GetFirstMessageBoxIndex()
+		idx := wc.GetMessageBoxIndex()
 		if c.advanceBy > 0 {
 			advanced, err := idx.AdvanceIndexTo(idx.Idx64 + c.advanceBy)
 			must(err)

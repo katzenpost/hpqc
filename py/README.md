@@ -79,7 +79,7 @@ writer = WriteCap.generate()
 reader = writer.read_cap()
 ctx = b"my-application/v1"
 
-mbi = writer.first_message_box_index
+mbi = writer.message_box_index
 box_id, ciphertext, signature = mbi.encrypt_for_context(
     writer, ctx, b"hello, pigeonhole"
 )
