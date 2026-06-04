@@ -47,8 +47,8 @@ class StatefulReader:
         self.ctx: bytes = bytes(ctx)
         if next_index is None:
             # Start at the conversation's first message box.
-            self.last_inbox_read: Optional[MessageBoxIndex] = read_cap.first_message_box_index
-            self.next_index: Optional[MessageBoxIndex] = read_cap.first_message_box_index
+            self.last_inbox_read: Optional[MessageBoxIndex] = read_cap.message_box_index
+            self.next_index: Optional[MessageBoxIndex] = read_cap.message_box_index
         else:
             # Resuming from a known checkpoint or starting fresh from a
             # specific index; this instance has no prior-read history.
@@ -135,7 +135,7 @@ class StatefulWriter:
         self.ctx: bytes = bytes(ctx)
         if next_index is None:
             self.last_outbox_idx: Optional[MessageBoxIndex] = None
-            self.next_index: Optional[MessageBoxIndex] = owner.first_message_box_index if owner is not None else None
+            self.next_index: Optional[MessageBoxIndex] = owner.message_box_index if owner is not None else None
         else:
             self.last_outbox_idx = None
             self.next_index = next_index

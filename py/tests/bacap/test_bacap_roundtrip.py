@@ -95,7 +95,7 @@ def test_readcap_marshal_round_trip() -> None:
 def test_writecap_and_readcap_share_box_ids() -> None:
     wc = WriteCap.generate()
     rc = wc.read_cap()
-    idx = wc.first_message_box_index
+    idx = wc.message_box_index
     assert wc.derive_box_id(idx) == rc.derive_box_id(idx)
 
 
@@ -105,7 +105,7 @@ def test_writecap_and_readcap_share_box_ids() -> None:
 def test_encrypt_then_decrypt_for_context() -> None:
     wc = WriteCap.generate()
     rc = wc.read_cap()
-    idx = wc.first_message_box_index
+    idx = wc.message_box_index
     plaintext = b"the eagle has landed"
 
     box_id, ciphertext, sig = idx.encrypt_for_context(wc, CTX, plaintext)
@@ -123,7 +123,7 @@ def test_encrypt_then_decrypt_for_context() -> None:
 
 def test_decrypt_rejects_bad_signature() -> None:
     wc = WriteCap.generate()
-    idx = wc.first_message_box_index
+    idx = wc.message_box_index
     box_id, ciphertext, sig = idx.encrypt_for_context(wc, CTX, b"hello")
     # Flip a bit in the signature.
     bad = bytearray(sig)
@@ -135,7 +135,7 @@ def test_decrypt_rejects_bad_signature() -> None:
 def test_tombstone_decrypt_returns_empty() -> None:
     """A signed empty ciphertext is treated as a tombstone."""
     wc = WriteCap.generate()
-    idx = wc.first_message_box_index
+    idx = wc.message_box_index
     # Sign an empty payload at this index/ctx.
     box_id, sig = idx.sign_box(wc, CTX, b"")
     plaintext = idx.decrypt_for_context(box_id, CTX, b"", sig)
@@ -210,8 +210,8 @@ def test_stateful_reader_with_explicit_index() -> None:
     box_id_c, ct_c, sig_c = writer.encrypt_next(b"c")
 
     # A fresh reader resumed at the third index should accept it.
-    third_idx = rc.first_message_box_index.advance_index_to(
-        rc.first_message_box_index.idx_64 + 2
+    third_idx = rc.message_box_index.advance_index_to(
+        rc.message_box_index.idx_64 + 2
     )
     reader = StatefulReader(rc, CTX, next_index=third_idx)
     plaintext = reader.decrypt_next(CTX, box_id_c, ct_c, sig_c)
@@ -255,7 +255,7 @@ def test_invalid_argument_on_wrong_size_bytes() -> None:
 
 def test_decryption_failed_on_corrupt_ciphertext() -> None:
     wc = WriteCap.generate()
-    idx = wc.first_message_box_index
+    idx = wc.message_box_index
     box_id, ciphertext, sig = idx.encrypt_for_context(wc, CTX, b"hello")
 
     # Flip a bit in the middle of the ciphertext (signature still verifies
@@ -279,7 +279,7 @@ def test_all_bacap_errors_inherit_from_BACAPError() -> None:
     # Construct the simplest case for each subclass and confirm the catch.
     wc = WriteCap.generate()
     rc = wc.read_cap()
-    idx = wc.first_message_box_index
+    idx = wc.message_box_index
 
     # InvalidArgument
     with pytest.raises(BACAPError):
