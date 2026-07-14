@@ -1,5 +1,5 @@
-//go:build !windows
-// +build !windows
+//go:build !windows && !wasm
+// +build !windows,!wasm
 
 // SPDX-FileCopyrightText: (c) 2024 David Stainton
 // SPDX-License-Identifier: AGPL-3.0-only
