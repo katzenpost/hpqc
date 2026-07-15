@@ -1,5 +1,4 @@
-//go:build !windows
-// +build !windows
+//go:build !windows && !thinclient
 
 // SPDX-FileCopyrightText: (c) 2024 David Stainton
 // SPDX-License-Identifier: AGPL-3.0-only

@@ -1,6 +1,8 @@
 // SPDX-FileCopyrightText: Copyright (C) 2022-2024  David Stainton.
 // SPDX-License-Identifier: AGPL-3.0-only
 
+//go:build !thinclient
+
 package ctidh511
 
 import (

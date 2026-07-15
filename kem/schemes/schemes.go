@@ -1,3 +1,5 @@
+//go:build !thinclient
+
 package schemes
 
 import (
