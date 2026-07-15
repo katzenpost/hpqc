@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: (c) 2024 David Stainton
 // SPDX-License-Identifier: AGPL-3.0-only
 
-//go:build !wasm
+//go:build !thinclient
 
 package hybrid
 

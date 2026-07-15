@@ -60,7 +60,7 @@
 //
 // https://github.com/katzenpost/hpqc/issues/55
 
-//go:build !wasm
+//go:build !thinclient
 
 package bacap
 
