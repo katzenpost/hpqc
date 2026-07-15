@@ -1,3 +1,5 @@
+//go:build !thinclient
+
 // SPDX-FileCopyrightText: © 2026 David Stainton
 // SPDX-License-Identifier: AGPL-3.0-only
 
@@ -314,13 +316,13 @@ func genAESGCMSIV() vectorFile {
 // one schema.
 
 type blindedEd25519Vector struct {
-	Name              string   `json:"name"`
-	Provenance        string   `json:"provenance"`         // where the inputs came from
-	PrivateKeyHex     string   `json:"private_key_hex"`    // 64-byte Ed25519 private key (seed || pub)
-	MessageHex        string   `json:"message_hex"`        // message to sign
-	BlindFactorsHex   []string `json:"blind_factors_hex"`  // one or more 32-byte factors, applied in order
-	BlindedPubKeyHex  string   `json:"blinded_pubkey_hex"` // 32-byte blinded public key after all factors applied
-	BlindedSigHex     string   `json:"blinded_signature_hex"` // 64-byte signature under the blinded private key
+	Name             string   `json:"name"`
+	Provenance       string   `json:"provenance"`            // where the inputs came from
+	PrivateKeyHex    string   `json:"private_key_hex"`       // 64-byte Ed25519 private key (seed || pub)
+	MessageHex       string   `json:"message_hex"`           // message to sign
+	BlindFactorsHex  []string `json:"blind_factors_hex"`     // one or more 32-byte factors, applied in order
+	BlindedPubKeyHex string   `json:"blinded_pubkey_hex"`    // 32-byte blinded public key after all factors applied
+	BlindedSigHex    string   `json:"blinded_signature_hex"` // 64-byte signature under the blinded private key
 }
 
 const (
@@ -380,7 +382,7 @@ func genBlindedEd25519() vectorFile {
 	}
 	leifPriv := stded25519.NewKeyFromSeed(leifSeed)
 	for i := range leifFactors {
-		factors := leifFactors[: i+1]
+		factors := leifFactors[:i+1]
 		vs = append(vs, computeBlindedEd25519Vector(
 			fmt.Sprintf("leif_chain_step_%d", i+1),
 			provenanceLeif,
@@ -745,12 +747,12 @@ func genBACAPMessageBoxIndex() vectorFile {
 // CurBlindingFactor through HKDF with the context as salt).
 
 type bacapBoxIDVector struct {
-	Name              string `json:"name"`
-	WriteCapHex       string `json:"writecap_hex"`
-	AdvanceBy         uint64 `json:"advance_by"`
-	CtxHex            string `json:"ctx_hex"`
-	UseContext        bool   `json:"use_context"`
-	ExpectedBoxIDHex  string `json:"expected_box_id_hex"`
+	Name             string `json:"name"`
+	WriteCapHex      string `json:"writecap_hex"`
+	AdvanceBy        uint64 `json:"advance_by"`
+	CtxHex           string `json:"ctx_hex"`
+	UseContext       bool   `json:"use_context"`
+	ExpectedBoxIDHex string `json:"expected_box_id_hex"`
 }
 
 func genBACAPBoxID() vectorFile {
@@ -819,13 +821,13 @@ func fixedBACAPRootPubKey() *ed25519.PublicKey {
 // ed25519 signing.
 
 type bacapEncryptVector struct {
-	Name                string `json:"name"`
-	WriteCapHex         string `json:"writecap_hex"`
-	AdvanceBy           uint64 `json:"advance_by"`
-	CtxHex              string `json:"ctx_hex"`
-	PlaintextHex        string `json:"plaintext_hex"`
-	ExpectedBoxIDHex    string `json:"expected_box_id_hex"`
-	ExpectedCiphertext  string `json:"expected_ciphertext_hex"`
+	Name                 string `json:"name"`
+	WriteCapHex          string `json:"writecap_hex"`
+	AdvanceBy            uint64 `json:"advance_by"`
+	CtxHex               string `json:"ctx_hex"`
+	PlaintextHex         string `json:"plaintext_hex"`
+	ExpectedBoxIDHex     string `json:"expected_box_id_hex"`
+	ExpectedCiphertext   string `json:"expected_ciphertext_hex"`
 	ExpectedSignatureHex string `json:"expected_signature_hex"`
 }
 
