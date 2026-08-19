@@ -63,7 +63,9 @@ package bacap
 
 import (
 	"bytes"
+	"encoding"
 	"encoding/binary"
+	"errors"
 
 	"github.com/katzenpost/hpqc/sign/ed25519"
 )
@@ -146,4 +148,199 @@ func (o *WriteCap) MarshalBinary() ([]byte, error) {
 		return nil, err
 	}
 	return buf.Bytes(), nil
+}
+
+// The following serialization methods and their non-cryptographic
+// constructors are WASM-safe: they only pack and parse bytes and parse
+// ed25519 keys, invoking no cryptographic primitive. They live here (not
+// in bacap_impl.go) so a thinclient build can name and (de)serialize the
+// cap types over the wire without pulling in the crypto operations.
+
+// ensure we implement encoding.BinaryMarshaler/BinaryUmarshaler
+var _ encoding.BinaryMarshaler = (*MessageBoxIndex)(nil)
+var _ encoding.BinaryUnmarshaler = (*MessageBoxIndex)(nil)
+
+func NewEmptyMessageBoxIndexFromBytes(b []byte) (*MessageBoxIndex, error) {
+	m := NewEmptyMessageBoxIndex()
+	err := m.UnmarshalBinary(b)
+	if err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+// NewEmptyMessageBoxIndex returns an empty MessageBoxIndex which can be used
+// with the UnmarshalBinary method.
+func NewEmptyMessageBoxIndex() *MessageBoxIndex {
+	return &MessageBoxIndex{
+		Idx64:             0,
+		CurBlindingFactor: [32]byte{},
+		CurEncryptionKey:  [32]byte{},
+		HKDFState:         [32]byte{},
+	}
+}
+
+// MarshalBinary returns a binary blob of the given type.
+func (m *MessageBoxIndex) MarshalBinary() ([]byte, error) {
+	var buf bytes.Buffer
+	err := binary.Write(&buf, binary.LittleEndian, m.Idx64)
+	if err != nil {
+		return nil, err
+	}
+	for _, field := range [][]byte{
+		m.CurBlindingFactor[:],
+		m.CurEncryptionKey[:],
+		m.HKDFState[:],
+	} {
+		if _, err := buf.Write(field); err != nil {
+			return nil, err
+		}
+	}
+	return buf.Bytes(), nil
+}
+
+// UnmarshalBinary populates the given MessageBoxIndex from the given serialized blob
+// or it returns an error.
+func (m *MessageBoxIndex) UnmarshalBinary(data []byte) error {
+	if len(data) != MessageBoxIndexSize {
+		return errors.New(errInvalidMessageBoxIndexBinarySize)
+	}
+	m.Idx64 = binary.LittleEndian.Uint64(data[:8])
+	copy(m.CurBlindingFactor[:], data[8:40])
+	copy(m.CurEncryptionKey[:], data[40:72])
+	copy(m.HKDFState[:], data[72:104])
+	return nil
+}
+
+// ensure we implement encoding.BinaryMarshaler/BinaryUmarshaler
+var _ encoding.BinaryMarshaler = (*WriteCap)(nil)
+var _ encoding.BinaryUnmarshaler = (*WriteCap)(nil)
+
+// NewWriteCapFromBytes deserializes a blob into a WriteCap type.
+func NewWriteCapFromBytes(data []byte) (*WriteCap, error) {
+	cap := NewEmptyWriteCap()
+	err := cap.UnmarshalBinary(data)
+	if err != nil {
+		return nil, err
+	}
+	return cap, nil
+}
+
+// RootPrivateKey returns the write cap's root signing key. A plain signature
+// made with it verifies against the corresponding read cap's root public key
+// (see ReadCap.RootPublicKey), so callers need not know the write cap's
+// serialized byte layout to sign with the root key.
+func (o *WriteCap) RootPrivateKey() *ed25519.PrivateKey {
+	return o.rootPrivateKey
+}
+
+// GetMessageBoxIndex returns a copy of the cap's message box index (the index
+// the cap currently points at, which is the first only for a freshly-minted cap).
+func (o *WriteCap) GetMessageBoxIndex() *MessageBoxIndex {
+	return &MessageBoxIndex{
+		Idx64:             o.messageBoxIndex.Idx64,
+		CurBlindingFactor: o.messageBoxIndex.CurBlindingFactor,
+		CurEncryptionKey:  o.messageBoxIndex.CurEncryptionKey,
+		HKDFState:         o.messageBoxIndex.HKDFState,
+	}
+}
+
+// NewEmptyWriteCap returns an empty WriteCap which is can be used
+// with the UnmarshalBinary method.
+func NewEmptyWriteCap() *WriteCap {
+	return &WriteCap{
+		rootPrivateKey:  new(ed25519.PrivateKey),
+		rootPublicKey:   new(ed25519.PublicKey),
+		messageBoxIndex: NewEmptyMessageBoxIndex(),
+	}
+}
+
+// UnmarshalBinary deserializes a blob into the given type.
+// Here we derive our public key from the given private key.
+func (o *WriteCap) UnmarshalBinary(data []byte) error {
+	if len(data) != WriteCapSize {
+		return errors.New("invalid BoxOwnerCap binary size")
+	}
+	o.rootPrivateKey = new(ed25519.PrivateKey)
+	err := o.rootPrivateKey.FromBytes(data[:ed25519.PrivateKeySize])
+	if err != nil {
+		return err
+	}
+	o.rootPublicKey = o.rootPrivateKey.PublicKey()
+	o.messageBoxIndex = &MessageBoxIndex{}
+	if err := o.messageBoxIndex.UnmarshalBinary(data[ed25519.PrivateKeySize:]); err != nil {
+		return err
+	}
+	return nil
+}
+
+// ensure we implement encoding.BinaryMarshaler/BinaryUmarshaler
+var _ encoding.BinaryMarshaler = (*ReadCap)(nil)
+var _ encoding.BinaryUnmarshaler = (*ReadCap)(nil)
+
+func NewEmptyReadCap() *ReadCap {
+	return &ReadCap{
+		rootPublicKey:   new(ed25519.PublicKey),
+		messageBoxIndex: NewEmptyMessageBoxIndex(),
+	}
+}
+
+// ReadCapFromBytes deserialize the read cap from a blob or return an error.
+func ReadCapFromBytes(data []byte) (*ReadCap, error) {
+	cap := NewEmptyReadCap()
+	err := cap.UnmarshalBinary(data)
+	if err != nil {
+		return nil, err
+	}
+	return cap, nil
+}
+
+// RootPublicKey returns the read cap's root public key, against which a
+// signature made by the corresponding WriteCap.RootPrivateKey verifies. It
+// lets callers verify such a signature without knowing the read cap's
+// serialized byte layout.
+func (u *ReadCap) RootPublicKey() *ed25519.PublicKey {
+	return u.rootPublicKey
+}
+
+// GetMessageBoxIndex returns a copy of the cap's message box index (the index
+// the cap currently points at, which is the first only for a freshly-minted cap).
+func (u *ReadCap) GetMessageBoxIndex() *MessageBoxIndex {
+	return &MessageBoxIndex{
+		Idx64:             u.messageBoxIndex.Idx64,
+		CurBlindingFactor: u.messageBoxIndex.CurBlindingFactor,
+		CurEncryptionKey:  u.messageBoxIndex.CurEncryptionKey,
+		HKDFState:         u.messageBoxIndex.HKDFState,
+	}
+}
+
+// MarshalBinary returns a binary blob of the given type.
+func (u *ReadCap) MarshalBinary() ([]byte, error) {
+	var buf bytes.Buffer
+	if _, err := buf.Write(u.rootPublicKey.Bytes()); err != nil {
+		return nil, err
+	}
+	mboxBytes, err := u.messageBoxIndex.MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+	buf.Write(mboxBytes) // error is always nil
+	return buf.Bytes(), nil
+}
+
+// UnmarshalBinary populates our types fields from the given binary blob.
+func (u *ReadCap) UnmarshalBinary(data []byte) error {
+	if len(data) != ReadCapSize {
+		return errors.New("invalid ReadCap binary size")
+	}
+	u.rootPublicKey = new(ed25519.PublicKey)
+	err := u.rootPublicKey.FromBytes(data[:ed25519.PublicKeySize])
+	if err != nil {
+		return err
+	}
+	u.messageBoxIndex = &MessageBoxIndex{}
+	if err := u.messageBoxIndex.UnmarshalBinary(data[ed25519.PublicKeySize:]); err != nil {
+		return err
+	}
+	return nil
 }
