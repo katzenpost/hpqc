@@ -1,3 +1,5 @@
+Test
+
 # Breaking changes
 
 1. **BACAP nonce 16 → 12 bytes.** `bacap.MessageBoxIndex.{Encrypt,Decrypt}ForContext` now feeds RFC 8452-compliant 12-byte nonces (`mICtx[:12]`) to AES-256-GCM-SIV. Old ciphertexts no longer decrypt. See [#96](https://github.com/katzenpost/hpqc/issues/96).
