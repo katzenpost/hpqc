@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: (c) 2026 David Stainton
 // SPDX-License-Identifier: AGPL-3.0-only
 
-//go:build linux && amd64
+//go:build linux && amd64 && !android
 
 package sqisign
 

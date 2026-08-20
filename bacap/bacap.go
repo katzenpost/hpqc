@@ -226,6 +226,25 @@ func NewWriteCapFromBytes(data []byte) (*WriteCap, error) {
 	return cap, nil
 }
 
+// RootPrivateKey returns the write cap's root signing key. A plain signature
+// made with it verifies against the corresponding read cap's root public key
+// (see ReadCap.RootPublicKey), so callers need not know the write cap's
+// serialized byte layout to sign with the root key.
+func (o *WriteCap) RootPrivateKey() *ed25519.PrivateKey {
+	return o.rootPrivateKey
+}
+
+// GetMessageBoxIndex returns a copy of the cap's message box index (the index
+// the cap currently points at, which is the first only for a freshly-minted cap).
+func (o *WriteCap) GetMessageBoxIndex() *MessageBoxIndex {
+	return &MessageBoxIndex{
+		Idx64:             o.messageBoxIndex.Idx64,
+		CurBlindingFactor: o.messageBoxIndex.CurBlindingFactor,
+		CurEncryptionKey:  o.messageBoxIndex.CurEncryptionKey,
+		HKDFState:         o.messageBoxIndex.HKDFState,
+	}
+}
+
 // NewEmptyWriteCap returns an empty WriteCap which is can be used
 // with the UnmarshalBinary method.
 func NewEmptyWriteCap() *WriteCap {
@@ -274,6 +293,25 @@ func ReadCapFromBytes(data []byte) (*ReadCap, error) {
 		return nil, err
 	}
 	return cap, nil
+}
+
+// RootPublicKey returns the read cap's root public key, against which a
+// signature made by the corresponding WriteCap.RootPrivateKey verifies. It
+// lets callers verify such a signature without knowing the read cap's
+// serialized byte layout.
+func (u *ReadCap) RootPublicKey() *ed25519.PublicKey {
+	return u.rootPublicKey
+}
+
+// GetMessageBoxIndex returns a copy of the cap's message box index (the index
+// the cap currently points at, which is the first only for a freshly-minted cap).
+func (u *ReadCap) GetMessageBoxIndex() *MessageBoxIndex {
+	return &MessageBoxIndex{
+		Idx64:             u.messageBoxIndex.Idx64,
+		CurBlindingFactor: u.messageBoxIndex.CurBlindingFactor,
+		CurEncryptionKey:  u.messageBoxIndex.CurEncryptionKey,
+		HKDFState:         u.messageBoxIndex.HKDFState,
+	}
 }
 
 // MarshalBinary returns a binary blob of the given type.
