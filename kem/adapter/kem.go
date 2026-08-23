@@ -7,7 +7,10 @@ package adapter
 
 import (
 	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/binary"
 	"fmt"
+	"hash"
 
 	"golang.org/x/crypto/blake2b"
 
@@ -79,6 +82,7 @@ func (p *PrivateKey) Public() kem.PublicKey {
 // on this NIKE to KEM adapter.
 type Scheme struct {
 	nike nike.Scheme
+	prf  PRF
 }
 
 var _ kem.Scheme = (*Scheme)(nil)
@@ -93,6 +97,22 @@ func FromNIKE(nike nike.Scheme) kem.Scheme {
 	}
 	return &Scheme{
 		nike: nike,
+		prf:  BLAKE2bXOF,
+	}
+}
+
+// FromNIKEWithPRF creates a KEM adapter Scheme over the given NIKE using an
+// explicitly chosen PRF. FromNIKE is the deployed configuration; this exists so
+// the construction can be exercised under a PRF that other implementations can
+// also compute. Changing the PRF changes the shared key, so a scheme built here
+// is wire-incompatible with one built by FromNIKE.
+func FromNIKEWithPRF(n nike.Scheme, prf PRF) kem.Scheme {
+	if n == nil || prf == nil {
+		return nil
+	}
+	return &Scheme{
+		nike: n,
+		prf:  prf,
 	}
 }
 
@@ -130,38 +150,129 @@ func (a *Scheme) Encapsulate(pk kem.PublicKey) (ct, ss []byte, err error) {
 	// ss = DH(my_privkey, their_pubkey)
 	ss = a.nike.DeriveSecret(sk2.(*PrivateKey).privateKey, theirPubkey.publicKey)
 	defer coreUtil.ExplicitBzero(ss)
-	// ss2 = H(ss || their_pubkey || my_pubkey)
-	ss2 := a.hash(ss, theirPubkey.publicKey.Bytes(), myPubkey.(*PublicKey).publicKey.Bytes())
+	// shared_key = PRF(ss, static recipient key, ephemeral key)
+	ss2, err := a.prf.Derive(ss, theirPubkey.publicKey.Bytes(),
+		myPubkey.(*PublicKey).publicKey.Bytes(), a.SharedKeySize())
+	if err != nil {
+		return nil, nil, err
+	}
 	ct, _ = myPubkey.MarshalBinary()
 	return ct, ss2, nil
 }
 
-func (a *Scheme) hash(ss []byte, pubkey1 []byte, pubkey2 []byte) []byte {
+// PRF derives the adapter's shared key from the raw NIKE shared secret and the
+// two public keys that define the exchange. Both Encapsulate and Decapsulate
+// pass the static recipient key first and the ephemeral key second.
+type PRF interface {
+	// Name identifies the PRF, and is what a shared test vector records so
+	// consumers do not have to assume which one produced it.
+	Name() string
+
+	// Derive returns the shared key. ss is the raw NIKE shared secret,
+	// pkStatic the recipient's long-term public key, pkEph the ephemeral
+	// public key carried in the ciphertext, and sharedKeySize the scheme's
+	// advertised shared key size.
+	Derive(ss, pkStatic, pkEph []byte, sharedKeySize int) ([]byte, error)
+}
+
+// BLAKE2bXOF is the deployed PRF: a BLAKE2b XOF keyed by the shared secret,
+// over the two public keys as message.
+var BLAKE2bXOF PRF = blake2bXOF{}
+
+// SHA256v1 is a fixed-width SHA-256 PRF used for cross-implementation test
+// vectors. It is NOT the deployed construction; it exists because it can be
+// computed by implementations that have SHA-256 but no BLAKE2b. Because its
+// output is exactly one SHA-256 digest it only supports a 32-byte shared key,
+// which covers X25519 but not the wider-key NIKEs.
+var SHA256v1 PRF = sha256v1{}
+
+// PRFByName resolves the name a test vector records.
+func PRFByName(name string) (PRF, error) {
+	switch name {
+	case BLAKE2bXOF.Name():
+		return BLAKE2bXOF, nil
+	case SHA256v1.Name():
+		return SHA256v1, nil
+	default:
+		return nil, fmt.Errorf("adapter: unknown PRF %q", name)
+	}
+}
+
+type blake2bXOF struct{}
+
+func (blake2bXOF) Name() string { return "blake2b-xof" }
+
+func (blake2bXOF) Derive(ss, pkStatic, pkEph []byte, sharedKeySize int) ([]byte, error) {
 	var h blake2b.XOF
 	var err error
+	// A 32-byte secret keys the XOF directly; anything else is pre-hashed.
+	// The two paths share no domain separation, which is a wart worth fixing
+	// (the KEM combiner in this repo always hashes), but changing it now would
+	// change every deployed shared key.
 	if len(ss) != 32 {
 		sum := blake2b.Sum256(ss)
-		h, err = blake2b.NewXOF(uint32(a.SharedKeySize()), sum[:])
+		h, err = blake2b.NewXOF(uint32(sharedKeySize), sum[:])
 	} else {
-		h, err = blake2b.NewXOF(uint32(a.SharedKeySize()), ss)
+		h, err = blake2b.NewXOF(uint32(sharedKeySize), ss)
 	}
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
-	_, err = h.Write(pubkey1)
-	if err != nil {
-		panic(err)
+	if _, err = h.Write(pkStatic); err != nil {
+		return nil, err
 	}
-	_, err = h.Write(pubkey2)
-	if err != nil {
-		panic(err)
+	if _, err = h.Write(pkEph); err != nil {
+		return nil, err
 	}
-	ss2 := make([]byte, len(ss))
-	_, err = h.Read(ss2)
-	if err != nil {
-		panic(err)
+	// NOTE: the XOF is sized at sharedKeySize but len(ss) bytes are read.
+	// These are independent quantities; they coincide for every NIKE shipped
+	// here. Preserved as-is to keep deployed outputs unchanged.
+	out := make([]byte, len(ss))
+	if _, err = h.Read(out); err != nil {
+		return nil, err
 	}
-	return ss2
+	return out, nil
+}
+
+// sha256v1Label domain-separates this PRF from any other use of SHA-256.
+const sha256v1Label = "kemadapter-sha256-v1"
+
+type sha256v1 struct{}
+
+func (sha256v1) Name() string { return "sha256-v1" }
+
+// Derive computes
+//
+//	SHA256(label || u32be(len(ss)) || ss
+//	             || u32be(len(pkStatic)) || pkStatic
+//	             || u32be(len(pkEph))    || pkEph)
+//
+// Every variable-length field is length-prefixed, so the encoding is
+// unambiguous regardless of the underlying NIKE's key sizes.
+func (sha256v1) Derive(ss, pkStatic, pkEph []byte, sharedKeySize int) ([]byte, error) {
+	if sharedKeySize != sha256.Size {
+		return nil, fmt.Errorf(
+			"adapter: sha256-v1 PRF supports a %d-byte shared key, not %d",
+			sha256.Size, sharedKeySize)
+	}
+	h := sha256.New()
+	h.Write([]byte(sha256v1Label))
+	for _, part := range [][]byte{ss, pkStatic, pkEph} {
+		if err := writeLenPrefixed(h, part); err != nil {
+			return nil, err
+		}
+	}
+	return h.Sum(nil), nil
+}
+
+func writeLenPrefixed(h hash.Hash, b []byte) error {
+	var n [4]byte
+	binary.BigEndian.PutUint32(n[:], uint32(len(b)))
+	if _, err := h.Write(n[:]); err != nil {
+		return err
+	}
+	_, err := h.Write(b)
+	return err
 }
 
 // Returns the shared key encapsulated in ciphertext ct for the
@@ -179,8 +290,12 @@ func (a *Scheme) Decapsulate(myPrivkey kem.PrivateKey, ct []byte) ([]byte, error
 	// s = DH(my_privkey, their_pubkey)
 	ss := a.nike.DeriveSecret(myPrivkey.(*PrivateKey).privateKey, theirPubkey.(*PublicKey).publicKey)
 	defer coreUtil.ExplicitBzero(ss)
-	// shared_key = H(ss || my_pubkey || their_pubkey)
-	ss2 := a.hash(ss, myPrivkey.Public().(*PublicKey).publicKey.Bytes(), theirPubkey.(*PublicKey).publicKey.Bytes())
+	// shared_key = PRF(ss, static recipient key, ephemeral key)
+	ss2, err := a.prf.Derive(ss, myPrivkey.Public().(*PublicKey).publicKey.Bytes(),
+		theirPubkey.(*PublicKey).publicKey.Bytes(), a.SharedKeySize())
+	if err != nil {
+		return nil, err
+	}
 	return ss2, nil
 }
 
