@@ -1,0 +1,68 @@
+{
+  "format_version": 1,
+  "generator": "github.com/katzenpost/hpqc/testvectors/cmd/generate",
+  "primitive": "kem_adapter",
+  "description": "NIKE-to-KEM adapter (hashed ElGamal) over X25519. Each vector fixes a static recipient keypair and an ephemeral keypair; the ciphertext is the encoded ephemeral public key and the shared secret is what both Encapsulate (with that ephemeral) and Decapsulate produce. The \"prf\" field names the shared-key derivation: \"blake2b-xof\" is the deployed one, \"sha256-v1\" is a portable fixed-width alternative for implementations without BLAKE2b. Consumers must dispatch on it rather than assume. Private keys are recorded already clamped per RFC 7748 so implementations clamping on load and at use time agree. Vectors are deterministic: regenerating does not change the bytes.",
+  "vectors": [
+    {
+      "name": "x25519_distinct_keys_1_blake2b-xof",
+      "nike_name": "x25519",
+      "prf": "blake2b-xof",
+      "static_private_key_hex": "d8e690d3c390af9220b41d0d65fe38d1f49dfd2775a1bf9c7b53100d08ec487b",
+      "static_public_key_hex": "aee767ce066f54deff968e3c3cef49c7be3c489290b54247b2016ef1d10bde0d",
+      "ephemeral_private_key_hex": "0839dcd47014d5d8e42f7a86d11e57b3f0f04341d913221bfa6e28e299533a44",
+      "ciphertext_hex": "89ec56dc23dff3e85545d7df2b50b31c4758b33275e3194ca1a3cf1e89ef0077",
+      "shared_secret_hex": "f30be3cdcbb5e0fafbd7fece7c1c7f886c5fa5dc7ce34cfee2d64f8bbbb39d2f"
+    },
+    {
+      "name": "x25519_distinct_keys_2_blake2b-xof",
+      "nike_name": "x25519",
+      "prf": "blake2b-xof",
+      "static_private_key_hex": "980497d271d4541df1c4c0654ad3fb91c8335d96bf1fa2541071f9a434558a41",
+      "static_public_key_hex": "9f75aa59f9d70705108b640e25cf13cde84d552f48ee86b29ce4aafcffb77904",
+      "ephemeral_private_key_hex": "a8c70f1893e7c242e56bc1ab2e6af43218f54fce81963ad4230302344519357e",
+      "ciphertext_hex": "58da08aa5dbe8bc4fa8781844b554d685d8073f61d6005c5949ae0542cdb307d",
+      "shared_secret_hex": "371921c7d2c93736dc82fc44c1b54c6094881415884562dd29dcc544ba3d1a50"
+    },
+    {
+      "name": "x25519_same_scalar_both_sides_blake2b-xof",
+      "nike_name": "x25519",
+      "prf": "blake2b-xof",
+      "static_private_key_hex": "c87d391aad5c1c1759c86b60443b451044ed66913fe70fdfe49241f008547a4a",
+      "static_public_key_hex": "0ce7bff1fc2ee6f364947759de3c0997ceecc9bce58faf5b9e8a2b2130f1473f",
+      "ephemeral_private_key_hex": "c87d391aad5c1c1759c86b60443b451044ed66913fe70fdfe49241f008547a4a",
+      "ciphertext_hex": "0ce7bff1fc2ee6f364947759de3c0997ceecc9bce58faf5b9e8a2b2130f1473f",
+      "shared_secret_hex": "c03551e147b27c0318fc170e2644bbe517a9fd32b30d56f371b3acd5075623a1"
+    },
+    {
+      "name": "x25519_distinct_keys_1_sha256-v1",
+      "nike_name": "x25519",
+      "prf": "sha256-v1",
+      "static_private_key_hex": "d8e690d3c390af9220b41d0d65fe38d1f49dfd2775a1bf9c7b53100d08ec487b",
+      "static_public_key_hex": "aee767ce066f54deff968e3c3cef49c7be3c489290b54247b2016ef1d10bde0d",
+      "ephemeral_private_key_hex": "0839dcd47014d5d8e42f7a86d11e57b3f0f04341d913221bfa6e28e299533a44",
+      "ciphertext_hex": "89ec56dc23dff3e85545d7df2b50b31c4758b33275e3194ca1a3cf1e89ef0077",
+      "shared_secret_hex": "fb4f83502b12727839ccc2a10d742b60e4f35ecde37cf51a1619d64302dae143"
+    },
+    {
+      "name": "x25519_distinct_keys_2_sha256-v1",
+      "nike_name": "x25519",
+      "prf": "sha256-v1",
+      "static_private_key_hex": "980497d271d4541df1c4c0654ad3fb91c8335d96bf1fa2541071f9a434558a41",
+      "static_public_key_hex": "9f75aa59f9d70705108b640e25cf13cde84d552f48ee86b29ce4aafcffb77904",
+      "ephemeral_private_key_hex": "a8c70f1893e7c242e56bc1ab2e6af43218f54fce81963ad4230302344519357e",
+      "ciphertext_hex": "58da08aa5dbe8bc4fa8781844b554d685d8073f61d6005c5949ae0542cdb307d",
+      "shared_secret_hex": "d1d365cb671190b9a6956efc493cf0629f9ba0214435727cf71467ac1a110255"
+    },
+    {
+      "name": "x25519_same_scalar_both_sides_sha256-v1",
+      "nike_name": "x25519",
+      "prf": "sha256-v1",
+      "static_private_key_hex": "c87d391aad5c1c1759c86b60443b451044ed66913fe70fdfe49241f008547a4a",
+      "static_public_key_hex": "0ce7bff1fc2ee6f364947759de3c0997ceecc9bce58faf5b9e8a2b2130f1473f",
+      "ephemeral_private_key_hex": "c87d391aad5c1c1759c86b60443b451044ed66913fe70fdfe49241f008547a4a",
+      "ciphertext_hex": "0ce7bff1fc2ee6f364947759de3c0997ceecc9bce58faf5b9e8a2b2130f1473f",
+      "shared_secret_hex": "a694222cc24cd7c8323a01fa8d3525f55ccc4330fe743f0beae18b32648d70d7"
+    }
+  ]
+}

@@ -35,9 +35,12 @@ import (
 	"github.com/katzenpost/falcon/padded512"
 
 	"github.com/katzenpost/hpqc/bacap"
+	"github.com/katzenpost/hpqc/kem/adapter"
 	"github.com/katzenpost/hpqc/kem/mkem"
 	"github.com/katzenpost/hpqc/nike"
 	"github.com/katzenpost/hpqc/nike/hybrid"
+	ecdh "github.com/katzenpost/hpqc/nike/x25519"
+	"github.com/katzenpost/hpqc/rand"
 	"github.com/katzenpost/hpqc/sign"
 	"github.com/katzenpost/hpqc/sign/ed25519"
 	signhybrid "github.com/katzenpost/hpqc/sign/hybrid"
@@ -80,6 +83,7 @@ func main() {
 	writeFile(*out, "bacap/mutate_kdf_state.json", genBACAPMutateKDFState())
 
 	writeFile(*out, "kem/mkem.json", genKEMMkem())
+	writeFile(*out, "kem/adapter_test_vectors.json", genKEMAdapter())
 
 	fmt.Println("ok")
 }
@@ -1034,6 +1038,103 @@ func genKEMMkem() vectorFile {
 		Generator:     generatorName,
 		Primitive:     "kem_mkem",
 		Description:   "MKEM ciphertexts over the CTIDH1024-X25519 hybrid NIKE. Each vector records the recipient private keys (hex, MarshalBinary form) and a CBOR-marshaled MKEM ciphertext; consumers must recover the recorded plaintext when decapsulating with any of the recorded private keys. Outputs are non-deterministic, so re-running the generator changes every vector.",
+		Vectors:       vs,
+	}
+}
+
+// NIKE-to-KEM adapter (hashed ElGamal) over X25519. The adapter's ciphertext is
+// exactly the encoded ephemeral public key, and its shared secret is a keyed
+// BLAKE2b XOF over the static recipient key followed by the ephemeral key,
+// keyed by the raw X25519 shared secret. See kem/adapter/kem.go.
+
+type adapterVector struct {
+	Name                   string `json:"name"`
+	NikeName               string `json:"nike_name"`
+	PRFName                string `json:"prf"`
+	StaticPrivateKeyHex    string `json:"static_private_key_hex"`
+	StaticPublicKeyHex     string `json:"static_public_key_hex"`
+	EphemeralPrivateKeyHex string `json:"ephemeral_private_key_hex"`
+	CiphertextHex          string `json:"ciphertext_hex"`
+	SharedSecretHex        string `json:"shared_secret_hex"`
+}
+
+// clampX25519 applies the RFC 7748 clamping. Recorded private keys are stored
+// already clamped, so implementations that clamp on load and implementations
+// that clamp at use time agree on the scalar; clamping is idempotent.
+func clampX25519(k []byte) []byte {
+	out := make([]byte, len(k))
+	copy(out, k)
+	out[0] &= 248
+	out[31] &= 127
+	out[31] |= 64
+	return out
+}
+
+// adapterScalar derives a fixed, clamped X25519 scalar from a label, so the
+// vectors are stable across regeneration.
+func adapterScalar(label string) []byte {
+	sum := sha512.Sum512_256([]byte(label))
+	return clampX25519(sum[:])
+}
+
+func genKEMAdapter() vectorFile {
+	nikeScheme := ecdh.Scheme(rand.Reader)
+
+	cases := []struct{ name, staticLabel, ephemeralLabel string }{
+		{"x25519_distinct_keys_1", "hpqc adapter static 1", "hpqc adapter ephemeral 1"},
+		{"x25519_distinct_keys_2", "hpqc adapter static 2", "hpqc adapter ephemeral 2"},
+		{"x25519_same_scalar_both_sides", "hpqc adapter static 3", "hpqc adapter static 3"},
+	}
+
+	// Both the deployed PRF and the portable one, so a consumer that has only
+	// SHA-256 still has vectors it can check, and one that has BLAKE2b can
+	// check the configuration actually shipped.
+	prfs := []adapter.PRF{adapter.BLAKE2bXOF, adapter.SHA256v1}
+
+	vs := make([]adapterVector, 0, len(cases)*len(prfs))
+	for _, prf := range prfs {
+		scheme := adapter.FromNIKEWithPRF(nikeScheme, prf)
+		for _, c := range cases {
+			staticPrivBytes := adapterScalar(c.staticLabel)
+			ephPrivBytes := adapterScalar(c.ephemeralLabel)
+
+			staticPriv, err := scheme.UnmarshalBinaryPrivateKey(staticPrivBytes)
+			must(err)
+			ephPriv, err := scheme.UnmarshalBinaryPrivateKey(ephPrivBytes)
+			must(err)
+
+			staticPubBytes, err := staticPriv.Public().MarshalBinary()
+			must(err)
+			ephPubBytes, err := ephPriv.Public().MarshalBinary()
+			must(err)
+
+			// The adapter ciphertext is the encoded ephemeral public key, so
+			// decapsulating it under the static private key yields exactly the
+			// shared secret Encapsulate would produce with this ephemeral.
+			// Encapsulate itself draws its ephemeral from crypto/rand and
+			// EncapsulateDeterministically is unimplemented, so this is the
+			// only deterministic way to record the value.
+			ss, err := scheme.Decapsulate(staticPriv, ephPubBytes)
+			must(err)
+
+			vs = append(vs, adapterVector{
+				Name:                   c.name + "_" + prf.Name(),
+				NikeName:               nikeScheme.Name(),
+				PRFName:                prf.Name(),
+				StaticPrivateKeyHex:    hex.EncodeToString(staticPrivBytes),
+				StaticPublicKeyHex:     hex.EncodeToString(staticPubBytes),
+				EphemeralPrivateKeyHex: hex.EncodeToString(ephPrivBytes),
+				CiphertextHex:          hex.EncodeToString(ephPubBytes),
+				SharedSecretHex:        hex.EncodeToString(ss),
+			})
+		}
+	}
+
+	return vectorFile{
+		FormatVersion: formatVersion,
+		Generator:     generatorName,
+		Primitive:     "kem_adapter",
+		Description:   "NIKE-to-KEM adapter (hashed ElGamal) over X25519. Each vector fixes a static recipient keypair and an ephemeral keypair; the ciphertext is the encoded ephemeral public key and the shared secret is what both Encapsulate (with that ephemeral) and Decapsulate produce. The \"prf\" field names the shared-key derivation: \"blake2b-xof\" is the deployed one, \"sha256-v1\" is a portable fixed-width alternative for implementations without BLAKE2b. Consumers must dispatch on it rather than assume. Private keys are recorded already clamped per RFC 7748 so implementations clamping on load and at use time agree. Vectors are deterministic: regenerating does not change the bytes.",
 		Vectors:       vs,
 	}
 }
