@@ -1,0 +1,48 @@
+{
+  "format_version": 1,
+  "generator": "github.com/katzenpost/hpqc/testvectors/cmd/generate",
+  "primitive": "blake2b_xof",
+  "description": "BLAKE2b XOF (BLAKE2Xb) as exposed by golang.org/x/crypto/blake2b.NewXOF(size, key). The configured size is part of the parameter block, so it changes the output stream and is recorded separately from the number of bytes read: note that same_inputs_size_64_read_32 shares key, message and read length with adapter_shape_32byte_key_64byte_msg_32 yet must produce different bytes. xof_size 0 means OutputLengthUnknown. This is the PRF the NIKE-to-KEM adapter keys with the raw shared secret; BACAP does not use it.",
+  "vectors": [
+    {
+      "name": "empty_key_empty_msg_32",
+      "key_hex": "",
+      "msg_hex": "",
+      "xof_size": 32,
+      "length": 32,
+      "out_hex": "1632e145f2e19726b6a9ef54bda8f2493d1147c00ab5b749572f27073e84ed07"
+    },
+    {
+      "name": "adapter_shape_32byte_key_64byte_msg_32",
+      "key_hex": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "msg_hex": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "xof_size": 32,
+      "length": 32,
+      "out_hex": "199a4a7af829f2882f727eab0520b1b0fab9b0b6ebf0153a7c11815424179405"
+    },
+    {
+      "name": "same_inputs_size_64_read_32",
+      "key_hex": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "msg_hex": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "xof_size": 64,
+      "length": 32,
+      "out_hex": "c94b1d61302d2425ba5e285b0fcb6ecd89cb8e6308928973621147ddbc8db7d7"
+    },
+    {
+      "name": "output_length_unknown_read_64",
+      "key_hex": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "msg_hex": "6870716320786f6620756e6b6e6f776e206c656e677468",
+      "xof_size": 0,
+      "length": 64,
+      "out_hex": "0452d7256019b02abaac5cb8b002dcfc8b54c07a1aae2c2efe2ca09e71878edc6d4a5d49dbab96937538fd64c5136da8a5270948a2c6241ee297f5a4d8ce818a"
+    },
+    {
+      "name": "long_output_spans_blocks_200",
+      "key_hex": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "msg_hex": "6870716320786f662073747265616d696e67",
+      "xof_size": 200,
+      "length": 200,
+      "out_hex": "09c92152893e3e04b4a551bbec9f294d3bc2520f5ac01fa1cd01b2f5fe39c2a25974211caf3e6b480f8619ebf938a09dade70953ba57a493e76186b9a1c6de1b4e5ed6f481ba7aa2823c7d5884ef4c94622893c2c526211da5489acf720537a7135008a9f41089c7b013a8b5d9baa15942484456d09a3f5a8b23b7f485a654dffb28fcffa9457468aa9fa9500b3e50bb7cf1ffdad6e20eccf69df4d9aac732eec1783d43bd75ec78f657ffcc2f3d5f46ce9034d967ecd9d603426bc762217c0c540718c9b7af9d33"
+    }
+  ]
+}

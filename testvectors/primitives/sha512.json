@@ -1,0 +1,43 @@
+{
+  "format_version": 1,
+  "generator": "github.com/katzenpost/hpqc/testvectors/cmd/generate",
+  "primitive": "sha512",
+  "description": "SHA-512 (FIPS 180-4). 64-byte output. Used by blinded Ed25519 for seed expansion, nonce derivation and the signature challenge. NOT the same as sha512_256, which has distinct initial hash values.",
+  "vectors": [
+    {
+      "name": "empty",
+      "input_hex": "",
+      "output_hex": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e"
+    },
+    {
+      "name": "abc",
+      "input_hex": "616263",
+      "output_hex": "ddaf35a193617abacc417349ae20413112e6fa4e89a97ea20a9eeee64b55d39a2192992a274fc1a836ba3c23a3feebbd454d4423643ce80e2a9ac94fa54ca49f"
+    },
+    {
+      "name": "32_zero_bytes",
+      "input_hex": "0000000000000000000000000000000000000000000000000000000000000000",
+      "output_hex": "5046adc1dba838867b2bbbfdd0c3423e58b57970b5267a90f57960924a87f1960a6a85eaa642dac835424b5d7c8d637c00408c7a73da672b7f498521420b6dd3"
+    },
+    {
+      "name": "hpqc_bacap_scalar_shape",
+      "input_hex": "5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a",
+      "output_hex": "a7e9933dd9cffc3ac1d584755808c74b47d4e5ca70e99cba419ba509b5820c0771434af6105490e2e349ed5de07e7dca4f2187f277c98dbc3eee344a8a5f6026"
+    },
+    {
+      "name": "hpqc_bacap_nonce_preimage_shape",
+      "input_hex": "a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5",
+      "output_hex": "8d82a22f9a359b5a4ab0367efaeb643d2c54527feca4b32a5a00ba85a5375f862fd4889d3acb95cd54ccdb6866b02081807433923cfd72595703af9b932e6e4c"
+    },
+    {
+      "name": "two_blocks_boundary_112",
+      "input_hex": "5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c",
+      "output_hex": "41bc7ff685ad7ad5657d12d1a9bf02c12f0bf8669d8d4d6033fd3ec906dd4dd1149985fcddefab639bcfc99c42b81eff57980523f831624fd3b860781bda1ac7"
+    },
+    {
+      "name": "three_blocks_300",
+      "input_hex": "3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e",
+      "output_hex": "4daa83f5def6afdda064a764cf68925456f613fc82cf40d0c7b67bc2307042189c9b2a2bf1d9da79a5cd27e54dc619e0ba458196d2132d6b88e7b0e6bb0b7a07"
+    }
+  ]
+}
