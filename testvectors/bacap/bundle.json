@@ -1,0 +1,434 @@
+{
+  "format_version": 1,
+  "generator": "github.com/katzenpost/hpqc/testvectors/cmd/generate",
+  "bundle": "bacap",
+  "description": "Every test vector needed to validate a BACAP implementation, from primitives upward, gathered into one file for consumers that vendor rather than symlink. Sections are ordered bottom-up so the first failing section localises the defect. Contents are identical to the correspondingly named files under testvectors/primitives/ and testvectors/bacap/; this file is generated from the same functions and cannot drift from them.",
+  "sections": [
+    {
+      "primitive": "sha512",
+      "description": "SHA-512 (FIPS 180-4). 64-byte output. Used by blinded Ed25519 for seed expansion, nonce derivation and the signature challenge. NOT the same as sha512_256, which has distinct initial hash values.",
+      "vectors": [
+        {
+          "name": "empty",
+          "input_hex": "",
+          "output_hex": "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce47d0d13c5d85f2b0ff8318d2877eec2f63b931bd47417a81a538327af927da3e"
+        },
+        {
+          "name": "abc",
+          "input_hex": "616263",
+          "output_hex": "ddaf35a193617abacc417349ae20413112e6fa4e89a97ea20a9eeee64b55d39a2192992a274fc1a836ba3c23a3feebbd454d4423643ce80e2a9ac94fa54ca49f"
+        },
+        {
+          "name": "32_zero_bytes",
+          "input_hex": "0000000000000000000000000000000000000000000000000000000000000000",
+          "output_hex": "5046adc1dba838867b2bbbfdd0c3423e58b57970b5267a90f57960924a87f1960a6a85eaa642dac835424b5d7c8d637c00408c7a73da672b7f498521420b6dd3"
+        },
+        {
+          "name": "hpqc_bacap_scalar_shape",
+          "input_hex": "5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a",
+          "output_hex": "a7e9933dd9cffc3ac1d584755808c74b47d4e5ca70e99cba419ba509b5820c0771434af6105490e2e349ed5de07e7dca4f2187f277c98dbc3eee344a8a5f6026"
+        },
+        {
+          "name": "hpqc_bacap_nonce_preimage_shape",
+          "input_hex": "a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5",
+          "output_hex": "8d82a22f9a359b5a4ab0367efaeb643d2c54527feca4b32a5a00ba85a5375f862fd4889d3acb95cd54ccdb6866b02081807433923cfd72595703af9b932e6e4c"
+        },
+        {
+          "name": "two_blocks_boundary_112",
+          "input_hex": "5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c5c",
+          "output_hex": "41bc7ff685ad7ad5657d12d1a9bf02c12f0bf8669d8d4d6033fd3ec906dd4dd1149985fcddefab639bcfc99c42b81eff57980523f831624fd3b860781bda1ac7"
+        },
+        {
+          "name": "three_blocks_300",
+          "input_hex": "3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e3e",
+          "output_hex": "4daa83f5def6afdda064a764cf68925456f613fc82cf40d0c7b67bc2307042189c9b2a2bf1d9da79a5cd27e54dc619e0ba458196d2132d6b88e7b0e6bb0b7a07"
+        }
+      ]
+    },
+    {
+      "primitive": "sha512_256",
+      "description": "SHA-512/256 (FIPS 180-4 §6.7). 32-byte output. Note: NOT the same as SHA-512 truncated to 256 bits; it has a distinct initial hash value.",
+      "vectors": [
+        {
+          "name": "empty",
+          "input_hex": "",
+          "output_hex": "c672b8d1ef56ed28ab87c3622c5114069bdd3ad7b8f9737498d0c01ecef0967a"
+        },
+        {
+          "name": "abc",
+          "input_hex": "616263",
+          "output_hex": "53048e2681941ef99b2e29b76b4c7dabe4c2d0c634fc6d46e0e2f13107e7af23"
+        },
+        {
+          "name": "32_zero_bytes",
+          "input_hex": "0000000000000000000000000000000000000000000000000000000000000000",
+          "output_hex": "af13c048991224a5e4c664446b688aaf48fb5456db3629601b00ec160c74e554"
+        },
+        {
+          "name": "hpqc_bacap_factor_example_1",
+          "input_hex": "424143415020626c696e64696e6720666163746f72206578616d706c65206f6e65",
+          "output_hex": "e8bde64bb5e93e3a1a4612938b49f814bd5582f26047c89ef6cd977c9a796e73"
+        },
+        {
+          "name": "hpqc_bacap_factor_example_2",
+          "input_hex": "424143415020626c696e64696e6720666163746f72206578616d706c652074776f",
+          "output_hex": "9e61e92ebfc13edd399d83e86faaf4495401e96595a391704ca63c33b3f6bb0a"
+        }
+      ]
+    },
+    {
+      "primitive": "blake2b_512",
+      "description": "BLAKE2b-512 (RFC 7693), unkeyed, 64-byte output. Used by BACAP as the underlying hash for HKDF.",
+      "vectors": [
+        {
+          "name": "empty",
+          "input_hex": "",
+          "output_hex": "786a02f742015903c6c6fd852552d272912f4740e15847618a86e217f71f5419d25e1031afee585313896444934eb04b903a685b1448b755d56f701afe9be2ce"
+        },
+        {
+          "name": "abc",
+          "input_hex": "616263",
+          "output_hex": "ba80a53f981c4d0d6a2797b69f12f6e94c212f14685ac4b74b12bb6fdbffa2d17d87c5392aab792dc252d5de4533cc9518d38aa8dbf1925ab92386edd4009923"
+        },
+        {
+          "name": "32_zero_bytes",
+          "input_hex": "0000000000000000000000000000000000000000000000000000000000000000",
+          "output_hex": "9ab7a73a97a1a3031406b6c169634a9c06cfb81dec3323bb4de5ce6f4b7ca107de534442a7eaeafbaf366ccfdde1cb97d7c884e4344cd0a23039de71a56d630a"
+        },
+        {
+          "name": "hpqc_bacap_hkdf_state_example",
+          "input_hex": "484b4446207374617465206578616d706c6520666f72204241434150",
+          "output_hex": "37b243f959f7761f51ea996ef197aa86fb435998c7be70a079f2b30ae3435ecf91fcddda7abd9f48f29886a328b39881d2982e49f080d1d39c9842c6733b250e"
+        }
+      ]
+    },
+    {
+      "primitive": "hkdf_blake2b",
+      "description": "HKDF-BLAKE2b-512 (RFC 5869 with BLAKE2b-512 as the hash). Go's signature is hkdf.New(hash, secret, salt, info); BACAP passes ctx as salt and the index as info, so the parameter ordering is the most common porting hazard.",
+      "vectors": [
+        {
+          "name": "empty_salt_empty_info_32",
+          "secret_hex": "0101010101010101010101010101010101010101010101010101010101010101",
+          "salt_hex": "",
+          "info_hex": "",
+          "length": 32,
+          "okm_hex": "5a3ef17d5bee0d9aeca5c1b6fa870a5b53c6950f98b623a06b79f6220c375d73"
+        },
+        {
+          "name": "ctx_as_salt_empty_info_32",
+          "secret_hex": "0202020202020202020202020202020202020202020202020202020202020202",
+          "salt_hex": "424143415020636f6e74657874206578616d706c65",
+          "info_hex": "",
+          "length": 32,
+          "okm_hex": "a69367b637b6d783cd0fa48582e65701622bd81289ead66c5b8fc3954c526a53"
+        },
+        {
+          "name": "ctx_as_salt_index_as_info_96",
+          "secret_hex": "0303030303030303030303030303030303030303030303030303030303030303",
+          "salt_hex": "",
+          "info_hex": "0700000000000000",
+          "length": 96,
+          "okm_hex": "01109061f6aedaf2d8ec93ae2219fe5a2a8cd0eca0c7ffc60e292f1b4dd0370f5f19c54195a79b6470710765db56390e9f640551943b09c20f865e831b0f949809a40c062777342bb08dc47bba5f83feb3cda7749056bea289ee5d0afe52a17e"
+        },
+        {
+          "name": "long_okm_to_catch_streaming_bugs",
+          "secret_hex": "0404040404040404040404040404040404040404040404040404040404040404",
+          "salt_hex": "73616c742d58",
+          "info_hex": "696e666f2d59",
+          "length": 200,
+          "okm_hex": "8b3a3bd24373fc4e76a8842d3f3613bd13518cc28cf5fc96818be8a67338e1b811ba81f09c91aa1c4c6e340dd215c9cb5c030fe9fa42f5de2ffc4013822225cbe573ede121c471f65f10db526983b723379aab609eb3fcb883c1763df81783a84df64624ce1910535e47b125e361f0b417c8c924a191cb4c282d0108e641574bbadb63189193ac76c8b6da24069be532955ba29a0b153966d3ed33f81a2dc22d6f72f75e137670e73d14fd48ebfba240678e5fb8c081ac801c0f6bd981e1fa3d50f19579edc22d34"
+        }
+      ]
+    },
+    {
+      "primitive": "aes_gcm_siv",
+      "description": "AES-256-GCM-SIV (RFC 8452). The vectors include both an RFC reference and BACAP-shaped cases where nonce = box_id[:16] and AAD = box_id[:32].",
+      "vectors": [
+        {
+          "name": "rfc8452_appendix_c_2_example_1",
+          "key_hex": "0100000000000000000000000000000000000000000000000000000000000000",
+          "nonce_hex": "030000000000000000000000",
+          "aad_hex": "",
+          "plaintext_hex": "",
+          "ciphertext_hex": "07f5f4169bbf55a8400cd47ea6fd400f"
+        },
+        {
+          "name": "bacap_shape_box_id_as_nonce_and_aad",
+          "key_hex": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "nonce_hex": "bbbbbbbbbbbbbbbbbbbbbbbb",
+          "aad_hex": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "plaintext_hex": "48656c6c6f2c2042414341502e",
+          "ciphertext_hex": "df1a795701f34e86804cb46c3d8f4b3cdf0e06eb0e3e9bc0012c826457"
+        },
+        {
+          "name": "bacap_shape_long_plaintext",
+          "key_hex": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "nonce_hex": "dddddddddddddddddddddddd",
+          "aad_hex": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "plaintext_hex": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "ciphertext_hex": "82c0216098175abdcd6db3b6baddc6de3a24db118bcdf989ae50ff404c02d3d9713d73466e083fc589d0a54c5164cdaad1bd21a1f43d6bad87a6366d9f4bdc7f8a140986edd517c644675043fc06ed949f5bf881622fce76a7018952521039f7bf21cb579ec22df57f3b1c7039e893e8ac46cd8551f817dfbec33670cb903fcae9b49a887c77498ae70ad34b1aae881d4263ae250f2a2edd16f910ce288e32bf634ecc1ce24f26194ec7cc91d2bc6a4a6c16f937a61515d53f11746b726fb8f725a9d5a1c567f114d75178a307202f5da26c84a59923473ca4fc4cdd88729198b3d7b20f5a9faa4e4527bb3f3bde4fc42dd80e9cf594c99b0d52bb410e25460dedca1d0ce7cafd5c364ffabc014a76cc0ebef021c445d2d654ef5ab3517ca89589b4ee46e0f4194bb93f91cb749d9bc6ce77df2f32447194321246e91e71c62abef5aaaa1be1cbfaa5a54d0a296ce9cb53e83c2f4c6a100c5c013c03fa477277fbeff24875340d880847a55452c63c4e4336eee9d5a08552f1e9c4e6be010fb495e464a0b6d0461e9ee77d20bd90614016912be0f36831a4ee1c362a955b90c611ae90d37249baaac657fbfcc51c7e56efd653ad4aac1b29e6fe0be5d02acc5a5eb1fcaf3b81a2d129e2cf2c952110fbffdddb1203f50458f5053daca9ee303a0e55792a90209cddb9209680366e71adb29d8ce4191d87b45e42fdf0d0850b6aba46fd6f37e85db0e2ac1b9d92cef7c8"
+        }
+      ]
+    },
+    {
+      "primitive": "ed25519",
+      "description": "Plain Ed25519 (RFC 8032) sign/verify vectors. Each seed is deterministically derived via HKDF-BLAKE2b-512 over the vector name; the 32-byte public key is recorded along with a 64-byte signature over the message.",
+      "vectors": [
+        {
+          "name": "vec_1_empty_msg",
+          "public_key_hex": "aed887e6e4f3ed4f5e9a0bdf8e1cbc2ae34c1bbb9ae68d83c8d04093f02e12b1",
+          "message_hex": "",
+          "signature_hex": "8f6231804190e87ec21867153b6146a320c701956c0517f0ec91b7b9db66b5d5fcf0eec066ebd4eb27a2d9243949fed2ce3c08cf3b567b0f528a5b3b05620508"
+        },
+        {
+          "name": "vec_2_short_ascii",
+          "public_key_hex": "154137bae021b45a07b597f95c04f3641c12980b1cb93b8bead586a18858f3d1",
+          "message_hex": "74686520717569636b2062726f776e20666f78206a756d7073206f76657220746865206c617a7920646f67",
+          "signature_hex": "5ac0562640c1c3fcf573a3fb8365c1182af7c50887f73371d4afd180c263867cfcb566105a56c7e5e16d5464a5a82aa6f836ecf6b829930e2aabf8ba66e7900e"
+        },
+        {
+          "name": "vec_3_thirty_two_bytes",
+          "public_key_hex": "2f3f60f6109dd189f9fb21c1f42a97b009cfde59d83dac5fcd16e27f03f0ab8f",
+          "message_hex": "5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a",
+          "signature_hex": "97c56ad0c01141c25eeec1c7bbcff050f2a155c518e883f83df95f3e62c69098743ae32104bc00c95487f75973e659e6b33617b54560dcdef49edec9b485770f"
+        },
+        {
+          "name": "vec_4_one_kilobyte",
+          "public_key_hex": "ff7c356c1c116071d26c1f590c235107fe20eebbb7482d6aadcf03f206e1afa0",
+          "message_hex": "a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5",
+          "signature_hex": "ed682f1436355364e2b36b1f34cb3bd8008639fd61b8c8af0f30f0835a94facf94b384413b89e399f687f69e60ebbab82511e1c97f1fa788e1b2b8dcbaee370e"
+        },
+        {
+          "name": "vec_5_random_short",
+          "public_key_hex": "6eeb7930f494af183ebfa0c4afbd37a45c44ed8610df36ee97a8f46bb837f5e9",
+          "message_hex": "590bc7ca7c44794b855ccc885d5f4c6bae",
+          "signature_hex": "c8920c46db71c685612e8a22ab10f23328d935c133e163e19f5441448faefa3f5dc71feb25a4639e15b32118fa6b402d93323415717131d8dbac3c5d03f12e08"
+        },
+        {
+          "name": "vec_6_random_long",
+          "public_key_hex": "9c122be9aa6a0a605993f45afbc16fe4c0f5e54ddaeb023a1856ee960326a456",
+          "message_hex": "2c4369538e8571a297341c580518e63271500a5fa5eb0a004da1875a8148083fab5337ddff3bf4cf0f554fab635c0bde955f0725e131f1c7a1226c7689310cb716219fdb30ff7756566462fa3699d349b04eba9639f802e82bed5e5c93445129cd4566729c8fb708471c4cb5ba3ffaaba9d5785eeef9cdef26a3f50917b7446ed3e72d24d2d504622b4fe8bfd7a9810fe78c5de54d298ba037be5290c220b0b1289e469ce3191f74d338fcde24a6cea58704d1048e074d92ac989a5b1d02c9c54048637bc5a2a857fceca1b99aaae3e7b349eed94e3153717abf6edd12e0f01bf448b6b679f2b15284d059ea54c553a6e741c3777c63070a94eb4e43bac114a804b773df08c45ea4c2a7be58e95dab687e9e6b615521bdafceb08f3da898384b1bf73f42361814334417f52083e0c560c2fcbf03b946357db14dcd554e8a059cc48c8b4022af87da6507b9ca83fe7b5ce9b0fce56ef7646f48f48f7a6eed4b9734342fb8227a2db893e1a08f037a3989914343b5f4ebc65aa9ca74ca2c381222b01134a5aebfb0ba9f6e796b87237cd32d8af9ef71fdbb54eeee6439f13e41114126d5c336fa788d2086ee48d10ac1b6871830ad575dcc5987fd9a9fc1b7d55a073838e3303777e9783185f188c150544bf7c414a4fdb54c595e0bad9b294742839abdf2ec50432dc3bded96d99bedd7d61c0f84f93a5a0b2e087b4eb0d71e368f70e59f93d334d661cad2203d386173be3e97e34c5e995c6f041e7482e7d58480e638c441b1535210c323250592e4cf5f5d1f8f7a41ee0956bcf7099465d443aef64669f2e1ff0b01681ac8f9d881f829c82be371c8a7a362e8b0526ab86b46d9fb58b1f6525a947b069967a1d348e82de969f7238220f440a43109218554025ff7252199128341147ba9580d7977261934a5754de9351b37f172eed0a61f1dbd2b49e2311edc2a9485611d8ba46ba7507eee18a6bd50f56c7a56d16ab3364fc2ac4a29f40758b8e977bbd3789000e49bf4bcb0e4e179f067a32bc14b76fef387f634f9f95694ffb69ad2f4983a31f8a76ddd398d509ebe60bd7461110c04cf7f4bb52a5f36eed901ca67165091d533c9876f2d52e34fcb063ef261d55f0f2e8c1cb04251309bf7a2a24f54ba880444a52b7b6aeef9acf2bd7e5b70e07e7fd5957954ad10c6853c1c54848de93388b525a1d1ef75fa4b99b617adb2be0786a1fd1e0036c9edad906234626bf113d741dda45c7806942c13b19b4bc353500d5563ba1ee707ed5e1424af8f430980c662b7d29f42ef073f68f8c98b479b52567ae95f63cbf12a68c62f644924e5cbefbfe344bb460800d369831c2232477d69c01a231b46886821fa1aeaeb3137bca27e72029a642e234580dba8f006bc059c2222a3efc740fb11b65ccc39601e56cb4e00f023396e894d35671b119362c3c7cecb61b737e227860a06ff55e360f00e6dea7f6c02f5f75c2fc321f839e8aa2c56b2d9e1929b6eef5030d2d479fbf4c5effd58e48f1c4ef28bfac6484e1aadb5df1d96ea799d2e5a3017f6731509e8de822a6d79743c1f0486281bf451107ddf9adfaa946a0afe8376e634d642eb35031a6e1cb714ae0d4e573ac129559f1711f9286939a1c22f27bd408359b3ae289e09538af67d8c035b2357aa0569bb1c7219ef88f72d2e308c57699436b73da88448d168ff3c38245f4465f1876ad4f9cd67da7b7a013cc218e30bd4c60a2ba3cbce5a6e19c911b4f8616480691e42a4f8cd080f69192456ff675f1a59ae224ff2bb90364b8442e72f41f80380682b6583d9167b07473774d81383ce8d901fbff1e2c73af9ed2d22d7029747174083b498a5ac33ffc98a4db39fa5becad7ddda9d0623bb3d4b02ac9d2f5054ae42c740a917109cb9b509764b017810579c3e63c29c960c63a1a999c379d81b8ad049a1e0c383fd9d9fa8cc4abce0d7bc5fba4af3c248687f31016ec05972ba5fb736146dccf00d9d94d530529e0da83bed3a9eec57cd5123b902b914980bb32636b704c14be98e131574bf1f93aadff9c56d02051118a1b50fa8f09d0b032ea69a772d4883d293c57789862aa5570bf742b8dbb5fefe56aff845ca8cca64d987657bcf38130a2609010467118b7ef918f4ca7a404de1494feffee2491ebc0b23de5b723799c55fe51840c283b0dfac560f3ed8e60deba0d5d7cfd2636f19d441edd12de666fb0066ac1c7f8a690d8094dfde009a265ea72a6de25a38b4b767207b672bd6a5aab412ba4af808163883246084fb9a594f044250a8f98a2e871f29721dc80a20c0077c833a3eb4f8bc3a3578f739ef2275826789c0da23b55cfde63c615ad53047e59eb2aaee2f1bd3352dd2a0f0eed91148acf34a9dcd9c176849bf950644d526e23854de0732677b5f01cc03b8ec2417e238430f34959d3387d15e6a63be958982770fca346219b65ccc1229133b595429769c929f68549c34efa113b3e8e9ef5722c5567df4d0c0c16615d263825318e32994c81b60f8f712d621ea90dceb85c3dd0f4cc552e706dfd558e4362eddbeb663e006592efcee63e8465cb6cac028a36d4221d4fbaf1a0915f9036293be5c7a16b01688e2c8a6476fb469eec3eef03fcd4764a995322d0ca56b91615afac371cbee5fc9297552e9447122d25454b9504cf4c84d1596b1d26e5525e05f2fce530c4b471f2d94dee696b2615debccddabe06eba85b447ef8886827b38572c7db87bc0e041bcd4f4ed04fa58b7924f7b1abfdca83e21037573acf78d82db9f199ae5770236e7f8c935a23e2cd51ed858c2111340fa596187d5838f530b288d335b1ef7569c85c25bd6027aae74ffd8fb03d427b30c1b1550ec6569edf2203731e41d2a7bf0f475b3047f747b3753869a599a5e23d76fdbd971c4867e7e1a604a3d0ac2018af01cfab9ccc509e835e4b3fab6f76b1a21c20970abbdd6af1d38c68f42a604f069936e7ac5a77c387226fdbff7facd5171526e2d52eed8446f382286758bc43c55500d96323a6795a72e98efbbdf0aa40403d35d4b08fc2d3805fa38f15a160a52de41602b45c92342d19ba4fec87bfaa510040ec5e2e6b727854e13605cde31d2b60556fb050c06bc3b973493d063007a27d0899c8ffa592fbb04e569c1a21e67ef0aabf4cebbdf94cc776abff91d2269a9e5b3519e29fa84bb1a45a356bab0fe73e1312a7015d9f5e44272db543bac22ead98aca75386a7d9f60ea8ce7ea67b5cfc7c3fa226953d412e1ad1826209d325f88b01491ca90b6f173eaf4a9cd3d03782c6fa213b1bb50af52a88826c9fe84b2df8ae74375915da5bfc84c14c0446a689bcdec56453365f79055c04ed0c9c21878c14110a0f1f9bdf03b91421c1d8b1c7b6314686f03b746ad0ae41e16e6c8adf1f093f90126e4b4d6a2292ffe53b21338ec4cd18eb81d2da8042b3583dfca17d4ded3853f7ca89a92e6010bb82bf77543d22e7c18c898cb22e39515783953e52b70f24c8cfe961de01df1072cee83b703a8c4076476250a4e86211d94875a0df087b93c70f2be04f85e21cc0e3f3d5da18f994ae6acde4270597ced04713329e2eeb119c5d51395f046eeca3d2e63210f1672029b1725569b2609ead381cfd1ae1a4f92aada9a21cafa74ecf1ef027601c81ea8b7aaf90ddc671cfa197859da5ef056634e2fd13e5a0519d4b6b762371dcf926c0c022555edc47059aee67509fd7a3e1c2d2c76cd7e045201fd2bfd77bcde3b3508bdbb54162cba35f5e29be93d11e1c27ff1c3f5840e02ce055b095c32d56f59cb65f9a90609e3d613f60f6d8074f2c2f92275ee121aeffa47d0478870678334b6beb4cbcc2e1a9b55ac267d299718022c75dae007fc7dbe5fae51ad82285463c31efb5c3c6896f54367b9f7da7d9ba61f294c3decc05ea88964e76a9a104277f1d7d9a82c10b3daecae4ffd5237e9cbd2b65d6b9b5006aeb9d90cadcba9fe3b9ed400e3d0512d859bc8120250e3ffff15c207a04d4b8090e17e9988983c566ec36e975e84ecf8dac87fb9f93c5fac67cd916e1f41cca46d7d35907e0d94b0359e21302731c1095b7772fee91608261979eacc16866cbf7defbb422d95c37dbe25d24adc1413081bb482eef1143a4b2632ec2ecd46375618c561c44bce42641b3db5e49ab714201be657f591d5d80709e54a2f29b75e2563ebd605043689bc04dce8adec2177380d7518718fcb3b560a700617d051b65b48298e79947ee05a1df98432fd905e1e2f6c95619283616e9ce343dbb0621e068ce0fe39995fa215cc8f07469e41b28d41f601268f8bfa27e210ab52e6cd0348c0e5017c57333029a1147f484b98b2589f75f0e940394a6e5517a38f0e5248d40d840798e486f4655ba01f8332fe5bdf7c6b6690b6abd8effeb27faca510c22ecd22b58077e569a8d9c348a7bf9b5735d17b4d0c22ad3860c51350a500030f498a69d34634d1e445853f305221c26af981e5fdc67d8d7c0b767c6dbf194e2de377f43bba2fb6076693cd751a575787c1f977fb7b9fae96beb4a1843f43917a955903c405a33a96756e65a1f2badee83b0297c608f72624ffaa4f9d79b0c048c454acb8dbb4d3fb120aad11f0d143ffaaa97f702b12b84b283640330f38d2b0e01a8ee33ad307ecd0f31acf0241b0eb0c0d5873a2fcdc95c49bdefc4353dfac21a1bae8e29f5d66228f551c05ab8092e496eb5f18292887ad7873e3ff81072c88fd12f5ab29f1a072004a3dc178fe26e7e3afb6e6610b7ea2d8ee762e6a3782b64e1d80fefb55f76d1643d34f61c348d0c5232db12f15ce8af9dd643b14440bdd690f81760f3f9ffe2d22fc0a3a6fe9c3b70cdae4ed32b8e7e2894f69c4cb144760ed0167f8fb5ba21a9e68eb0689e67985ff4770d7dde6be7244619294ecaada85e41f569124998d012039b829639688e054d4ae73ecedf64d70f8630e480384dfc089167445b1a252b7cbdc84a8b7bc106a62b37bec924252a4cfe1d5c5d80a2977c3f18c578e32f7128fe5100cc1a28436e076a78a3154cd201b6c293cb3c25fbe51375b55357bdce47a522de4e4c32ae1c376a4c6f8023a8a71740376bba6009ee8c087b7f9717ed06f6df00b95497c96942d85781699e8e2ca1038472a65aef7372cf0ec1219e74954333dddf826d0811c60850575e715ebf78fba8f6bc1bc58d7a74cc48ff264bd0eb50d5fa518a98d3d8bac14980044716f29b7c4ed598b49a2d078a160d2a9db38fe731ad6a0e9230d94e30ed543e2b1e0d41ee523fbdab4d5e83351ad9b3a2014903ae613b0d6c3f34d5c553d70ab4bd7f6345f33f258bd562aa365280540d2ac473b1e681b57b26fd54bab2aaafba12d7f63b54fc6c2eb2d12e36339b25a34a1e8c7858b638948e2b22d46741972a5844e83a365eb46c95832cf7ad082a7d8657591e91a71d3a78f3eeece147b83b65357dba2316a0d18d58c0bce4adfcbb7c8b28c30f27c2112dcd0c1607eac214edbe125678acf9587d9871248d3f3eea1d6a60516c0a44d69011878896cad337b2202ead926ef28e3c656af0e4354332e7b851e77b2056a5cc6bb514dbfd230793b21beaaa6355867d94d61752a2920acb69930598a47994baaed612757916269bfbdfd1fde00525167f38f1e2887a8bce398b2e23f2271db6b38a5ebf4229ddcbdccddea74c51afa39501da5d65d092b7b6779643cacf0c1d75e8fe19b8b9d41d28b2238c4714ef30fcdfdd882e785128f77662e8d4f61441773724c2d0a48a9de4acd2919d21d66db2816635cc57a5cce8f1a",
+          "signature_hex": "0d96f63235e06efacbc99af66dc63d62996a710bdff21f6411eacce4d5976f080c26837b8c31e80d2476221950e83058324b49052c8ef782e3f8e192e55dec0c"
+        }
+      ]
+    },
+    {
+      "primitive": "blinded_ed25519",
+      "description": "Blinded Ed25519 per hpqc/sign/ed25519/blinded25519.go. Each vector applies an ordered list of blind factors to a private key and records the resulting blinded public key and a signature over the message under the blinded private key. Single-factor and chain (multi-factor) cases use the same schema; vector names and per-vector provenance distinguish the two sources.",
+      "vectors": [
+        {
+          "name": "hpqc_vector_1_seed_12345",
+          "provenance": "Originally hardcoded in sign/ed25519/blinded25519_test.go::TestBlindedSignatureVectors in the katzenpost/hpqc Go implementation.",
+          "private_key_hex": "1ae969564b34a33ecd1af05fe6923d6de71870997d38ef60155c325957214c425d8ca057866bdee02b63464f587aa75fdad4694c5c05db72323f3928722286cf",
+          "message_hex": "297611a6b583a5c30587d4e530c948f013e96d5a4e653f0791899d6270c6f3c0",
+          "blind_factors_hex": [
+            "59d74b863e2fba93aeceb05d2fdcde0c9688d21d95aa7bedefc7f31b35731a3d"
+          ],
+          "blinded_pubkey_hex": "9040d29aefe0f045ffd580fb5e0d2f98c61df75e6b45c43a0b456f13e0fbc05b",
+          "blinded_signature_hex": "c910841a0274ab6460151143b729d381b925073bbc3877a438fc99bff01e21debe840be097572f177991f896c5ae70401e8ba27c1170c3ac6f1d2f183c5ef303"
+        },
+        {
+          "name": "hpqc_vector_2_seed_0",
+          "provenance": "Originally hardcoded in sign/ed25519/blinded25519_test.go::TestBlindedSignatureVectors in the katzenpost/hpqc Go implementation.",
+          "private_key_hex": "0194fdc2fa2ffcc041d3ff12045b73c86e4ff95ff662a5eee82abdf44a2d0b7597f3bd871315281e8b83edc7a9fd0541066154449070ccdb3cdd42cf69ccde88",
+          "message_hex": "e2d3d0d0de6bf8f9b44ce85ff044c6b1f83b8e883bbf857aab99c5b252c7429c",
+          "blind_factors_hex": [
+            "fb180daf48a79ee0b10d394651850fd4a178892ee285ece1511455780875d64e"
+          ],
+          "blinded_pubkey_hex": "b1275c25380c06100f20942f4f81f3533ef32baeee877cc8c5e2e5df5ddef7a8",
+          "blinded_signature_hex": "92ce223a2774a54246b28fee25627ea03380cb2d1a0812aa6141223de261858f123166a034738270abbac513c66328165893ab72b5a65b190eae35c869c98d06"
+        },
+        {
+          "name": "hpqc_vector_3_seed_max_int64",
+          "provenance": "Originally hardcoded in sign/ed25519/blinded25519_test.go::TestBlindedSignatureVectors in the katzenpost/hpqc Go implementation.",
+          "private_key_hex": "52fdfc072182654f163f5f0f9a621d729566c74d10037c4d7bbb0407d1e2c6496f1581709bb7b1ef030d210db18e3b0ba1c776fba65d8cdaad05415142d189f8",
+          "message_hex": "eb9d18a44784045d87f3c67cf22746e995af5a25367951baa2ff6cd471c483f1",
+          "blind_factors_hex": [
+            "81855ad8681d0d86d1e91e00167939cb6694d2c422acd208a0072939487f6999"
+          ],
+          "blinded_pubkey_hex": "00820761955498aa0c4d0e4d564399ea8281c65051838887c9f6936f63a4159f",
+          "blinded_signature_hex": "c176f7bd7b97555ed006959b76a3fc3b858ae6ce6c1e610f049eef6523886461b61910e21f9e7dbeb5f8e677fb6fd753a9c6c5ed8518278f164f087e72e2d308"
+        },
+        {
+          "name": "leif_chain_step_1",
+          "provenance": "Originally from Leif Ryge's misc/kat.csv in the python-kat branch, merged into add_python_bacap via commit b02c707.",
+          "private_key_hex": "736565643030303030303030303030303030303030303030303030303030303018d06b284d49c140c5f45d6c476ebc8166c04ef9717f95d6319512ece6a72a7c",
+          "message_hex": "4d657373616765204f6e65",
+          "blind_factors_hex": [
+            "666163746f72315f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f"
+          ],
+          "blinded_pubkey_hex": "4ffa4d325b74c3b502eb81c47257ebbb2df5e0ce278d1f08bf6dd51e6909ac99",
+          "blinded_signature_hex": "d713e4575532d387a19878311c9f070a17da2f2315d30f3708aabb1ed68a9957c964e9bc2088497bbee1de4d1c8030dc8402e9776fa7beb3d35b9120b4ef290f"
+        },
+        {
+          "name": "leif_chain_step_2",
+          "provenance": "Originally from Leif Ryge's misc/kat.csv in the python-kat branch, merged into add_python_bacap via commit b02c707.",
+          "private_key_hex": "736565643030303030303030303030303030303030303030303030303030303018d06b284d49c140c5f45d6c476ebc8166c04ef9717f95d6319512ece6a72a7c",
+          "message_hex": "4d657373616765204f6e65",
+          "blind_factors_hex": [
+            "666163746f72315f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f",
+            "666163746f72325f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f"
+          ],
+          "blinded_pubkey_hex": "b1b8e4787ea1fdc667f86fd663554429d0ca3e75e23fd494e29b7b5eed70a09c",
+          "blinded_signature_hex": "b18703580bc1f2083ff51c83d0389a4a1636a00f8499a9437d0a7d6ffd59272ddd2be55d1e79cd21b178da2190ddb7df87d62dffa70032366705993b21f56804"
+        },
+        {
+          "name": "leif_chain_step_3",
+          "provenance": "Originally from Leif Ryge's misc/kat.csv in the python-kat branch, merged into add_python_bacap via commit b02c707.",
+          "private_key_hex": "736565643030303030303030303030303030303030303030303030303030303018d06b284d49c140c5f45d6c476ebc8166c04ef9717f95d6319512ece6a72a7c",
+          "message_hex": "4d657373616765204f6e65",
+          "blind_factors_hex": [
+            "666163746f72315f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f",
+            "666163746f72325f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f",
+            "666163746f72335f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f"
+          ],
+          "blinded_pubkey_hex": "9e7634288bf2cde2a99359613da63acb77b917f58ef04d3fab90da5e6d7c6029",
+          "blinded_signature_hex": "d19c4e76361e81316b9ffc48acfeaf411eaa152abe0e9234f00ed1b01ef3dad3e82b789a41763defe98a598c45fb54faa8d064b11caabd0e27e7145b1081940d"
+        }
+      ]
+    },
+    {
+      "primitive": "bacap_message_box_index",
+      "description": "MessageBoxIndex.AdvanceIndexTo vectors. The initial 104-byte MessageBoxIndex blob is advanced by N steps via the HKDF-BLAKE2b-512 chain; the expected 104-byte resulting blob is recorded.",
+      "vectors": [
+        {
+          "name": "advance_by_1",
+          "initial_index_hex": "0100000000000000aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "advance_to": 2,
+          "expected_index_hex": "0200000000000000d6afc0f178b9df3102c2f2054314d06942ee2cd0b54bb510fc03070775efaf154683f8eda97ee58a8fb03e68fd1fa29228e4d907c151021a4e700ee5e54a95ee89890efb132a4d0ffb004aacbb976aea2de9aa98687c912735f1ca02cac75322"
+        },
+        {
+          "name": "advance_by_2",
+          "initial_index_hex": "0100000000000000aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "advance_to": 3,
+          "expected_index_hex": "03000000000000006e25c22a3ccf35add5f32cbfee6f76323367406b6714362eae1684d1f4b87dcb6c99884c01bed7c84bb499436170d06a350970d40a4f95a0559f6b5e8736e6b5a3ec0e7e8edc575ac6b39e3f96482318ccb0eff457b379457aa74214846155cb"
+        },
+        {
+          "name": "advance_by_5",
+          "initial_index_hex": "0100000000000000aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "advance_to": 6,
+          "expected_index_hex": "060000000000000044f18de89182d8d7d8670a7bc005be059fcdad2a7d7eae3e209ad85ac97f55c68ac42c6b95dca574a7c0a50061e00e8eb1bde88f34ed4b6bcdfd60cc5664333325f1ce979d7a8d88b18cd0d6a71826b53c99f02972822457844db1816da7038c"
+        },
+        {
+          "name": "advance_by_100",
+          "initial_index_hex": "0100000000000000aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "advance_to": 101,
+          "expected_index_hex": "6500000000000000239b4070cb7fef59d9da6b8231bd5f23476fdab9bba8978e5087f9be87ab2e29d5cf263705eec897f66e152aa0e0d6769655d50e72c22d19dcc147f53a99a48fb5671d29b304438a6c3f0b24b6ea863c22324aa0f2c2a59832d782fb7f764f9d"
+        },
+        {
+          "name": "advance_by_1000",
+          "initial_index_hex": "0100000000000000aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "advance_to": 1001,
+          "expected_index_hex": "e9030000000000002f16e5fa12dd54b71a4431e48de467210514dbfcbca1df89cdced11ac863585029e644b9aed95f5e3d2ac04bea9ccb5b499ec61ff3e3b165c426a9a0bc6259caa8084122e96fc8c76fd4b9c614b2e5f9caa0f0778cbf2c3248723172e12e5dc8"
+        }
+      ]
+    },
+    {
+      "primitive": "bacap_box_id",
+      "description": "Box-ID derivation vectors. For each vector, advance the WriteCap's first MessageBoxIndex by N, then derive the box ID. If use_context is true, BoxIDForContext is used (HKDFs the context into the blinding); otherwise DeriveMessageBoxID is used (blinds the root pubkey with the index's CurBlindingFactor directly).",
+      "vectors": [
+        {
+          "name": "derive_at_first_index",
+          "writecap_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b80100000000000000aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "advance_by": 0,
+          "ctx_hex": "",
+          "use_context": false,
+          "expected_box_id_hex": "9259a0005af542f3226f379530b291ce675762430ad5b3323c8b865a0440b7ba"
+        },
+        {
+          "name": "derive_after_advance_5",
+          "writecap_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b80100000000000000aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "advance_by": 5,
+          "ctx_hex": "",
+          "use_context": false,
+          "expected_box_id_hex": "22ba737b5357cf528207ab5a707a5e7878802ebcb7d0ba3ebda2b46b6dbfe7fd"
+        },
+        {
+          "name": "box_id_for_context_at_first_index",
+          "writecap_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b80100000000000000aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "advance_by": 0,
+          "ctx_hex": "687071632d62616361702d766563746f722d636f6e74657874",
+          "use_context": true,
+          "expected_box_id_hex": "f531e783791705744a462341483abb15052aa49c5687a28d09bc21b6087a17a1"
+        },
+        {
+          "name": "box_id_for_context_after_advance_3",
+          "writecap_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b80100000000000000aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "advance_by": 3,
+          "ctx_hex": "616c7465726e61746520636f6e74657874",
+          "use_context": true,
+          "expected_box_id_hex": "d1584c0c08428edec0663c97803cdb1e4229ddaaad2010ea69fa60c7d0b11e7b"
+        }
+      ]
+    },
+    {
+      "primitive": "bacap_encrypt",
+      "description": "BACAP MessageBoxIndex.EncryptForContext vectors. For each vector, the WriteCap is deserialized, its first MessageBoxIndex advanced by N, and the plaintext encrypted under the given context. Records the box ID, ciphertext (AES-256-GCM-SIV with 12-byte nonce), and signature (blinded ed25519 over the ciphertext).",
+      "vectors": [
+        {
+          "name": "encrypt_short_at_first",
+          "writecap_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b80100000000000000aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "advance_by": 0,
+          "ctx_hex": "6374782d41",
+          "plaintext_hex": "68656c6c6f",
+          "expected_box_id_hex": "452f100fc6c43fc361233fc87eaeffa539ea93f16dc5c9fda8ffa7c365c39e6e",
+          "expected_ciphertext_hex": "7ada7776007442d9bfc94d7425f314325810d99cd9",
+          "expected_signature_hex": "e9b1af50d20e4c645a8422157720eda5f2bab33c0926a6407b54732b60aa897813868a1ee6d5f353f73bb6c687fb3eb23dd48d33b9a4acd391415885c9d66c07"
+        },
+        {
+          "name": "encrypt_short_after_advance",
+          "writecap_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b80100000000000000aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "advance_by": 7,
+          "ctx_hex": "6374782d42",
+          "plaintext_hex": "616674657220616476616e6365",
+          "expected_box_id_hex": "82fc80ebfe7445c524bb3473edc9633b9e0184d3436a0bcb37694a3434a480d4",
+          "expected_ciphertext_hex": "c3c5591eb2c9742ec7d8aff01674c51b34e97079385a147c2c318b40bf",
+          "expected_signature_hex": "7c8d9809aa9f4d220f010eaa3503be5f23d8a3bec1f12bf42772bff5c9de1f447830550a32e67ed21907c2fba7c2f9e89de446b03408d85edc35c265f1f6ee0e"
+        },
+        {
+          "name": "encrypt_long_payload",
+          "writecap_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b80100000000000000aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "advance_by": 0,
+          "ctx_hex": "6374782d43",
+          "plaintext_hex": "55555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555555",
+          "expected_box_id_hex": "d73e690817f862f50a920810bb2c4d902cb6442feda87206614b1095a5cccbd3",
+          "expected_ciphertext_hex": "d3a452975e577ee55ea3f98fec1627bf35f1fc346b79104c9e29bb36c296ef130f4958160246c80b28a931514138256a9e464e7287de4530b2e07c57e6dee86d1d9383f90d85d7467c05f75c238804e29e4b4cf0b69fb6797409242bbb7f16b79e1fec2a8752b7a4078c91f07b95e7fa0861f0e3614ed702fddb5dd3e51af06ad437617259285b872b626f09f679d6223be5bf79c63bd9532a20efd8e3b43a03183d71b7cca9f62c59356b1c01cca67f4bcdf6af5a589079b82da6e0ce7dd173b68d683342f052ae11ce2a5efe351488b8c0ee61233d9ae7134db61effc328d6670ff41bd2636445bffd4290d134d84f57add43d8a02d63ef705f51b8023a1048e2958fb04fe4f265c25b97cd389188f7c0e40f8c2fb00ae55719a439597ae276205495d2a237c0110d6dc66d6238215736c9cf54f6f78fd0b2c6373eeb32d32214e6e6ff36cf7e876da73e2473889be6d6e3d0730184c540b8b061174040e4a4bfa5129ed54f78964b1d04adb0faee5b26ab9fb9d59fd768fdfd11e8d7344cfa2787166b79a85c4c16858c5754fd49913daf0ef478835fb46aa1614865a1bd110685307c3b354f3d6f277aed4ade662fc5da92a4fcfe3876932c06985fd10f84b97612d8bffd1b0e46cece5820294f639a3bed2e61755de341ca901df4b6466a893c78f244922b7b4264f3d5526b8d6799aee0d4dfcfa617329a7a6e5f70d985931c5141139ecf2f88cbbadaf6858deded6b1d742c1b422390a0c8fea5426dbf05cdcf94b2386b0eafc041a28cfddb30b78964547ca4c2604b7f17b3d0f44b9ddec0dfc64741a2b6afb91bc8f81864285fc5a268154e93620c02140900a39b2a4cbfd7403e0f38f780db4a6be4b80880b3f9d9a7fc8b9657027069c3d42d029b4318c31221effddc3828e04eb5c80afde086e457f0f751d63e5240f87fe1523a4dad75e56464efe178b673d01821fa45cd7e91db9ae5c1dba8fcf9539f12815f9cb95607fde210f0a01f9bdd1b203d7f6f50bd8b4b75640e33d7cd9773d9132cf3f61479c279f5b356649e888d33e5cd2537b0d76331b2684fa1b6bca1de5c3b136ddd6639b0def93e076ddf955de821f1ba72a96ad4a3a2f6a899b10824bee4dd25448013bd7f72101273ffd84dc21355afcd64a30c0246adf3a80b356ca3fddea1839e636dc88ba4611ab3c2fb48881987d778258f70742c40adaed597b4297977a7c7cab8596ee8a258849d9064f62f3ab32fbeac3b0d564ec0c8f42764d67cd6cf3997fa3c3fbbcb7d97b744cb607ff3ba928eb1f5d2584b72cb57c4985797236a2e915d239c2c51b9769c1f4fe12e49855e5e6224fc745965a7338c5b26791043c396788e59a37e4debeb7e2aa6e31eb581c5dd4c3040080a622e6f400b35817a9a568ab80292d5bf77b03ace2fcf2b259f068ef56b7510f3be2db3dac005b0385f03aeac8b7f1ddee2d5b7814",
+          "expected_signature_hex": "38323dab4b006b7c1824a89638869da43324090cc10b57ddf9e8412999417c61e8209a950886ccca21fdd6e5f8a01643ab8af1a0d63c9d1e83f99476c3e2520b"
+        }
+      ]
+    },
+    {
+      "primitive": "bacap_mutate_kdf_state",
+      "description": "MessageBoxIndex.MutateKDFState vectors. For each vector, the WriteCap's first MessageBoxIndex is advanced by N, then re-seeded by the salt via HKDF-BLAKE2b-512 under the domain label \"bacap-mutate-kdf-state-v1\" (salt slot = the salt, read order H,E,K, Idx64 preserved). Records the resulting 104-byte mutated index and the box ID derived from it under the read context. This is the BACAP primitive behind the Contact Voucher VoucherSalt.",
+      "vectors": [
+        {
+          "name": "mutate_at_first_index",
+          "writecap_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b80100000000000000aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "advance_by": 0,
+          "salt_hex": "1111111111111111111111111111111111111111111111111111111111111111",
+          "read_ctx_hex": "706967656f6e686f6c6520636f6e74657874",
+          "expected_mutated_index_hex": "0100000000000000a06051cc559359d914185df750dc054c42353ba282ac7dca25fdd3020121c12e46f705fcfd6ee113489b2dfdff94d7644581c58ef3c650e1f82404ec558595e11ef0f192d46891de88af7f695d8f0d8d22ad842f932e5d95ef7033efb6064a8d",
+          "expected_mutated_box_id_hex": "94b3e990e8367741d3b34bb4415707b5549f40f812ead9dc72b179cd1c281290"
+        },
+        {
+          "name": "mutate_after_advance_5",
+          "writecap_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b80100000000000000aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "advance_by": 5,
+          "salt_hex": "2222222222222222222222222222222222222222222222222222222222222222",
+          "read_ctx_hex": "706967656f6e686f6c6520636f6e74657874",
+          "expected_mutated_index_hex": "0600000000000000b13c623aba93a6bb6cf555158d076bbfa28d6fea31b564209b3a83f995c2ab922e6677060a9ca8ba27760d6dc3962f6edf81eb35432e81ca3135a478c1c5afda5228d4b51efd629d48e6245fffcf03a2b61c757893ef2f8cdc4a7c0c612e352f",
+          "expected_mutated_box_id_hex": "0dd7d3c6f6c043e1ae6bd76e28309cf6eec2b399a850fc53971aec3e060c951f"
+        },
+        {
+          "name": "mutate_distinct_salt",
+          "writecap_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b80100000000000000aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "advance_by": 0,
+          "salt_hex": "3333333333333333333333333333333333333333333333333333333333333333",
+          "read_ctx_hex": "616c7465726e61746520636f6e74657874",
+          "expected_mutated_index_hex": "0100000000000000f4cfcd04d30aeb52ed2f667df4efc256054767dc29a3c7b94440e991c3949e68df8cd5998e7049922310bcea4298192a7f42158bef2436f33aa5346d3f979451d1b668298f6b2fb2fddd4776c7747016a3e66ca2300e239d9a05fc5941f88054",
+          "expected_mutated_box_id_hex": "95ad9f3d4e0c3da7c2bbc61ee4c4211bcbaf082320c7a7495aacbb7e4700c0c8"
+        }
+      ]
+    }
+  ]
+}

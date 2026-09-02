@@ -152,3 +152,26 @@ func TestPrimitiveAESGCMSIVVectors(t *testing.T) {
 		})
 	}
 }
+
+// Plain SHA-512, as distinct from SHA-512/256 above. Blinded Ed25519 reaches it four times
+// per signature — seed expansion, the nonce preimage, and the challenge — so a divergence
+// here would surface as a blinded-signature mismatch with no indication of the cause.
+func TestPrimitiveSHA512Vectors(t *testing.T) {
+	var vectors []struct {
+		Name      string `json:"name"`
+		InputHex  string `json:"input_hex"`
+		OutputHex string `json:"output_hex"`
+	}
+	loadVectorFile(t, "sha512.json", "sha512", &vectors)
+	require.NotEmpty(t, vectors)
+
+	for _, v := range vectors {
+		t.Run(v.Name, func(t *testing.T) {
+			input := mustHex(t, v.InputHex)
+			expected := mustHex(t, v.OutputHex)
+			require.Len(t, expected, 64, "SHA-512 output must be 64 bytes")
+			sum := sha512.Sum512(input)
+			require.Equal(t, expected, sum[:])
+		})
+	}
+}
