@@ -293,7 +293,7 @@ func (p *PublicKey) UnmarshalText(text []byte) error {
 	if err != nil {
 		return err
 	}
-	p = pubkey.(*PublicKey)
+	*p = *pubkey.(*PublicKey)
 	return nil
 }
 
