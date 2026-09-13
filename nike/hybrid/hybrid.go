@@ -2,9 +2,16 @@ package hybrid
 
 import (
 	"encoding/base64"
+	"errors"
 	"io"
 
 	"github.com/katzenpost/hpqc/nike"
+	"github.com/katzenpost/hpqc/util"
+)
+
+var (
+	errPublicKeySize  = errors.New("hybrid: wrong size for public key")
+	errPrivateKeySize = errors.New("hybrid: wrong size for private key")
 )
 
 var _ nike.PrivateKey = (*privateKey)(nil)
@@ -114,8 +121,15 @@ func (s *Scheme) GenerateKeyPair() (nike.PublicKey, nike.PrivateKey, error) {
 }
 
 func (s *Scheme) DeriveSecret(privKey nike.PrivateKey, pubKey nike.PublicKey) []byte {
-	return append(privKey.(*privateKey).scheme.first.DeriveSecret(privKey.(*privateKey).first, pubKey.(*publicKey).first),
-		privKey.(*privateKey).scheme.second.DeriveSecret(privKey.(*privateKey).second, pubKey.(*publicKey).second)...)
+	priv := privKey.(*privateKey)
+	pub := pubKey.(*publicKey)
+	first := s.first.DeriveSecret(priv.first, pub.first)
+	second := s.second.DeriveSecret(priv.second, pub.second)
+	secret := append(first, second...)
+	if util.CtIsZero(first) || util.CtIsZero(second) {
+		util.ExplicitBzero(secret)
+	}
+	return secret
 }
 
 func (s *Scheme) DerivePublicKey(privKey nike.PrivateKey) nike.PublicKey {
@@ -186,6 +200,9 @@ func (p *privateKey) Bytes() []byte {
 }
 
 func (p *privateKey) FromBytes(b []byte) error {
+	if len(b) != p.scheme.PrivateKeySize() {
+		return errPrivateKeySize
+	}
 	err := p.first.FromBytes(b[:p.scheme.first.PrivateKeySize()])
 	if err != nil {
 		return err
@@ -245,6 +262,9 @@ func (p *publicKey) Bytes() []byte {
 }
 
 func (p *publicKey) FromBytes(b []byte) error {
+	if len(b) != p.scheme.PublicKeySize() {
+		return errPublicKeySize
+	}
 	err := p.first.FromBytes(b[:p.scheme.first.PublicKeySize()])
 	if err != nil {
 		return err
