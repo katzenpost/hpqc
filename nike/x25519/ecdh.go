@@ -263,7 +263,7 @@ func Exp(x, y []byte) []byte {
 	}
 	sharedSecret, err := curve25519.X25519(y, x)
 	if err != nil {
-		panic(err)
+		return make([]byte, GroupElementLength)
 	}
 	return sharedSecret
 }
