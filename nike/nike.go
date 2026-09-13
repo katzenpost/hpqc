@@ -70,6 +70,13 @@ type Scheme interface {
 
 	// DeriveSecret derives a shared secret given a private key
 	// from one party and a public key from another.
+	//
+	// On a degenerate peer key (for X25519/X448 a low-order point) the
+	// result is the all-zero secret per RFC 7748 Section 6.1; callers
+	// MUST reject it with util.CtIsZero and abort. A multi-step
+	// composition (chained blinding or a group action) must check every
+	// intermediate, not only the final value, since one degenerate
+	// contribution collapses the shared key for all parties.
 	DeriveSecret(PrivateKey, PublicKey) []byte
 
 	// DerivePublicKey derives a public key given a private key.
