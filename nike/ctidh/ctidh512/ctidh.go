@@ -12,6 +12,7 @@ import (
 	ctidh "codeberg.org/vula/highctidh/src/ctidh512"
 
 	"github.com/katzenpost/hpqc/nike"
+	"github.com/katzenpost/hpqc/util"
 )
 
 // CTIDH implements the Nike interface using our CTIDH module.
@@ -88,6 +89,9 @@ func (e *scheme) GenerateKeyPair() (nike.PublicKey, nike.PrivateKey, error) {
 // DeriveSecret derives a shared secret given a private key
 // from one party and a public key from another.
 func (e *scheme) DeriveSecret(privKey nike.PrivateKey, pubKey nike.PublicKey) []byte {
+	if util.CtIsZero(pubKey.(*PublicKey).publicKey.Bytes()) {
+		return make([]byte, ctidh.PublicKeySize)
+	}
 	return ctidh.DeriveSecret(privKey.(*PrivateKey).privateKey, pubKey.(*PublicKey).publicKey)
 }
 
@@ -99,13 +103,13 @@ func (e *scheme) DerivePublicKey(privKey nike.PrivateKey) nike.PublicKey {
 }
 
 func (e *scheme) Blind(groupMember nike.PublicKey, blindingFactor nike.PrivateKey) nike.PublicKey {
-	blinded, err := ctidh.Blind(
+	if util.CtIsZero(groupMember.(*PublicKey).publicKey.Bytes()) {
+		return &PublicKey{publicKey: ctidh.NewEmptyPublicKey()}
+	}
+	blinded, _ := ctidh.Blind(
 		blindingFactor.(*PrivateKey).privateKey,
 		groupMember.(*PublicKey).publicKey,
 	)
-	if err != nil {
-		panic(err)
-	}
 	return &PublicKey{
 		publicKey: blinded,
 	}
@@ -138,6 +142,9 @@ type PublicKey struct {
 }
 
 func (p *PublicKey) Blind(blindingFactor nike.PrivateKey) error {
+	if util.CtIsZero(p.publicKey.Bytes()) {
+		return nil
+	}
 	return p.publicKey.Blind(blindingFactor.(*PrivateKey).privateKey)
 }
 
