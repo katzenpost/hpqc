@@ -16,6 +16,14 @@ import (
 	coreUtil "github.com/katzenpost/hpqc/util"
 )
 
+var (
+	// ErrDegenerateSharedSecret reports an all-zero shared secret.
+	ErrDegenerateSharedSecret = errors.New("mkem: degenerate all-zero shared secret")
+
+	// ErrCiphertextTooShort reports a ciphertext shorter than the AEAD nonce.
+	ErrCiphertextTooShort = errors.New("mkem: ciphertext shorter than the nonce")
+)
+
 // DEKSize is the byte length of one DEK ciphertext under the AEAD used
 // here (ChaCha20-Poly1305 over a 32-byte msg_key): 12-byte nonce +
 // 32-byte ciphertext + 16-byte tag = 60. The constant is kept for
@@ -73,13 +81,21 @@ func (s *Scheme) encryptWithRNG(key []byte, plaintext []byte, rng io.Reader) []b
 
 func (s *Scheme) decrypt(key []byte, ciphertext []byte) ([]byte, error) {
 	aead := s.createCipher(key)
+	if len(ciphertext) < aead.NonceSize() {
+		return nil, ErrCiphertextTooShort
+	}
 	nonce := ciphertext[:aead.NonceSize()]
 	ciphertext = ciphertext[aead.NonceSize():]
 	return aead.Open(nil, nonce, ciphertext, nil)
 }
 
-func (s *Scheme) EnvelopeReply(privkey nike.PrivateKey, pubkey nike.PublicKey, plaintext []byte) *Ciphertext {
-	secret := hash.Sum256(s.nike.DeriveSecret(privkey, pubkey))
+func (s *Scheme) EnvelopeReply(privkey nike.PrivateKey, pubkey nike.PublicKey, plaintext []byte) (*Ciphertext, error) {
+	raw := s.nike.DeriveSecret(privkey, pubkey)
+	if coreUtil.CtIsZero(raw) {
+		return nil, ErrDegenerateSharedSecret
+	}
+	secret := hash.Sum256(raw)
+	coreUtil.ExplicitBzero(raw)
 	defer coreUtil.ExplicitBzero(secret[:])
 	ciphertext := s.encrypt(secret[:], plaintext)
 	c := &Ciphertext{
@@ -87,11 +103,16 @@ func (s *Scheme) EnvelopeReply(privkey nike.PrivateKey, pubkey nike.PublicKey, p
 		DEKCiphertexts:     nil,
 		Envelope:           ciphertext,
 	}
-	return c
+	return c, nil
 }
 
 func (s *Scheme) DecryptEnvelope(privkey nike.PrivateKey, pubkey nike.PublicKey, envelope []byte) ([]byte, error) {
-	secret := hash.Sum256(s.nike.DeriveSecret(privkey, pubkey))
+	raw := s.nike.DeriveSecret(privkey, pubkey)
+	if coreUtil.CtIsZero(raw) {
+		return nil, ErrDegenerateSharedSecret
+	}
+	secret := hash.Sum256(raw)
+	coreUtil.ExplicitBzero(raw)
 	defer coreUtil.ExplicitBzero(secret[:])
 	plaintext, err := s.decrypt(secret[:], envelope)
 	if err != nil {
@@ -100,7 +121,7 @@ func (s *Scheme) DecryptEnvelope(privkey nike.PrivateKey, pubkey nike.PublicKey,
 	return plaintext, nil
 }
 
-func (s *Scheme) Encapsulate(keys []nike.PublicKey, payload []byte) (nike.PrivateKey, *Ciphertext) {
+func (s *Scheme) Encapsulate(keys []nike.PublicKey, payload []byte) (nike.PrivateKey, *Ciphertext, error) {
 	ephPub, ephPriv, err := s.nike.GenerateKeyPair()
 	if err != nil {
 		panic(err)
@@ -113,7 +134,12 @@ func (s *Scheme) Encapsulate(keys []nike.PublicKey, payload []byte) (nike.Privat
 		}
 	}()
 	for i := 0; i < len(keys); i++ {
-		secrets[i] = hash.Sum256(s.nike.DeriveSecret(ephPriv, keys[i]))
+		raw := s.nike.DeriveSecret(ephPriv, keys[i])
+		if coreUtil.CtIsZero(raw) {
+			return nil, nil, ErrDegenerateSharedSecret
+		}
+		secrets[i] = hash.Sum256(raw)
+		coreUtil.ExplicitBzero(raw)
 	}
 
 	msgKey := make([]byte, 32)
@@ -134,7 +160,7 @@ func (s *Scheme) Encapsulate(keys []nike.PublicKey, payload []byte) (nike.Privat
 		DEKCiphertexts:     outCiphertexts,
 		Envelope:           ciphertext,
 	}
-	return ephPriv, c
+	return ephPriv, c, nil
 }
 
 // EncapsulateWithEntropy is Encapsulate with all randomness drawn from rng:
@@ -143,7 +169,7 @@ func (s *Scheme) Encapsulate(keys []nike.PublicKey, payload []byte) (nike.Privat
 // (e.g. a SHAKE256 stream) the whole ciphertext is reproducible, which is how
 // the contact-voucher seal and the cross-language test vectors are built. The
 // Python MKEMScheme.encapsulate(..., entropy=...) consumes in the same order.
-func (s *Scheme) EncapsulateWithEntropy(keys []nike.PublicKey, payload []byte, rng io.Reader) (nike.PrivateKey, *Ciphertext) {
+func (s *Scheme) EncapsulateWithEntropy(keys []nike.PublicKey, payload []byte, rng io.Reader) (nike.PrivateKey, *Ciphertext, error) {
 	ephPub, ephPriv, err := s.nike.GenerateKeyPairFromEntropy(rng)
 	if err != nil {
 		panic(err)
@@ -156,7 +182,12 @@ func (s *Scheme) EncapsulateWithEntropy(keys []nike.PublicKey, payload []byte, r
 		}
 	}()
 	for i := 0; i < len(keys); i++ {
-		secrets[i] = hash.Sum256(s.nike.DeriveSecret(ephPriv, keys[i]))
+		raw := s.nike.DeriveSecret(ephPriv, keys[i])
+		if coreUtil.CtIsZero(raw) {
+			return nil, nil, ErrDegenerateSharedSecret
+		}
+		secrets[i] = hash.Sum256(raw)
+		coreUtil.ExplicitBzero(raw)
 	}
 
 	msgKey := make([]byte, 32)
@@ -176,11 +207,16 @@ func (s *Scheme) EncapsulateWithEntropy(keys []nike.PublicKey, payload []byte, r
 		DEKCiphertexts:     outCiphertexts,
 		Envelope:           ciphertext,
 	}
-	return ephPriv, c
+	return ephPriv, c, nil
 }
 
 func (s *Scheme) Decapsulate(privkey nike.PrivateKey, ciphertext *Ciphertext) ([]byte, error) {
-	ephSecret := hash.Sum256(s.nike.DeriveSecret(privkey, ciphertext.EphemeralPublicKey))
+	raw := s.nike.DeriveSecret(privkey, ciphertext.EphemeralPublicKey)
+	if coreUtil.CtIsZero(raw) {
+		return nil, ErrDegenerateSharedSecret
+	}
+	ephSecret := hash.Sum256(raw)
+	coreUtil.ExplicitBzero(raw)
 	defer coreUtil.ExplicitBzero(ephSecret[:])
 	for i := 0; i < len(ciphertext.DEKCiphertexts); i++ {
 		msgKey, err := s.decrypt(ephSecret[:], ciphertext.DEKCiphertexts[i])
