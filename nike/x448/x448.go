@@ -278,9 +278,8 @@ func (p *PublicKey) UnmarshalText(data []byte) error {
 // Exp returns the group element, the result of x^y, over the ECDH group.
 func Exp(x, y *x448.Key) []byte {
 	sharedSecret := new(x448.Key)
-	ok := x448.Shared(sharedSecret, x, y)
-	if !ok {
-		panic("x448.Shared failed")
+	if !x448.Shared(sharedSecret, x, y) {
+		return make([]byte, x448.Size)
 	}
 	return sharedSecret[:]
 }
