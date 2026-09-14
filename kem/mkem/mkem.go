@@ -95,13 +95,21 @@ func (s *Scheme) decrypt(key []byte, ciphertext []byte) ([]byte, error) {
 	return aead.Open(nil, nonce, ciphertext, nil)
 }
 
-func (s *Scheme) EnvelopeReply(privkey nike.PrivateKey, pubkey nike.PublicKey, plaintext []byte) (*Ciphertext, error) {
+func (s *Scheme) deriveSecret(privkey nike.PrivateKey, pubkey nike.PublicKey) ([hash.HashSize]byte, error) {
 	raw := s.nike.DeriveSecret(privkey, pubkey)
 	if coreUtil.CtIsZero(raw) {
-		return nil, ErrDegenerateSharedSecret
+		return [hash.HashSize]byte{}, ErrDegenerateSharedSecret
 	}
 	secret := hash.Sum256(raw)
 	coreUtil.ExplicitBzero(raw)
+	return secret, nil
+}
+
+func (s *Scheme) EnvelopeReply(privkey nike.PrivateKey, pubkey nike.PublicKey, plaintext []byte) (*Ciphertext, error) {
+	secret, err := s.deriveSecret(privkey, pubkey)
+	if err != nil {
+		return nil, err
+	}
 	defer coreUtil.ExplicitBzero(secret[:])
 	ciphertext := s.encrypt(secret[:], plaintext)
 	c := &Ciphertext{
@@ -113,12 +121,10 @@ func (s *Scheme) EnvelopeReply(privkey nike.PrivateKey, pubkey nike.PublicKey, p
 }
 
 func (s *Scheme) DecryptEnvelope(privkey nike.PrivateKey, pubkey nike.PublicKey, envelope []byte) ([]byte, error) {
-	raw := s.nike.DeriveSecret(privkey, pubkey)
-	if coreUtil.CtIsZero(raw) {
-		return nil, ErrDegenerateSharedSecret
+	secret, err := s.deriveSecret(privkey, pubkey)
+	if err != nil {
+		return nil, err
 	}
-	secret := hash.Sum256(raw)
-	coreUtil.ExplicitBzero(raw)
 	defer coreUtil.ExplicitBzero(secret[:])
 	plaintext, err := s.decrypt(secret[:], envelope)
 	if err != nil {
@@ -140,12 +146,10 @@ func (s *Scheme) Encapsulate(keys []nike.PublicKey, payload []byte) (nike.Privat
 		}
 	}()
 	for i := 0; i < len(keys); i++ {
-		raw := s.nike.DeriveSecret(ephPriv, keys[i])
-		if coreUtil.CtIsZero(raw) {
-			return nil, nil, ErrDegenerateSharedSecret
+		secrets[i], err = s.deriveSecret(ephPriv, keys[i])
+		if err != nil {
+			return nil, nil, err
 		}
-		secrets[i] = hash.Sum256(raw)
-		coreUtil.ExplicitBzero(raw)
 	}
 
 	msgKey := make([]byte, 32)
@@ -188,12 +192,10 @@ func (s *Scheme) EncapsulateWithEntropy(keys []nike.PublicKey, payload []byte, r
 		}
 	}()
 	for i := 0; i < len(keys); i++ {
-		raw := s.nike.DeriveSecret(ephPriv, keys[i])
-		if coreUtil.CtIsZero(raw) {
-			return nil, nil, ErrDegenerateSharedSecret
+		secrets[i], err = s.deriveSecret(ephPriv, keys[i])
+		if err != nil {
+			return nil, nil, err
 		}
-		secrets[i] = hash.Sum256(raw)
-		coreUtil.ExplicitBzero(raw)
 	}
 
 	msgKey := make([]byte, 32)
@@ -217,12 +219,10 @@ func (s *Scheme) EncapsulateWithEntropy(keys []nike.PublicKey, payload []byte, r
 }
 
 func (s *Scheme) Decapsulate(privkey nike.PrivateKey, ciphertext *Ciphertext) ([]byte, error) {
-	raw := s.nike.DeriveSecret(privkey, ciphertext.EphemeralPublicKey)
-	if coreUtil.CtIsZero(raw) {
-		return nil, ErrDegenerateSharedSecret
+	ephSecret, err := s.deriveSecret(privkey, ciphertext.EphemeralPublicKey)
+	if err != nil {
+		return nil, err
 	}
-	ephSecret := hash.Sum256(raw)
-	coreUtil.ExplicitBzero(raw)
 	defer coreUtil.ExplicitBzero(ephSecret[:])
 	for i := 0; i < len(ciphertext.DEKCiphertexts); i++ {
 		msgKey, err := s.decrypt(ephSecret[:], ciphertext.DEKCiphertexts[i])
