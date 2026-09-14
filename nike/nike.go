@@ -40,7 +40,9 @@ type PublicKey interface {
 	Key
 
 	// Blind performs a blinding operation and mutates the public
-	// key with the blinded value.
+	// key with the blinded value. The result may be a degenerate all-zero
+	// value for a low-order or base-curve input; callers MUST reject it with
+	// util.CtIsZero.
 	Blind(blindingFactor PrivateKey) error
 }
 
