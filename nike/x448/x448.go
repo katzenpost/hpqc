@@ -117,6 +117,9 @@ func (e *scheme) DerivePublicKey(privKey nike.PrivateKey) nike.PublicKey {
 
 func (e *scheme) Blind(groupMember nike.PublicKey, blindingFactor nike.PrivateKey) nike.PublicKey {
 	sharedSecret := Exp(blindingFactor.(*PrivateKey).privBytes, groupMember.(*PublicKey).pubBytes)
+	if util.CtIsZero(sharedSecret) {
+		return nil
+	}
 	pubKey := new(PublicKey)
 	err := pubKey.FromBytes(sharedSecret)
 	if err != nil {
@@ -278,9 +281,8 @@ func (p *PublicKey) UnmarshalText(data []byte) error {
 // Exp returns the group element, the result of x^y, over the ECDH group.
 func Exp(x, y *x448.Key) []byte {
 	sharedSecret := new(x448.Key)
-	ok := x448.Shared(sharedSecret, x, y)
-	if !ok {
-		panic("x448.Shared failed")
+	if !x448.Shared(sharedSecret, x, y) {
+		return make([]byte, x448.Size)
 	}
 	return sharedSecret[:]
 }

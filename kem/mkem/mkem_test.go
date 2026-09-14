@@ -52,7 +52,8 @@ func TestMKEMCorrectness(t *testing.T) {
 	_, err = rand.Reader.Read(secret)
 	require.NoError(t, err)
 
-	_, ciphertext := s.Encapsulate([]nike.PublicKey{replica1pub, replica2pub}, secret)
+	_, ciphertext, err := s.Encapsulate([]nike.PublicKey{replica1pub, replica2pub}, secret)
+	require.NoError(t, err)
 
 	secret1, err := s.Decapsulate(replica1priv, ciphertext)
 	require.NoError(t, err)
@@ -79,7 +80,8 @@ func TestMKEMProtocol(t *testing.T) {
 	request := make([]byte, 31)
 	_, err = rand.Reader.Read(request)
 	require.NoError(t, err)
-	privKey0, envelope := s.Encapsulate([]nike.PublicKey{replica0pub, replica1pub}, request)
+	privKey0, envelope, err := s.Encapsulate([]nike.PublicKey{replica0pub, replica1pub}, request)
+	require.NoError(t, err)
 
 	ct0 := &Ciphertext{
 		EphemeralPublicKey: envelope.EphemeralPublicKey,
@@ -105,7 +107,8 @@ func TestMKEMProtocol(t *testing.T) {
 	require.Equal(t, request1, request)
 
 	replyPayload := []byte("hello")
-	reply0 := s.EnvelopeReply(replica0priv, envelope.EphemeralPublicKey, replyPayload)
+	reply0, err := s.EnvelopeReply(replica0priv, envelope.EphemeralPublicKey, replyPayload)
+	require.NoError(t, err)
 
 	// client decrypts reply from replica
 	plaintext, err := s.DecryptEnvelope(privKey0, replica0pub, reply0.Envelope)

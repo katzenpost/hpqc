@@ -310,9 +310,12 @@ func sealReply(voucherPubKey, whoReply, salt, sealSeed []byte) ([]byte, error) {
 	}
 	var ct *mkem.Ciphertext
 	if sealSeed == nil {
-		_, ct = sealMKEM.Encapsulate([]nike.PublicKey{voucherPub}, plaintext)
+		_, ct, err = sealMKEM.Encapsulate([]nike.PublicKey{voucherPub}, plaintext)
 	} else {
-		_, ct = sealMKEM.EncapsulateWithEntropy([]nike.PublicKey{voucherPub}, plaintext, shakeReader(sealSeed))
+		_, ct, err = sealMKEM.EncapsulateWithEntropy([]nike.PublicKey{voucherPub}, plaintext, shakeReader(sealSeed))
+	}
+	if err != nil {
+		return nil, err
 	}
 	return ct.Marshal(), nil
 }

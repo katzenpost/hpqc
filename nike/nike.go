@@ -40,7 +40,9 @@ type PublicKey interface {
 	Key
 
 	// Blind performs a blinding operation and mutates the public
-	// key with the blinded value.
+	// key with the blinded value. The result may be a degenerate all-zero
+	// value for a low-order or base-curve input; callers MUST reject it with
+	// util.CtIsZero.
 	Blind(blindingFactor PrivateKey) error
 }
 
@@ -70,13 +72,22 @@ type Scheme interface {
 
 	// DeriveSecret derives a shared secret given a private key
 	// from one party and a public key from another.
+	//
+	// On a degenerate peer key (for X25519/X448 a low-order point) the
+	// result is the all-zero secret per RFC 7748 Section 6.1; callers
+	// MUST reject it with util.CtIsZero and abort. A multi-step
+	// composition (chained blinding or a group action) must check every
+	// intermediate, not only the final value, since one degenerate
+	// contribution collapses the shared key for all parties.
 	DeriveSecret(PrivateKey, PublicKey) []byte
 
 	// DerivePublicKey derives a public key given a private key.
 	DerivePublicKey(PrivateKey) PublicKey
 
-	// Blind performs the blinding operation against the
-	// given group member, returning the blinded key.
+	// Blind performs the blinding operation against the given group member,
+	// returning the blinded key, or nil if blinding yields a degenerate
+	// all-zero result (a low-order X25519/X448 point, or the CTIDH base curve
+	// E0); callers MUST reject a nil result and abort.
 	Blind(groupMember PublicKey, blindingFactor PrivateKey) (blindedGroupMember PublicKey)
 
 	// NewEmptyPublicKey returns an uninitialized

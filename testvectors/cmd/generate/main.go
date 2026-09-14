@@ -1011,7 +1011,8 @@ func genKEMMkem() vectorFile {
 			privsHex[i] = hex.EncodeToString(privBytes)
 		}
 
-		_, ct := scheme.Encapsulate(pubs, c.plaintext)
+		_, ct, err := scheme.Encapsulate(pubs, c.plaintext)
+		must(err)
 		ctBytes := ct.Marshal()
 
 		// Self-check: every recipient must decapsulate to the same

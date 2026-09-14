@@ -6,6 +6,7 @@ package sntrup
 
 import (
 	"crypto/hmac"
+	"errors"
 	"hash"
 	"io"
 
@@ -19,6 +20,8 @@ import (
 
 	"github.com/katzenpost/hpqc/rand"
 )
+
+var errSharedKeySize = errors.New("sntrup: wrong shared key buffer size")
 
 const (
 	// PublicKeySize is the public key size in bytes.
@@ -114,6 +117,9 @@ type scheme struct{}
 var sch kem.Scheme = &scheme{}
 
 // Scheme returns a KEM interface.
+//
+// Deprecated: this is round-1 Streamlined NTRU Prime (sntrup4591761), which
+// predates the standardized construction; new code should move to sntrup761.
 func Scheme() kem.Scheme { return sch }
 
 func (*scheme) Name() string               { return "sntrup4591761" }
@@ -165,16 +171,14 @@ func (*scheme) EncapsulateDeterministically(pk kem.PublicKey, seed []byte) (
 }
 
 func (*scheme) Decapsulate(sk kem.PrivateKey, ct []byte) ([]byte, error) {
-	if len(ct) != CiphertextSize {
-		return nil, kem.ErrCiphertextSize
-	}
-
 	priv, ok := sk.(*PrivateKey)
 	if !ok {
 		return nil, kem.ErrTypeMismatch
 	}
 	ss := make([]byte, SharedKeySize)
-	priv.DecapsulateTo(ss, ct)
+	if err := priv.DecapsulateTo(ss, ct); err != nil {
+		return nil, err
+	}
 	return ss, nil
 }
 
@@ -277,28 +281,23 @@ func (sk *PrivateKey) Public() kem.PublicKey {
 	return pk
 }
 
-// DecapsulateTo computes the shared key which is encapsulated in ct
-// for the private key.
-//
-// Panics if ct or ss are not of length CiphertextSize and SharedKeySize
-// respectively.
-func (sk *PrivateKey) DecapsulateTo(ss, ct []byte) {
+// DecapsulateTo writes the shared key encapsulated in ct to ss.
+func (sk *PrivateKey) DecapsulateTo(ss, ct []byte) error {
 	if len(ct) != CiphertextSize {
-		panic("ct must be of length CiphertextSize")
+		return kem.ErrCiphertextSize
 	}
-
 	if len(ss) != SharedKeySize {
-		panic("ss must be of length SharedKeySize")
+		return errSharedKeySize
 	}
-
 	ciphertext := new(sntrup.Ciphertext)
 	copy(ciphertext[:], ct)
 	sharedkey, ok := sntrup.Decapsulate(ciphertext, sk.key)
 	if ok != 1 {
-		panic("sntrup.Decapsulate failed")
+		return kem.ErrCipherText
 	}
 	defer coreUtil.ExplicitBzero(sharedkey[:])
 	copy(ss, sharedkey[:])
+	return nil
 }
 
 func (sk *PrivateKey) MarshalBinary() (data []byte, err error) {

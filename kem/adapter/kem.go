@@ -9,6 +9,7 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"hash"
 
@@ -23,6 +24,9 @@ const (
 	// SeedSize is the number of bytes needed to seed deterministic methods below.
 	SeedSize = 32
 )
+
+// ErrLowOrderPoint reports an all-zero shared secret.
+var ErrLowOrderPoint = errors.New("adapter: all-zero shared secret, low order point")
 
 var _ kem.PrivateKey = (*PrivateKey)(nil)
 var _ kem.PublicKey = (*PublicKey)(nil)
@@ -150,6 +154,9 @@ func (a *Scheme) Encapsulate(pk kem.PublicKey) (ct, ss []byte, err error) {
 	// ss = DH(my_privkey, their_pubkey)
 	ss = a.nike.DeriveSecret(sk2.(*PrivateKey).privateKey, theirPubkey.publicKey)
 	defer coreUtil.ExplicitBzero(ss)
+	if coreUtil.CtIsZero(ss) {
+		return nil, nil, ErrLowOrderPoint
+	}
 	// shared_key = PRF(ss, static recipient key, ephemeral key)
 	ss2, err := a.prf.Derive(ss, theirPubkey.publicKey.Bytes(),
 		myPubkey.(*PublicKey).publicKey.Bytes(), a.SharedKeySize())
@@ -290,6 +297,9 @@ func (a *Scheme) Decapsulate(myPrivkey kem.PrivateKey, ct []byte) ([]byte, error
 	// s = DH(my_privkey, their_pubkey)
 	ss := a.nike.DeriveSecret(myPrivkey.(*PrivateKey).privateKey, theirPubkey.(*PublicKey).publicKey)
 	defer coreUtil.ExplicitBzero(ss)
+	if coreUtil.CtIsZero(ss) {
+		return nil, ErrLowOrderPoint
+	}
 	// shared_key = PRF(ss, static recipient key, ephemeral key)
 	ss2, err := a.prf.Derive(ss, myPrivkey.Public().(*PublicKey).publicKey.Bytes(),
 		theirPubkey.(*PublicKey).publicKey.Bytes(), a.SharedKeySize())
