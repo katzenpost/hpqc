@@ -104,7 +104,7 @@ func (e *scheme) DerivePublicKey(privKey nike.PrivateKey) nike.PublicKey {
 
 func (e *scheme) Blind(groupMember nike.PublicKey, blindingFactor nike.PrivateKey) nike.PublicKey {
 	if util.CtIsZero(groupMember.(*PublicKey).publicKey.Bytes()) {
-		return &PublicKey{publicKey: ctidh.NewEmptyPublicKey()}
+		return nil
 	}
 	blinded, _ := ctidh.Blind(
 		blindingFactor.(*PrivateKey).privateKey,

@@ -141,11 +141,12 @@ func (s *Scheme) DerivePublicKey(privKey nike.PrivateKey) nike.PublicKey {
 }
 
 func (s *Scheme) Blind(groupMember nike.PublicKey, blindingFactor nike.PrivateKey) nike.PublicKey {
-	return &publicKey{
-		scheme: s,
-		first:  s.first.Blind(groupMember.(*publicKey).first, blindingFactor.(*privateKey).first),
-		second: s.second.Blind(groupMember.(*publicKey).second, blindingFactor.(*privateKey).second),
+	first := s.first.Blind(groupMember.(*publicKey).first, blindingFactor.(*privateKey).first)
+	second := s.second.Blind(groupMember.(*publicKey).second, blindingFactor.(*privateKey).second)
+	if first == nil || second == nil {
+		return nil
 	}
+	return &publicKey{scheme: s, first: first, second: second}
 }
 
 func (s *Scheme) NewEmptyPublicKey() nike.PublicKey {

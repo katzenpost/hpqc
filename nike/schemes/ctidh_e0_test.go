@@ -9,6 +9,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/katzenpost/hpqc/nike/x25519"
 	"github.com/katzenpost/hpqc/util"
 )
 
@@ -29,10 +30,10 @@ func TestCTIDHAcceptsBaseCurveE0PublicKey(t *testing.T) {
 	}
 }
 
-// The group action canonicalizes E0 so the degenerate case is catchable by a
-// CtIsZero at the boundary: DeriveSecret against E0 is the all-zero secret
-// (not the caller's own key), Scheme.Blind of E0 stays E0, and PublicKey.Blind
-// of E0 leaves it E0 rather than the blinder's own key.
+// The group action handles E0 so the degenerate case is caught at the
+// boundary: DeriveSecret against E0 is the all-zero secret (not the caller's
+// own key), Scheme.Blind of E0 returns nil, and PublicKey.Blind of E0 leaves
+// it E0 rather than the blinder's own key.
 func TestCTIDHCanonicalizesE0(t *testing.T) {
 	for _, name := range ctidhNames {
 		s := ByName(name)
@@ -41,8 +42,8 @@ func TestCTIDHCanonicalizesE0(t *testing.T) {
 		priv := s.NewEmptyPrivateKey()
 		require.True(t, util.CtIsZero(s.DeriveSecret(priv, e0)),
 			"%s: DeriveSecret against E0 must be all-zero", name)
-		require.True(t, util.CtIsZero(s.Blind(e0, priv).Bytes()),
-			"%s: Scheme.Blind of E0 must stay E0", name)
+		require.Nil(t, s.Blind(e0, priv),
+			"%s: Scheme.Blind of E0 must return nil", name)
 
 		inPlace := s.NewEmptyPublicKey()
 		require.NoError(t, inPlace.Blind(priv), name)
@@ -74,4 +75,24 @@ func TestCTIDHRealKeyOperations(t *testing.T) {
 			"%s: blinding a valid key must not yield E0", name)
 		require.NoError(t, loaded.Blind(priv), name)
 	}
+}
+
+// The CTIDH-X25519 hybrid must propagate a nil Blind: a group member whose
+// CTIDH half is the base curve E0 blinds to nil, not a key with a nil half.
+func TestCTIDHX25519HybridBlindNil(t *testing.T) {
+	s := ByName("CTIDH1024-X25519")
+	require.NotNil(t, s)
+	pub, priv, err := s.GenerateKeyPair()
+	require.NoError(t, err)
+	require.NotNil(t, s.Blind(pub, priv), "a valid hybrid key must blind to non-nil")
+
+	blob, err := pub.MarshalBinary()
+	require.NoError(t, err)
+	// Zero the trailing CTIDH half (E0); the leading X25519 half stays valid.
+	for i := x25519.PublicKeySize; i < len(blob); i++ {
+		blob[i] = 0
+	}
+	degenerate, err := s.UnmarshalBinaryPublicKey(blob)
+	require.NoError(t, err)
+	require.Nil(t, s.Blind(degenerate, priv))
 }
