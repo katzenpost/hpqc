@@ -7,6 +7,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/katzenpost/hpqc/hash"
 	"github.com/katzenpost/hpqc/nike"
 	"github.com/katzenpost/hpqc/nike/x25519"
 	"github.com/katzenpost/hpqc/rand"
@@ -121,4 +122,32 @@ func TestEncapsulateWithEntropyRoundTrip(t *testing.T) {
 	out, err := s.Decapsulate(priv, ct)
 	require.NoError(t, err)
 	require.Equal(t, payload, out)
+}
+
+// A DEK forged under the derived msg secret can trial-decrypt to a non-KeySize
+// msg key; the second AEAD open then made createCipher panic. Decapsulate must
+// reject it with an error instead.
+func TestDecapsulateForgedShortMsgKeyErrorsNotPanic(t *testing.T) {
+	nikeScheme := x25519.Scheme(rand.Reader)
+	s := NewScheme(nikeScheme)
+	ephPub, _, err := s.GenerateKeyPair()
+	require.NoError(t, err)
+	_, recipientPriv, err := s.GenerateKeyPair()
+	require.NoError(t, err)
+
+	ephSecret := hash.Sum256(nikeScheme.DeriveSecret(recipientPriv, ephPub))
+	dek := s.encrypt(ephSecret[:], []byte("not a KeySize msg key"))
+
+	ct := &Ciphertext{
+		EphemeralPublicKey: ephPub,
+		DEKCiphertexts:     [][]byte{dek},
+		Envelope:           make([]byte, DEKSize),
+	}
+	var out []byte
+	var derr error
+	require.NotPanics(t, func() {
+		out, derr = s.Decapsulate(recipientPriv, ct)
+	})
+	require.ErrorIs(t, derr, ErrInvalidKeySize)
+	require.Nil(t, out)
 }

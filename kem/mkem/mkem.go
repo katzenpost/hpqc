@@ -22,6 +22,9 @@ var (
 
 	// ErrCiphertextTooShort reports a ciphertext shorter than the AEAD nonce.
 	ErrCiphertextTooShort = errors.New("mkem: ciphertext shorter than the nonce")
+
+	// ErrInvalidKeySize reports an AEAD key that is not the required length.
+	ErrInvalidKeySize = errors.New("mkem: invalid AEAD key size")
 )
 
 // DEKSize is the byte length of one DEK ciphertext under the AEAD used
@@ -80,6 +83,9 @@ func (s *Scheme) encryptWithRNG(key []byte, plaintext []byte, rng io.Reader) []b
 }
 
 func (s *Scheme) decrypt(key []byte, ciphertext []byte) ([]byte, error) {
+	if len(key) != chacha20poly1305.KeySize {
+		return nil, ErrInvalidKeySize
+	}
 	aead := s.createCipher(key)
 	if len(ciphertext) < aead.NonceSize() {
 		return nil, ErrCiphertextTooShort
