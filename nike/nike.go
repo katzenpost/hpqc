@@ -83,8 +83,9 @@ type Scheme interface {
 	DerivePublicKey(PrivateKey) PublicKey
 
 	// Blind performs the blinding operation against the given group member,
-	// returning the blinded key, or nil if the group member is degenerate
-	// (for CTIDH the base curve E0); callers MUST reject a nil result and abort.
+	// returning the blinded key, or nil if blinding yields a degenerate
+	// all-zero result (a low-order X25519/X448 point, or the CTIDH base curve
+	// E0); callers MUST reject a nil result and abort.
 	Blind(groupMember PublicKey, blindingFactor PrivateKey) (blindedGroupMember PublicKey)
 
 	// NewEmptyPublicKey returns an uninitialized

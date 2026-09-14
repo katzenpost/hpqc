@@ -223,6 +223,9 @@ func (e *scheme) DerivePublicKey(privKey nike.PrivateKey) nike.PublicKey {
 
 func (e *scheme) Blind(groupMember nike.PublicKey, blindingFactor nike.PrivateKey) nike.PublicKey {
 	sharedSecret := Exp(groupMember.Bytes(), blindingFactor.Bytes())
+	if util.CtIsZero(sharedSecret) {
+		return nil
+	}
 	pubKey := new(PublicKey)
 	err := pubKey.FromBytes(sharedSecret)
 	if err != nil {

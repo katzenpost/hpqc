@@ -7,6 +7,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/katzenpost/hpqc/rand"
 	"github.com/katzenpost/hpqc/util"
 )
 
@@ -25,4 +26,15 @@ func TestExpLowOrderPointDoesNotPanic(t *testing.T) {
 	}, "Exp must not panic on a low-order peer point")
 	require.True(t, util.CtIsZero(result),
 		"a low-order peer point must yield the all-zero secret")
+}
+
+// Blinding a low-order group member yields an all-zero result; Blind must
+// return nil so the caller cannot use a degenerate blinded key.
+func TestBlindLowOrderPointReturnsNil(t *testing.T) {
+	s := Scheme(rand.Reader)
+	low := s.NewEmptyPublicKey()
+	require.NoError(t, low.FromBytes(make([]byte, PublicKeySize)))
+	_, priv, err := s.GenerateKeyPair()
+	require.NoError(t, err)
+	require.Nil(t, s.Blind(low, priv), "Blind of a low-order point must return nil")
 }
