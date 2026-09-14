@@ -125,8 +125,13 @@ func (s *Scheme) DeriveSecret(privKey nike.PrivateKey, pubKey nike.PublicKey) []
 	pub := pubKey.(*publicKey)
 	first := s.first.DeriveSecret(priv.first, pub.first)
 	second := s.second.DeriveSecret(priv.second, pub.second)
-	secret := append(first, second...)
-	if util.CtIsZero(first) || util.CtIsZero(second) {
+	degenerate := util.CtIsZero(first) || util.CtIsZero(second)
+	secret := make([]byte, len(first)+len(second))
+	copy(secret, first)
+	copy(secret[len(first):], second)
+	util.ExplicitBzero(first)
+	util.ExplicitBzero(second)
+	if degenerate {
 		util.ExplicitBzero(secret)
 	}
 	return secret
