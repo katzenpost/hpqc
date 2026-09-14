@@ -148,6 +148,7 @@ func (s *Scheme) Encapsulate(keys []nike.PublicKey, payload []byte) (nike.Privat
 	for i := 0; i < len(keys); i++ {
 		secrets[i], err = s.deriveSecret(ephPriv, keys[i])
 		if err != nil {
+			ephPriv.Reset()
 			return nil, nil, err
 		}
 	}
@@ -194,6 +195,7 @@ func (s *Scheme) EncapsulateWithEntropy(keys []nike.PublicKey, payload []byte, r
 	for i := 0; i < len(keys); i++ {
 		secrets[i], err = s.deriveSecret(ephPriv, keys[i])
 		if err != nil {
+			ephPriv.Reset()
 			return nil, nil, err
 		}
 	}
