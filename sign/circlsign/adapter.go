@@ -102,7 +102,10 @@ func (s *Scheme) Sign(sk sign.PrivateKey, message []byte, opts *sign.SignatureOp
 }
 
 func (s *Scheme) Verify(pk sign.PublicKey, message []byte, signature []byte, opts *sign.SignatureOpts) bool {
-	wrapper := pk.(*PublicKey)
+	wrapper, ok := pk.(*PublicKey)
+	if !ok {
+		return false
+	}
 	var circlOpts *circlSign.SignatureOpts
 	if opts != nil {
 		circlOpts = &circlSign.SignatureOpts{Context: opts.Context}

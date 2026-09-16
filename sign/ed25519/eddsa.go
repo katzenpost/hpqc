@@ -72,7 +72,11 @@ func (s *scheme) Sign(sk sign.PrivateKey, message []byte, opts *sign.SignatureOp
 }
 
 func (s *scheme) Verify(pk sign.PublicKey, message []byte, signature []byte, opts *sign.SignatureOpts) bool {
-	return ed25519.Verify(pk.(*PublicKey).pubKey, message, signature)
+	pub, ok := pk.(*PublicKey)
+	if !ok {
+		return false
+	}
+	return ed25519.Verify(pub.pubKey, message, signature)
 }
 
 func (s *scheme) DeriveKey(seed []byte) (sign.PublicKey, sign.PrivateKey) {
