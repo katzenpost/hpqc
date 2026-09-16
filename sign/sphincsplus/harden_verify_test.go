@@ -24,3 +24,17 @@ func TestVerifyRejectsWrongSizedSignatureWithoutPanic(t *testing.T) {
 		require.False(t, ok)
 	}
 }
+
+// An empty message with a correctly sized signature must also be rejected
+// without reaching the C binding, which dereferences message[0].
+func TestVerifyRejectsEmptyMessageWithoutPanic(t *testing.T) {
+	s := Scheme()
+	pub, _, err := s.GenerateKey()
+	require.NoError(t, err)
+
+	var ok bool
+	require.NotPanics(t, func() {
+		ok = s.Verify(pub, nil, make([]byte, s.SignatureSize()), nil)
+	})
+	require.False(t, ok)
+}
