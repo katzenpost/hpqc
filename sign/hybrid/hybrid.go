@@ -177,11 +177,15 @@ func (p *PrivateKey) Scheme() sign.Scheme {
 }
 
 func (p *PrivateKey) Equal(key crypto.PrivateKey) bool {
+	o, ok := key.(*PrivateKey)
+	if !ok {
+		return false
+	}
 	blob1, err := p.MarshalBinary()
 	if err != nil {
 		panic(err)
 	}
-	blob2, err := key.(*PrivateKey).MarshalBinary()
+	blob2, err := o.MarshalBinary()
 	if err != nil {
 		panic(err)
 	}
@@ -261,7 +265,7 @@ func (p *PublicKey) Equal(key crypto.PublicKey) bool {
 			panic(err)
 		}
 	default:
-		panic("type assertion failed")
+		return false
 	}
 	return hmac.Equal(blob1, blob2)
 }
