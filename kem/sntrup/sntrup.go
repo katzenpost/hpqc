@@ -260,7 +260,7 @@ func (pk *PublicKey) Equal(other kem.PublicKey) bool {
 		return false
 	}
 	if pk.key == nil || oth.key == nil {
-		panic("keys cannot be nil")
+		return false
 	}
 	return hmac.Equal(pk.key[:], oth.key[:])
 }
@@ -310,7 +310,7 @@ func (sk *PrivateKey) Equal(other kem.PrivateKey) bool {
 		return false
 	}
 	if sk.key == nil || oth.key == nil {
-		panic("keys cannot be nil")
+		return false
 	}
 	return hmac.Equal(sk.key[:], oth.key[:])
 }
