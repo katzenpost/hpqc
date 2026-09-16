@@ -184,6 +184,14 @@ func (p *PrivateKey) FromBytes(b []byte) error {
 		return errInvalidKey
 	}
 
+	// The public half (bytes [32:64]) is trusted verbatim by the stdlib
+	// Public() call below, so reject it here if it is not a valid Edwards
+	// point: otherwise a later Blind on the derived public key panics on
+	// attacker-supplied bytes (e.g. a crafted bacap WriteCap).
+	if _, err := new(edwards25519.Point).SetBytes(b[PublicKeySize:]); err != nil {
+		return errInvalidKey
+	}
+
 	p.privKey = make([]byte, PrivateKeySize)
 	copy(p.privKey, b)
 	p.pubKey.pubKey = p.privKey.Public().(ed25519.PublicKey)
@@ -271,6 +279,12 @@ func (p *PublicKey) rebuildB64String() {
 
 func (p *PublicKey) FromBytes(data []byte) error {
 	if len(data) != PublicKeySize {
+		return errInvalidKey
+	}
+
+	// Reject bytes that are not a valid Edwards point, so a later Blind or any
+	// other edwards25519 operation cannot panic on an off-curve public key.
+	if _, err := new(edwards25519.Point).SetBytes(data); err != nil {
 		return errInvalidKey
 	}
 
