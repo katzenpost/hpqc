@@ -268,7 +268,7 @@ func (p *PublicKey) FromBytes(data []byte) error {
 	p.publicKey = new(cyclic.Int)
 	err := p.publicKey.BinaryDecode(data)
 	if err != nil {
-		return nil
+		return err
 	}
 	if !diffieHellman.CheckPublicKey(Scheme().group(), p.publicKey) {
 		return errors.New("not a valid public key")
