@@ -47,10 +47,11 @@ func (p *PublicKey) MarshalBinary() ([]byte, error) {
 }
 
 func (p *PublicKey) Equal(pubkey kem.PublicKey) bool {
-	if pubkey.(*PublicKey).scheme != p.scheme {
+	o, ok := pubkey.(*PublicKey)
+	if !ok || o.scheme != p.scheme {
 		return false
 	}
-	return hmac.Equal(pubkey.(*PublicKey).publicKey.Bytes(), p.publicKey.Bytes())
+	return hmac.Equal(o.publicKey.Bytes(), p.publicKey.Bytes())
 }
 
 // PrivateKey is an adapter for nike.PrivateKey to kem.PrivateKey.
@@ -68,10 +69,11 @@ func (p *PrivateKey) MarshalBinary() ([]byte, error) {
 }
 
 func (p *PrivateKey) Equal(privkey kem.PrivateKey) bool {
-	if privkey.(*PrivateKey).scheme != p.scheme {
+	o, ok := privkey.(*PrivateKey)
+	if !ok || o.scheme != p.scheme {
 		return false
 	}
-	return hmac.Equal(privkey.(*PrivateKey).privateKey.Bytes(), p.privateKey.Bytes())
+	return hmac.Equal(o.privateKey.Bytes(), p.privateKey.Bytes())
 }
 
 func (p *PrivateKey) Public() kem.PublicKey {
@@ -405,5 +407,5 @@ func (a *Scheme) SeedSize() int {
 // see docs/specs/kemsphinx.rst
 func (a *Scheme) EncapsulateDeterministically(pk kem.PublicKey, seed []byte) (
 	ct, ss []byte, err error) {
-	panic("not implemented")
+	return nil, nil, errors.New("adapter: EncapsulateDeterministically not implemented")
 }

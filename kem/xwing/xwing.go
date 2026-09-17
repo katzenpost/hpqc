@@ -46,10 +46,11 @@ func (p *PublicKey) MarshalBinary() ([]byte, error) {
 }
 
 func (p *PublicKey) Equal(pubkey kem.PublicKey) bool {
-	if pubkey.(*PublicKey).scheme != p.scheme {
+	o, ok := pubkey.(*PublicKey)
+	if !ok || o.scheme != p.scheme {
 		return false
 	}
-	return hmac.Equal(pubkey.(*PublicKey).encapKey, p.encapKey)
+	return hmac.Equal(o.encapKey, p.encapKey)
 }
 
 type PrivateKey struct {
@@ -67,10 +68,11 @@ func (p *PrivateKey) MarshalBinary() ([]byte, error) {
 }
 
 func (p *PrivateKey) Equal(privkey kem.PrivateKey) bool {
-	if privkey.(*PrivateKey).scheme != p.scheme {
+	o, ok := privkey.(*PrivateKey)
+	if !ok || o.scheme != p.scheme {
 		return false
 	}
-	return hmac.Equal(privkey.(*PrivateKey).decapKey, p.decapKey)
+	return hmac.Equal(o.decapKey, p.decapKey)
 }
 
 func (p *PrivateKey) Public() kem.PublicKey {
@@ -103,7 +105,11 @@ func (a *scheme) GenerateKeyPair() (kem.PublicKey, kem.PrivateKey, error) {
 }
 
 func (s *scheme) Encapsulate(pk kem.PublicKey) (ct, ss []byte, err error) {
-	return xwing.Encapsulate(pk.(*PublicKey).encapKey)
+	pub, ok := pk.(*PublicKey)
+	if !ok {
+		return nil, nil, kem.ErrTypeMismatch
+	}
+	return xwing.Encapsulate(pub.encapKey)
 }
 
 func (s *scheme) Decapsulate(myPrivkey kem.PrivateKey, ct []byte) ([]byte, error) {

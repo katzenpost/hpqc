@@ -137,7 +137,11 @@ func (p *PrivateKey) Scheme() sign.Scheme {
 }
 
 func (p *PrivateKey) Equal(key crypto.PrivateKey) bool {
-	return hmac.Equal(p.Bytes(), key.(*PrivateKey).Bytes())
+	o, ok := key.(*PrivateKey)
+	if !ok {
+		return false
+	}
+	return hmac.Equal(p.Bytes(), o.Bytes())
 }
 
 func (p *PrivateKey) MarshalBinary() ([]byte, error) {
@@ -225,7 +229,11 @@ func (p *PublicKey) Scheme() sign.Scheme {
 }
 
 func (p *PublicKey) Equal(pubKey crypto.PublicKey) bool {
-	return hmac.Equal(p.pubKey[:], pubKey.(*PublicKey).pubKey[:])
+	o, ok := pubKey.(*PublicKey)
+	if !ok {
+		return false
+	}
+	return hmac.Equal(p.pubKey[:], o.pubKey[:])
 }
 
 func (p *PublicKey) MarshalBinary() ([]byte, error) {
@@ -233,13 +241,16 @@ func (p *PublicKey) MarshalBinary() ([]byte, error) {
 }
 
 // ToECDH converts the PublicKey to the corresponding ecdh.PublicKey.
-func (p *PublicKey) ToECDH() *x25519.PublicKey {
-	ed_pub, _ := new(edwards25519.Point).SetBytes(p.Bytes())
-	r := new(x25519.PublicKey)
-	if r.FromBytes(ed_pub.BytesMontgomery()) != nil {
-		panic("edwards.Point from pub.BytesMontgomery failed, impossible. ")
+func (p *PublicKey) ToECDH() (*x25519.PublicKey, error) {
+	ed_pub, err := new(edwards25519.Point).SetBytes(p.Bytes())
+	if err != nil {
+		return nil, err
 	}
-	return r
+	r := new(x25519.PublicKey)
+	if err := r.FromBytes(ed_pub.BytesMontgomery()); err != nil {
+		return nil, err
+	}
+	return r, nil
 }
 
 // InternalPtr returns a pointer to the internal (`golang.org/x/crypto/ed25519`)

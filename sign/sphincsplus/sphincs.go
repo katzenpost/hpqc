@@ -88,6 +88,7 @@ func (s *scheme) DeriveKey(seed []byte) (sign.PublicKey, sign.PrivateKey) {
 
 func (s *scheme) UnmarshalBinaryPublicKey(b []byte) (sign.PublicKey, error) {
 	pubKey := &publicKey{
+		scheme:    s,
 		publicKey: new(sphincs.PublicKey),
 	}
 	err := pubKey.FromBytes(b)
@@ -100,6 +101,7 @@ func (s *scheme) UnmarshalBinaryPublicKey(b []byte) (sign.PublicKey, error) {
 // UnmarshalBinaryPrivateKey loads a private key from byte slice.
 func (s *scheme) UnmarshalBinaryPrivateKey(b []byte) (sign.PrivateKey, error) {
 	privKey := &privateKey{
+		scheme:     s,
 		privateKey: new(sphincs.PrivateKey),
 	}
 	err := privKey.FromBytes(b)
@@ -142,7 +144,11 @@ func (p *privateKey) Scheme() sign.Scheme {
 }
 
 func (p *privateKey) Equal(key crypto.PrivateKey) bool {
-	return hmac.Equal(key.(*privateKey).Bytes(), p.Bytes())
+	o, ok := key.(*privateKey)
+	if !ok {
+		return false
+	}
+	return hmac.Equal(o.Bytes(), p.Bytes())
 }
 
 func (p *privateKey) Public() crypto.PublicKey {
@@ -187,7 +193,11 @@ func (p *publicKey) Scheme() sign.Scheme {
 }
 
 func (p *publicKey) Equal(key crypto.PublicKey) bool {
-	return hmac.Equal(key.(*publicKey).Bytes(), p.Bytes())
+	o, ok := key.(*publicKey)
+	if !ok {
+		return false
+	}
+	return hmac.Equal(o.Bytes(), p.Bytes())
 }
 
 func (p *publicKey) MarshalBinary() ([]byte, error) {

@@ -89,26 +89,40 @@ func (e *scheme) GenerateKeyPair() (nike.PublicKey, nike.PrivateKey, error) {
 // DeriveSecret derives a shared secret given a private key
 // from one party and a public key from another.
 func (e *scheme) DeriveSecret(privKey nike.PrivateKey, pubKey nike.PublicKey) []byte {
-	if util.CtIsZero(pubKey.(*PublicKey).publicKey.Bytes()) {
+	priv, ok1 := privKey.(*PrivateKey)
+	pub, ok2 := pubKey.(*PublicKey)
+	if !ok1 || !ok2 {
+		return nil
+	}
+	if util.CtIsZero(pub.publicKey.Bytes()) {
 		return make([]byte, ctidh.PublicKeySize)
 	}
-	return ctidh.DeriveSecret(privKey.(*PrivateKey).privateKey, pubKey.(*PublicKey).publicKey)
+	return ctidh.DeriveSecret(priv.privateKey, pub.publicKey)
 }
 
 // DerivePublicKey derives a public key given a private key.
 func (e *scheme) DerivePublicKey(privKey nike.PrivateKey) nike.PublicKey {
+	priv, ok := privKey.(*PrivateKey)
+	if !ok {
+		return nil
+	}
 	return &PublicKey{
-		publicKey: ctidh.DerivePublicKey(privKey.(*PrivateKey).privateKey),
+		publicKey: ctidh.DerivePublicKey(priv.privateKey),
 	}
 }
 
 func (e *scheme) Blind(groupMember nike.PublicKey, blindingFactor nike.PrivateKey) nike.PublicKey {
-	if util.CtIsZero(groupMember.(*PublicKey).publicKey.Bytes()) {
+	pub, ok1 := groupMember.(*PublicKey)
+	bf, ok2 := blindingFactor.(*PrivateKey)
+	if !ok1 || !ok2 {
+		return nil
+	}
+	if util.CtIsZero(pub.publicKey.Bytes()) {
 		return nil
 	}
 	blinded, _ := ctidh.Blind(
-		blindingFactor.(*PrivateKey).privateKey,
-		groupMember.(*PublicKey).publicKey,
+		bf.privateKey,
+		pub.publicKey,
 	)
 	return &PublicKey{
 		publicKey: blinded,

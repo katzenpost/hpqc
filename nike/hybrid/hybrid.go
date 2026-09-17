@@ -121,8 +121,11 @@ func (s *Scheme) GenerateKeyPair() (nike.PublicKey, nike.PrivateKey, error) {
 }
 
 func (s *Scheme) DeriveSecret(privKey nike.PrivateKey, pubKey nike.PublicKey) []byte {
-	priv := privKey.(*privateKey)
-	pub := pubKey.(*publicKey)
+	priv, ok1 := privKey.(*privateKey)
+	pub, ok2 := pubKey.(*publicKey)
+	if !ok1 || !ok2 {
+		return nil
+	}
 	first := s.first.DeriveSecret(priv.first, pub.first)
 	second := s.second.DeriveSecret(priv.second, pub.second)
 	degenerate := util.CtIsZero(first) || util.CtIsZero(second)
@@ -138,16 +141,25 @@ func (s *Scheme) DeriveSecret(privKey nike.PrivateKey, pubKey nike.PublicKey) []
 }
 
 func (s *Scheme) DerivePublicKey(privKey nike.PrivateKey) nike.PublicKey {
+	priv, ok := privKey.(*privateKey)
+	if !ok {
+		return nil
+	}
 	return &publicKey{
 		scheme: s,
-		first:  privKey.(*privateKey).scheme.first.DerivePublicKey(privKey.(*privateKey).first),
-		second: privKey.(*privateKey).scheme.second.DerivePublicKey(privKey.(*privateKey).second),
+		first:  priv.scheme.first.DerivePublicKey(priv.first),
+		second: priv.scheme.second.DerivePublicKey(priv.second),
 	}
 }
 
 func (s *Scheme) Blind(groupMember nike.PublicKey, blindingFactor nike.PrivateKey) nike.PublicKey {
-	first := s.first.Blind(groupMember.(*publicKey).first, blindingFactor.(*privateKey).first)
-	second := s.second.Blind(groupMember.(*publicKey).second, blindingFactor.(*privateKey).second)
+	pub, ok1 := groupMember.(*publicKey)
+	bf, ok2 := blindingFactor.(*privateKey)
+	if !ok1 || !ok2 {
+		return nil
+	}
+	first := s.first.Blind(pub.first, bf.first)
+	second := s.second.Blind(pub.second, bf.second)
 	if first == nil || second == nil {
 		return nil
 	}

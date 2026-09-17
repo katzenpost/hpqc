@@ -210,14 +210,23 @@ func (e *scheme) NewEmptyPrivateKey() nike.PrivateKey {
 // DeriveSecret derives a shared secret given a private key
 // from one party and a public key from another.
 func (e *scheme) DeriveSecret(privKey nike.PrivateKey, pubKey nike.PublicKey) []byte {
-	sharedSecret := privKey.(*PrivateKey).Exp(pubKey.(*PublicKey))
+	priv, ok1 := privKey.(*PrivateKey)
+	pub, ok2 := pubKey.(*PublicKey)
+	if !ok1 || !ok2 {
+		return nil
+	}
+	sharedSecret := priv.Exp(pub)
 	return sharedSecret[:]
 }
 
 // DerivePublicKey derives a public key given a private key.
 func (e *scheme) DerivePublicKey(privKey nike.PrivateKey) nike.PublicKey {
+	priv, ok := privKey.(*PrivateKey)
+	if !ok {
+		return nil
+	}
 	pubKey := e.NewEmptyPublicKey()
-	expG((*[GroupElementLength]byte)(pubKey.(*PublicKey)), (*[GroupElementLength]byte)(privKey.(*PrivateKey)))
+	expG((*[GroupElementLength]byte)(pubKey.(*PublicKey)), (*[GroupElementLength]byte)(priv))
 	return pubKey
 }
 
