@@ -27,13 +27,15 @@ func bothWork(assertx *assert.Assertions, t require.TestingT, rng io.Reader) boo
 	_, err = rng.Read(factor[:])
 	require.NoError(t, err)
 
-	// Blind on uninitialized key should panic:
+	// Blind on uninitialized key should return an error:
 	bad_public := new(PublicKey)
-	assert.Panics(func() { bad_public.Blind(factor) })
+	_, badErr := bad_public.Blind(factor)
+	assert.Error(badErr)
 
 	// Test that blinded public+private keys match:
 	f1_blind_secret := unblinded.Blind(factor)
-	f1_blind_public := unblinded.PublicKey().Blind(factor)
+	f1_blind_public, err := unblinded.PublicKey().Blind(factor)
+	require.NoError(t, err)
 	assert.Equal(f1_blind_secret.Identity(), f1_blind_public.Bytes())
 	f1_derived_public := f1_blind_secret.PublicKey()
 	assert.Equal(f1_blind_public, f1_derived_public)
@@ -63,7 +65,8 @@ func bothWork(assertx *assert.Assertions, t require.TestingT, rng io.Reader) boo
 	unblinded_x, _, err := NewKeypair(rng)
 	require.NoError(t, err, "NewKeypair(2)")
 	assert.NotEqual(unblinded_x.Bytes(), unblinded.Bytes())
-	f1_blind_public_x := unblinded_x.PublicKey().Blind(factor)
+	f1_blind_public_x, err := unblinded_x.PublicKey().Blind(factor)
+	require.NoError(t, err)
 	f1_blind_secret_x := unblinded_x.Blind(factor)
 	assert.NotEqual(f1_blind_public, f1_blind_public_x)
 	f1_derived_public_x := f1_blind_secret_x.PublicKey()
@@ -77,7 +80,8 @@ func bothWork(assertx *assert.Assertions, t require.TestingT, rng io.Reader) boo
 	// since we hash factor, any bit flip should work.
 	assert.NotEqual(factor, factor2)
 	f2_blind_secret := unblinded.Blind(factor2)
-	f2_blind_public := unblinded.PublicKey().Blind(factor2)
+	f2_blind_public, err := unblinded.PublicKey().Blind(factor2)
+	require.NoError(t, err)
 	f2_derived_public := f2_blind_secret.PublicKey()
 	assert.Equal(f2_blind_public, f2_derived_public)
 	assert.NotEqual(f2_blind_public, f1_blind_public)
@@ -96,9 +100,11 @@ func bothWork(assertx *assert.Assertions, t require.TestingT, rng io.Reader) boo
 	err = f1_blind_secret_deser.UnmarshalBinary(nulls[:])
 	assert.NotEqual(nil, err)
 
-	// Accidentally blinding with an empty slice should panic:
+	// Accidentally blinding with an empty slice should panic (private) or
+	// return an error (public):
 	assert.Panics(func() { f2_blind_secret.Blind(factor[:0]) })
-	assert.Panics(func() { f2_blind_public.Blind(factor[:0]) })
+	_, emptyFactorErr := f2_blind_public.Blind(factor[:0])
+	assert.Error(emptyFactorErr)
 
 	// exercise some error paths:
 	uninit_blind := new(BlindedPrivateKey)
@@ -117,7 +123,9 @@ func bothWork(assertx *assert.Assertions, t require.TestingT, rng io.Reader) boo
 	f12_blind_secret := f1_blind_secret.Blind(factor2)
 	f21_blind_secret := f2_blind_secret.Blind(factor)
 	assert.Equal(f12_blind_secret, f21_blind_secret)
-	assert.Equal(f12_blind_secret.PublicKey(), unblinded.Blind(factor).PublicKey().Blind(factor2))
+	reblind_pub, err := unblinded.Blind(factor).PublicKey().Blind(factor2)
+	require.NoError(t, err)
+	assert.Equal(f12_blind_secret.PublicKey(), reblind_pub)
 	factor3 := make([]byte, BlindFactorSize)
 	_, err = rng.Read(factor3)
 	require.NoError(t, err)
@@ -127,7 +135,12 @@ func bothWork(assertx *assert.Assertions, t require.TestingT, rng io.Reader) boo
 	assert.Equal(f123_blind_secret, f213_blind_secret)
 	assert.Equal(f321_blind_secret, f123_blind_secret)
 	assert.NotEqual(f123_blind_secret, f12_blind_secret)
-	f123_blind_public := unblinded.PublicKey().Blind(factor).Blind(factor2).Blind(factor3)
+	f123_blind_public, err := unblinded.PublicKey().Blind(factor)
+	require.NoError(t, err)
+	f123_blind_public, err = f123_blind_public.Blind(factor2)
+	require.NoError(t, err)
+	f123_blind_public, err = f123_blind_public.Blind(factor3)
+	require.NoError(t, err)
 	assert.Equal(f123_blind_secret.PublicKey(), f123_blind_public)
 	assert.Equal(true, CheckPublicKey(f123_blind_public))
 	assert.NotEqual(identity_element, f123_blind_public)
@@ -220,7 +233,8 @@ func TestUnblind(t *testing.T) {
 
 	// Test that blinded public+private keys match:
 	f1_blind_secret := originalO.Blind(factor)
-	f1_blind_public := originalO.PublicKey().Blind(factor)
+	f1_blind_public, err := originalO.PublicKey().Blind(factor)
+	require.NoError(t, err)
 	assert.Equal(f1_blind_secret.Identity(), f1_blind_public.Bytes())
 
 	f2_sk := f1_blind_secret.Blind(factor2)
@@ -256,7 +270,8 @@ func TestUnblindSpecificSeed(t *testing.T) {
 
 	// Test that blinded public+private keys match:
 	f1_blind_secret := originalO.Blind(factor)
-	f1_blind_public := originalO.PublicKey().Blind(factor)
+	f1_blind_public, err := originalO.PublicKey().Blind(factor)
+	require.NoError(t, err, "Blind failed for seed %d", test_seed)
 	assert.Equal(f1_blind_secret.Identity(), f1_blind_public.Bytes(), "Identity mismatch for seed %d", test_seed)
 
 	f2_sk := f1_blind_secret.Blind(factor2)
@@ -447,4 +462,19 @@ func TestUnblindVectors(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestPublicKeyBlindUninitializedReturnsError(t *testing.T) {
+	t.Parallel()
+
+	factor := make([]byte, BlindFactorSize)
+	factor[0] = 1
+
+	_, err := new(PublicKey).Blind(factor)
+	require.Error(t, err, "Blind on an uninitialized *PublicKey must return an error, not panic")
+
+	_, pub, kerr := NewKeypair(rand.NewMath())
+	require.NoError(t, kerr)
+	_, err = pub.Blind([]byte{})
+	require.Error(t, err, "Blind with an empty factor must return an error, not panic")
 }

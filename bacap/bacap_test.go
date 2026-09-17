@@ -176,7 +176,8 @@ func TestReadCap(t *testing.T) {
 	mb1 := readcap.messageBoxIndex
 	mb2, err := mb1.NextIndex()
 	require.NoError(t, err)
-	mb2_id := mb2.DeriveMessageBoxID(readcap.rootPublicKey)
+	mb2_id, err := mb2.DeriveMessageBoxID(readcap.rootPublicKey)
+	require.NoError(t, err)
 	require.False(t, util.CtIsZero(mb2_id.Bytes()))
 }
 
@@ -190,7 +191,8 @@ func TestMake1000(t *testing.T) {
 	for i := 0; i < 1000; i++ {
 		mb_cur, err = mb_cur.NextIndex()
 		require.NoError(t, err)
-		mb2_id := mb_cur.DeriveMessageBoxID(uread.rootPublicKey)
+		mb2_id, err := mb_cur.DeriveMessageBoxID(uread.rootPublicKey)
+		require.NoError(t, err)
 		require.False(t, util.CtIsZero(mb2_id.Bytes()))
 	}
 }
@@ -210,11 +212,13 @@ func TestEncryptDecrypt(t *testing.T) {
 		boxCurrent, err = boxCurrent.NextIndex()
 		require.NoError(t, err)
 
-		boxDerived := boxCurrent.BoxIDForContext(uread, ctx1)
+		boxDerived, err := boxCurrent.BoxIDForContext(uread, ctx1)
+		require.NoError(t, err)
 
 		// encrypt a new message:
 		msg := []byte(fmt.Sprintf("message %d", i))
-		box, ciphertext1, sig1 := boxCurrent.EncryptForContext(owner, ctx1, msg)
+		box, ciphertext1, sig1, err := boxCurrent.EncryptForContext(owner, ctx1, msg)
+		require.NoError(t, err)
 		require.Equal(t, boxDerived.Bytes(), box[:])
 		require.NotEqual(t, msg, ciphertext1)
 
@@ -452,9 +456,9 @@ func TestMessageBoxIndexDeriveMessageBoxIDFailures(t *testing.T) {
 	var m MessageBoxIndex
 	var pk ed25519.PublicKey
 
-	// Catch panic when calling DeriveMessageBoxID with an uninitialized public key
-	err := catchPanic(func() { _ = m.DeriveMessageBoxID(&pk) })
-	require.Error(t, err, "expected panic when calling DeriveMessageBoxID with an uninitialized public key")
+	// DeriveMessageBoxID with an uninitialized public key must return an error, not panic.
+	_, err := m.DeriveMessageBoxID(&pk)
+	require.Error(t, err, "expected error when calling DeriveMessageBoxID with an uninitialized public key")
 }
 
 func TestStatefulReaderFailures(t *testing.T) {
@@ -483,8 +487,8 @@ func TestStatefulWriterFailures(t *testing.T) {
 	t.Parallel()
 
 	owner := &WriteCap{
-		rootPrivateKey:       new(ed25519.PrivateKey),
-		rootPublicKey:        new(ed25519.PublicKey),
+		rootPrivateKey:  new(ed25519.PrivateKey),
+		rootPublicKey:   new(ed25519.PublicKey),
 		messageBoxIndex: &MessageBoxIndex{},
 	}
 
@@ -572,7 +576,8 @@ func TestStatefulReaderDecryptNextFailures(t *testing.T) {
 	require.NoError(t, err)
 
 	// Generate a valid box ID for comparison
-	validBoxID := reader.NextIndex.BoxIDForContext(uread, ctx)
+	validBoxID, err := reader.NextIndex.BoxIDForContext(uread, ctx)
+	require.NoError(t, err)
 	require.NotNil(t, validBoxID)
 
 	// Mock encrypted message and signature
@@ -813,4 +818,17 @@ func TestInitialIndexMaskingBound(t *testing.T) {
 	require.Equal(t, uint64(0),
 		binary.LittleEndian.Uint64(zero[:8])+binary.LittleEndian.Uint64(zero[8:]),
 		"min i_0 must be 0")
+}
+
+// TestCraftedReaderNextBoxIDNoPanic is a regression test for a fuzzer finding:
+// a StatefulReader built from crafted bytes must return an error from
+// NextBoxID rather than panicking inside ed25519.(*PublicKey).Blind.
+func TestCraftedReaderNextBoxIDNoPanic(t *testing.T) {
+	t.Parallel()
+
+	sr, err := NewStatefulReaderFromBytes([]byte("\xf6"))
+	require.NoError(t, err, "crafted input should deserialize into a reader")
+
+	_, err = sr.NextBoxID()
+	require.Error(t, err, "NextBoxID on a crafted reader must return an error, not panic")
 }

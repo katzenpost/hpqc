@@ -34,6 +34,7 @@ import (
 	"crypto/subtle"
 	"encoding"
 	"errors"
+	"fmt"
 
 	"filippo.io/edwards25519"
 )
@@ -300,27 +301,26 @@ func (b *BlindedPrivateKey) KeyType() string {
 // Blind performs the blinding operations on the public key
 // and returns the blinded public key. This function does not
 // mutate the PublicKey.
-func (k *PublicKey) Blind(factor []byte) *PublicKey {
+func (k *PublicKey) Blind(factor []byte) (*PublicKey, error) {
 	if 0 == len(factor) {
-		panic("Blind with empty factor")
+		return nil, errors.New("Blind with empty factor")
 	}
 
 	sum := sha512.Sum512_256(factor)
 	factor = sum[:]
 	factor_sc, err := new(edwards25519.Scalar).SetBytesWithClamping(factor)
 	if err != nil {
-		panic("sha512/256 did not return 32 bytes, impossible")
+		return nil, errors.New("sha512/256 did not return 32 bytes, impossible")
 	}
 	// out <- factor*pkA + zero*Basepoint
 	out, err := new(edwards25519.Point).SetBytes(k.Bytes())
 	if err != nil {
-		panic("k.Bytes() was not a valid [32]byte slice public key. Was *PublicKey initialized?")
+		return nil, fmt.Errorf("ed25519: Blind: invalid public key: %w", err)
 	}
 	newkey := new(PublicKey)
 	err = newkey.FromBytes(out.ScalarMult(factor_sc, out).Bytes())
 	if err != nil {
-		// Again this should not happen; but in case it does:
-		panic(err)
+		return nil, fmt.Errorf("ed25519: Blind: derived key invalid: %w", err)
 	}
-	return newkey
+	return newkey, nil
 }

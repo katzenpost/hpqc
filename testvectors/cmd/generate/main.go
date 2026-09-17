@@ -788,9 +788,13 @@ func genBACAPBoxID() vectorFile {
 		}
 		var boxID []byte
 		if c.useContext {
-			boxID = idx.BoxIDForContext(rc, c.ctx).Bytes()
+			pk, err := idx.BoxIDForContext(rc, c.ctx)
+			must(err)
+			boxID = pk.Bytes()
 		} else {
-			boxID = idx.DeriveMessageBoxID(rootPub).Bytes()
+			pk, err := idx.DeriveMessageBoxID(rootPub)
+			must(err)
+			boxID = pk.Bytes()
 		}
 		vs = append(vs, bacapBoxIDVector{
 			Name:             c.name,
@@ -859,7 +863,8 @@ func genBACAPEncrypt() vectorFile {
 			must(err)
 			idx = advanced
 		}
-		boxID, ct, sig := idx.EncryptForContext(wc, c.ctx, c.plaintext)
+		boxID, ct, sig, err := idx.EncryptForContext(wc, c.ctx, c.plaintext)
+		must(err)
 
 		// Sanity: round-trip decrypts to the original plaintext.
 		recovered, err := idx.DecryptForContext(boxID, c.ctx, ct, sig)
@@ -941,7 +946,9 @@ func genBACAPMutateKDFState() vectorFile {
 		mutated := idx.MutateKDFState(c.salt)
 		mutatedBytes, err := mutated.MarshalBinary()
 		must(err)
-		boxID := mutated.BoxIDForContext(rc, c.readCtx).Bytes()
+		mutatedPk, err := mutated.BoxIDForContext(rc, c.readCtx)
+		must(err)
+		boxID := mutatedPk.Bytes()
 		vs = append(vs, bacapMutateVector{
 			Name:             c.name,
 			WriteCapHex:      hex.EncodeToString(wcBytes),

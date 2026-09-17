@@ -52,7 +52,9 @@ func TestMutateKDFStateDivergence(t *testing.T) {
 	require.NoError(t, err)
 
 	boxID := func(rc *ReadCap) []byte {
-		return rc.GetMessageBoxIndex().BoxIDForContext(rc, readCtx).Bytes()
+		pk, err := rc.GetMessageBoxIndex().BoxIDForContext(rc, readCtx)
+		require.NoError(t, err)
+		return pk.Bytes()
 	}
 
 	orig := boxID(wc.ReadCap())
