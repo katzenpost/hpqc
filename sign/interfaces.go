@@ -113,7 +113,9 @@ type Scheme interface {
 	// the private key corresponding to the given public key on the
 	// given message. opts are additional options which can be nil.
 	//
-	// Panics if key is nil or wrong type or opts context is not supported.
+	// Returns false if key is nil, the wrong type, or the signature is
+	// malformed; it does not panic on such input. Panics if opts context
+	// is not supported.
 	Verify(pk PublicKey, message []byte, signature []byte, opts *SignatureOpts) bool
 
 	// Deterministically derives a keypair from a seed. If you're unsure,
