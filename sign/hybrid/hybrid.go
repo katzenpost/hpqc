@@ -6,7 +6,6 @@ package hybrid
 import (
 	"crypto"
 	"crypto/hmac"
-	"fmt"
 	"io"
 
 	"github.com/katzenpost/hpqc/sign"
@@ -98,9 +97,7 @@ func (s *Scheme) DeriveKey(seed []byte) (sign.PublicKey, sign.PrivateKey) {
 
 func (s *Scheme) UnmarshalBinaryPublicKey(b []byte) (sign.PublicKey, error) {
 	if len(b) != s.PublicKeySize() {
-		return nil, fmt.Errorf(
-			"hybrid: invalid public key size: got %d, want %d",
-			len(b), s.PublicKeySize())
+		return nil, sign.ErrPubKeySize
 	}
 	pub1, err := s.first.UnmarshalBinaryPublicKey(b[:s.first.PublicKeySize()])
 	if err != nil {
@@ -119,9 +116,7 @@ func (s *Scheme) UnmarshalBinaryPublicKey(b []byte) (sign.PublicKey, error) {
 
 func (s *Scheme) UnmarshalBinaryPrivateKey(b []byte) (sign.PrivateKey, error) {
 	if len(b) != s.PrivateKeySize() {
-		return nil, fmt.Errorf(
-			"hybrid: invalid private key size: got %d, want %d",
-			len(b), s.PrivateKeySize())
+		return nil, sign.ErrPrivKeySize
 	}
 	priv1, err := s.first.UnmarshalBinaryPrivateKey(b[:s.first.PrivateKeySize()])
 	if err != nil {
@@ -222,9 +217,7 @@ func (p *PrivateKey) MarshalBinary() ([]byte, error) {
 
 func (p *PrivateKey) UnmarshalBinary(b []byte) error {
 	if len(b) != p.scheme.PrivateKeySize() {
-		return fmt.Errorf(
-			"hybrid: invalid private key size: got %d, want %d",
-			len(b), p.scheme.PrivateKeySize())
+		return sign.ErrPrivKeySize
 	}
 	first, err := p.scheme.first.UnmarshalBinaryPrivateKey(b[:p.scheme.first.PrivateKeySize()])
 	if err != nil {

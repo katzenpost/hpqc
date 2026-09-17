@@ -7,6 +7,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/katzenpost/hpqc/sign"
 	"github.com/katzenpost/hpqc/sign/ed25519"
 )
 
@@ -24,7 +25,7 @@ func TestUnmarshalBinaryPublicKeyRejectsShortInput(t *testing.T) {
 	require.NotPanics(t, func() {
 		_, err = s.UnmarshalBinaryPublicKey([]byte{1, 2, 3})
 	}, "short public key must error, not panic")
-	require.Error(t, err)
+	require.ErrorIs(t, err, sign.ErrPubKeySize)
 }
 
 // A short private-key input must not panic the composite unmarshal.
@@ -34,7 +35,7 @@ func TestUnmarshalBinaryPrivateKeyRejectsShortInput(t *testing.T) {
 	require.NotPanics(t, func() {
 		_, err = s.UnmarshalBinaryPrivateKey([]byte{1, 2, 3})
 	}, "short private key must error, not panic")
-	require.Error(t, err)
+	require.ErrorIs(t, err, sign.ErrPrivKeySize)
 }
 
 // PrivateKey.UnmarshalBinary must also reject a short input without panic.
@@ -47,5 +48,5 @@ func TestPrivateKeyUnmarshalBinaryRejectsShortInput(t *testing.T) {
 	require.NotPanics(t, func() {
 		uerr = hp.UnmarshalBinary([]byte{1, 2, 3})
 	}, "short input must error, not panic")
-	require.Error(t, uerr)
+	require.ErrorIs(t, uerr, sign.ErrPrivKeySize)
 }
