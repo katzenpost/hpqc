@@ -106,7 +106,7 @@ func (m *MessageBoxIndex) deriveKForContext(ctx []byte) (kICtx [32]byte) {
 }
 
 // BoxIDForContext returns a new box ID given a read cap and a cryptographic context.
-func (m *MessageBoxIndex) BoxIDForContext(cap *ReadCap, ctx []byte) *ed25519.PublicKey {
+func (m *MessageBoxIndex) BoxIDForContext(cap *ReadCap, ctx []byte) (*ed25519.PublicKey, error) {
 	kICtx := m.deriveKForContext(ctx)
 	return cap.rootPublicKey.Blind(kICtx[:]) // Produce M_i^ctx = P_R * K_i
 }
@@ -117,9 +117,13 @@ func (m *MessageBoxIndex) BoxIDForContext(cap *ReadCap, ctx []byte) *ed25519.Pub
 // Box ID. This method is provided along VerifyCiphertextForContext
 // such that you can use BACAP with an alternate encryption scheme.
 // BACAP's default encryption scheme uses AES GCM SIV.
-func (m *MessageBoxIndex) SignBox(owner *WriteCap, ctx []byte, ciphertext []byte) (mICtx [32]byte, sICtx []byte) {
+func (m *MessageBoxIndex) SignBox(owner *WriteCap, ctx []byte, ciphertext []byte) (mICtx [32]byte, sICtx []byte, err error) {
 	kICtx := m.deriveKForContext(ctx)
-	mICtx = *(*[32]byte)(owner.rootPublicKey.Blind(kICtx[:]).Bytes())
+	blinded, err := owner.rootPublicKey.Blind(kICtx[:])
+	if err != nil {
+		return
+	}
+	mICtx = *(*[32]byte)(blinded.Bytes())
 
 	// derive blinded private key specific to box index + context and sign the GCM-SIV ciphertext:
 	SICtx := owner.rootPrivateKey.Blind(kICtx[:])
@@ -145,9 +149,13 @@ func (m *MessageBoxIndex) VerifyBox(box [BoxIDSize]byte, ciphertext []byte, sig 
 
 // EncryptForContext encrypts the given plaintext. The given BoxOwnerCap type and context
 // are used here in the encryption key derivation.
-func (m *MessageBoxIndex) EncryptForContext(owner *WriteCap, ctx []byte, plaintext []byte) (mICtx [32]byte, cICtx []byte, sICtx []byte) {
+func (m *MessageBoxIndex) EncryptForContext(owner *WriteCap, ctx []byte, plaintext []byte) (mICtx [32]byte, cICtx []byte, sICtx []byte, err error) {
 	kICtx := m.deriveKForContext(ctx)
-	mICtx = *(*[32]byte)(owner.rootPublicKey.Blind(kICtx[:]).Bytes())
+	blinded, err := owner.rootPublicKey.Blind(kICtx[:])
+	if err != nil {
+		return
+	}
+	mICtx = *(*[32]byte)(blinded.Bytes())
 	eICtx := m.deriveEForContext(ctx)
 	sivenc, err := gcmsiv.NewGCMSIV(eICtx[:])
 	if err != nil {
@@ -270,7 +278,7 @@ func (m *MessageBoxIndex) MutateKDFState(ctx []byte) *MessageBoxIndex {
 }
 
 // DeriveMessageBoxID derives the blinded public key, the mailbox ID, given the root public key.
-func (m *MessageBoxIndex) DeriveMessageBoxID(rootPublicKey *ed25519.PublicKey) *ed25519.PublicKey {
+func (m *MessageBoxIndex) DeriveMessageBoxID(rootPublicKey *ed25519.PublicKey) (*ed25519.PublicKey, error) {
 	return rootPublicKey.Blind(m.CurBlindingFactor[:])
 }
 
@@ -396,7 +404,7 @@ func (o *WriteCap) WithMessageBoxIndex(idx *MessageBoxIndex) *WriteCap {
 }
 
 // DeriveBoxID derives the box ID for a given message box index.
-func (o *WriteCap) DeriveBoxID(messageBoxIndex *MessageBoxIndex) *ed25519.PublicKey {
+func (o *WriteCap) DeriveBoxID(messageBoxIndex *MessageBoxIndex) (*ed25519.PublicKey, error) {
 	return messageBoxIndex.DeriveMessageBoxID(o.rootPublicKey)
 }
 
@@ -431,7 +439,7 @@ func (u *ReadCap) WithMessageBoxIndex(idx *MessageBoxIndex) *ReadCap {
 }
 
 // DeriveBoxID derives the box ID for a given message box index.
-func (u *ReadCap) DeriveBoxID(messageBoxIndex *MessageBoxIndex) *ed25519.PublicKey {
+func (u *ReadCap) DeriveBoxID(messageBoxIndex *MessageBoxIndex) (*ed25519.PublicKey, error) {
 	return messageBoxIndex.DeriveMessageBoxID(u.rootPublicKey)
 }
 
@@ -569,7 +577,10 @@ func (sr *StatefulReader) NextBoxID() (*[BoxIDSize]byte, error) {
 		nextIndex = tmp
 	}
 
-	nextBox := nextIndex.BoxIDForContext(sr.Rcap, sr.Ctx)
+	nextBox, err := nextIndex.BoxIDForContext(sr.Rcap, sr.Ctx)
+	if err != nil {
+		return nil, err
+	}
 	nextBoxID := &[BoxIDSize]byte{}
 	copy(nextBoxID[:], nextBox.Bytes())
 	return nextBoxID, nil
@@ -598,7 +609,10 @@ func (sr *StatefulReader) DecryptNext(ctx []byte, box [BoxIDSize]byte, ciphertex
 	if sr.NextIndex == nil {
 		return nil, errors.New(errNextIndexIsNilCannotParseReply)
 	}
-	nextboxPubKey := sr.NextIndex.BoxIDForContext(sr.Rcap, sr.Ctx)
+	nextboxPubKey, err := sr.NextIndex.BoxIDForContext(sr.Rcap, sr.Ctx)
+	if err != nil {
+		return nil, err
+	}
 	if !bytes.Equal(box[:], nextboxPubKey.Bytes()) {
 		return nil, errors.New("reply does not match expected box ID")
 	}
@@ -720,7 +734,7 @@ func (sw *StatefulWriter) NextBoxID() (*ed25519.PublicKey, error) {
 	if sw.Ctx == nil {
 		return nil, errors.New("ctx is nil")
 	}
-	return sw.NextIndex.BoxIDForContext(sw.Wcap.ReadCap(), sw.Ctx), nil
+	return sw.NextIndex.BoxIDForContext(sw.Wcap.ReadCap(), sw.Ctx)
 }
 
 // GetNextMessageIndex returns what the next MessageBoxIndex will be after advancing state.
@@ -746,7 +760,7 @@ func (sw *StatefulWriter) PrepareNext(plaintext []byte) (boxID [BoxIDSize]byte, 
 	}
 
 	// Encrypt the message without advancing state
-	boxID, ciphertext, sig = sw.NextIndex.EncryptForContext(sw.Wcap, sw.Ctx, plaintext)
+	boxID, ciphertext, sig, err = sw.NextIndex.EncryptForContext(sw.Wcap, sw.Ctx, plaintext)
 	return
 }
 

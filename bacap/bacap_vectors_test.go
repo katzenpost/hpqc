@@ -94,13 +94,17 @@ func TestBACAPBoxIDVectors(t *testing.T) {
 
 			var got []byte
 			if v.UseContext {
-				got = idx.BoxIDForContext(rc, ctx).Bytes()
+				pk, err := idx.BoxIDForContext(rc, ctx)
+				require.NoError(t, err)
+				got = pk.Bytes()
 			} else {
 				// DeriveMessageBoxID needs the root pubkey; recover it
 				// from the WriteCap blob (bytes [32:64]).
 				rootPub := new(ed25519.PublicKey)
 				require.NoError(t, rootPub.FromBytes(mustHexBytes(t, v.WriteCapHex)[32:64]))
-				got = idx.DeriveMessageBoxID(rootPub).Bytes()
+				pk, err := idx.DeriveMessageBoxID(rootPub)
+				require.NoError(t, err)
+				got = pk.Bytes()
 			}
 			require.Equal(t, expected, got, "box ID mismatch")
 		})
@@ -136,7 +140,9 @@ func TestBACAPMutateKDFStateVectors(t *testing.T) {
 			require.NoError(t, err)
 			require.Equal(t, mustHexBytes(t, v.ExpectedIndexHex), actual, "mutated index mismatch")
 
-			boxID := mutated.BoxIDForContext(rc, mustHexBytes(t, v.ReadCtxHex)).Bytes()
+			mutatedPk, err := mutated.BoxIDForContext(rc, mustHexBytes(t, v.ReadCtxHex))
+			require.NoError(t, err)
+			boxID := mutatedPk.Bytes()
 			require.Equal(t, mustHexBytes(t, v.ExpectedBoxIDHex), boxID, "mutated box ID mismatch")
 		})
 	}
@@ -168,7 +174,8 @@ func TestBACAPEncryptVectors(t *testing.T) {
 			ctx := mustHexBytes(t, v.CtxHex)
 			plaintext := mustHexBytes(t, v.PlaintextHex)
 
-			boxID, ct, sig := idx.EncryptForContext(wc, ctx, plaintext)
+			boxID, ct, sig, err := idx.EncryptForContext(wc, ctx, plaintext)
+			require.NoError(t, err)
 
 			require.Equal(t, mustHexBytes(t, v.ExpectedBoxIDHex), boxID[:], "box ID mismatch")
 			require.True(t, bytes.Equal(mustHexBytes(t, v.ExpectedCiphertext), ct), "ciphertext mismatch")
