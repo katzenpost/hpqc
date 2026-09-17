@@ -461,6 +461,22 @@ func TestMessageBoxIndexDeriveMessageBoxIDFailures(t *testing.T) {
 	require.Error(t, err, "expected error when calling DeriveMessageBoxID with an uninitialized public key")
 }
 
+func TestMessageBoxIndexSignBoxFailures(t *testing.T) {
+	t.Parallel()
+
+	var m MessageBoxIndex
+	var pk ed25519.PublicKey
+	owner := &WriteCap{rootPublicKey: &pk}
+
+	_, _, err := m.SignBox(owner, []byte("ctx"), []byte("ciphertext"))
+	require.Error(t, err, "expected error when calling SignBox with an uninitialized owner public key")
+
+	good, err := NewWriteCap(rand.Reader)
+	require.NoError(t, err)
+	_, _, err = m.SignBox(good, []byte("ctx"), []byte("ciphertext"))
+	require.NoError(t, err)
+}
+
 func TestStatefulReaderFailures(t *testing.T) {
 	t.Parallel()
 
