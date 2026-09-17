@@ -62,7 +62,20 @@ func (s *scheme) Sign(sk sign.PrivateKey, message []byte, opts *sign.SignatureOp
 }
 
 func (s *scheme) Verify(pk sign.PublicKey, message []byte, signature []byte, opts *sign.SignatureOpts) bool {
-	return pk.(*publicKey).Verify(signature, message)
+	// A wrong-sized signature, or an empty message, is invalid: reject it
+	// here rather than pass a short/empty buffer to the reference C binding,
+	// which dereferences signature[0] and message[0] and would crash on
+	// attacker-supplied input. No valid Sphincs+ signature over an empty
+	// message can exist, since Sign dereferences message[0] too, so returning
+	// false for an empty message loses nothing.
+	if len(signature) != s.SignatureSize() || len(message) == 0 {
+		return false
+	}
+	pub, ok := pk.(*publicKey)
+	if !ok {
+		return false
+	}
+	return pub.Verify(signature, message)
 }
 
 func (s *scheme) DeriveKey(seed []byte) (sign.PublicKey, sign.PrivateKey) {

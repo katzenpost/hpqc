@@ -6,6 +6,7 @@ package hybrid
 import (
 	"crypto"
 	"crypto/hmac"
+	"fmt"
 	"io"
 
 	"github.com/katzenpost/hpqc/sign"
@@ -63,12 +64,16 @@ func (s *Scheme) Sign(sk sign.PrivateKey, message []byte, opts *sign.SignatureOp
 
 func (s *Scheme) Verify(pk sign.PublicKey, message []byte, signature []byte, opts *sign.SignatureOpts) bool {
 	if len(signature) != s.SignatureSize() {
-		panic("incorrect signature size")
-	}
-	if !s.first.Verify(pk.(*PublicKey).first, message, signature[:s.first.SignatureSize()], opts) {
 		return false
 	}
-	if !s.second.Verify(pk.(*PublicKey).second, message, signature[s.first.SignatureSize():], opts) {
+	hpk, ok := pk.(*PublicKey)
+	if !ok {
+		return false
+	}
+	if !s.first.Verify(hpk.first, message, signature[:s.first.SignatureSize()], opts) {
+		return false
+	}
+	if !s.second.Verify(hpk.second, message, signature[s.first.SignatureSize():], opts) {
 		return false
 	}
 	return true
@@ -92,6 +97,11 @@ func (s *Scheme) DeriveKey(seed []byte) (sign.PublicKey, sign.PrivateKey) {
 }
 
 func (s *Scheme) UnmarshalBinaryPublicKey(b []byte) (sign.PublicKey, error) {
+	if len(b) != s.PublicKeySize() {
+		return nil, fmt.Errorf(
+			"hybrid: invalid public key size: got %d, want %d",
+			len(b), s.PublicKeySize())
+	}
 	pub1, err := s.first.UnmarshalBinaryPublicKey(b[:s.first.PublicKeySize()])
 	if err != nil {
 		return nil, err
@@ -108,6 +118,11 @@ func (s *Scheme) UnmarshalBinaryPublicKey(b []byte) (sign.PublicKey, error) {
 }
 
 func (s *Scheme) UnmarshalBinaryPrivateKey(b []byte) (sign.PrivateKey, error) {
+	if len(b) != s.PrivateKeySize() {
+		return nil, fmt.Errorf(
+			"hybrid: invalid private key size: got %d, want %d",
+			len(b), s.PrivateKeySize())
+	}
 	priv1, err := s.first.UnmarshalBinaryPrivateKey(b[:s.first.PrivateKeySize()])
 	if err != nil {
 		return nil, err
@@ -202,6 +217,11 @@ func (p *PrivateKey) MarshalBinary() ([]byte, error) {
 }
 
 func (p *PrivateKey) UnmarshalBinary(b []byte) error {
+	if len(b) != p.scheme.PrivateKeySize() {
+		return fmt.Errorf(
+			"hybrid: invalid private key size: got %d, want %d",
+			len(b), p.scheme.PrivateKeySize())
+	}
 	first, err := p.scheme.first.UnmarshalBinaryPrivateKey(b[:p.scheme.first.PrivateKeySize()])
 	if err != nil {
 		return err
@@ -257,4 +277,3 @@ func (p *PublicKey) MarshalBinary() ([]byte, error) {
 	}
 	return append(blob1, blob2...), nil
 }
-

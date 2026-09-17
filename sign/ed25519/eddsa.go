@@ -72,7 +72,11 @@ func (s *scheme) Sign(sk sign.PrivateKey, message []byte, opts *sign.SignatureOp
 }
 
 func (s *scheme) Verify(pk sign.PublicKey, message []byte, signature []byte, opts *sign.SignatureOpts) bool {
-	return ed25519.Verify(pk.(*PublicKey).pubKey, message, signature)
+	pub, ok := pk.(*PublicKey)
+	if !ok {
+		return false
+	}
+	return ed25519.Verify(pub.pubKey, message, signature)
 }
 
 func (s *scheme) DeriveKey(seed []byte) (sign.PublicKey, sign.PrivateKey) {
@@ -184,6 +188,14 @@ func (p *PrivateKey) FromBytes(b []byte) error {
 		return errInvalidKey
 	}
 
+	// The public half (bytes [32:64]) is trusted verbatim by the stdlib
+	// Public() call below, so reject it here if it is not a valid Edwards
+	// point: otherwise a later Blind on the derived public key panics on
+	// attacker-supplied bytes (e.g. a crafted bacap WriteCap).
+	if _, err := new(edwards25519.Point).SetBytes(b[PublicKeySize:]); err != nil {
+		return errInvalidKey
+	}
+
 	p.privKey = make([]byte, PrivateKeySize)
 	copy(p.privKey, b)
 	p.pubKey.pubKey = p.privKey.Public().(ed25519.PublicKey)
@@ -274,6 +286,12 @@ func (p *PublicKey) FromBytes(data []byte) error {
 		return errInvalidKey
 	}
 
+	// Reject bytes that are not a valid Edwards point, so a later Blind or any
+	// other edwards25519 operation cannot panic on an off-curve public key.
+	if _, err := new(edwards25519.Point).SetBytes(data); err != nil {
+		return errInvalidKey
+	}
+
 	p.pubKey = make([]byte, PublicKeySize)
 	copy(p.pubKey, data)
 	p.rebuildB64String()
@@ -293,7 +311,7 @@ func (p *PublicKey) UnmarshalText(text []byte) error {
 	if err != nil {
 		return err
 	}
-	p = pubkey.(*PublicKey)
+	*p = *pubkey.(*PublicKey)
 	return nil
 }
 

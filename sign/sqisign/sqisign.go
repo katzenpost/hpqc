@@ -100,7 +100,11 @@ func (s *scheme) Verify(pk sign.PublicKey, message, signature []byte, opts *sign
 	if opts != nil && opts.Context != "" {
 		panic(sign.ErrContextNotSupported)
 	}
-	ok, err := sqisignbinding.Verify(signature, pk.(*publicKey).bytes, message)
+	pub, isKey := pk.(*publicKey)
+	if !isKey {
+		return false
+	}
+	ok, err := sqisignbinding.Verify(signature, pub.bytes, message)
 	if err != nil {
 		return false
 	}
