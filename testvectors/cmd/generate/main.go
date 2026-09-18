@@ -72,6 +72,7 @@ func main() {
 
 	writeFile(*out, "primitives/sha512_256.json", genSHA512_256())
 	writeFile(*out, "primitives/blake2b_512.json", genBLAKE2b512())
+	writeFile(*out, "primitives/blake2b_256.json", genBLAKE2b256())
 	writeFile(*out, "primitives/hkdf_blake2b.json", genHKDFBlake2b())
 	writeFile(*out, "primitives/aes_gcm_siv.json", genAESGCMSIV())
 	writeFile(*out, "primitives/blinded_ed25519.json", genBlindedEd25519())
@@ -167,6 +168,54 @@ func genBLAKE2b512() vectorFile {
 		Generator:     generatorName,
 		Primitive:     "blake2b_512",
 		Description:   "BLAKE2b-512 (RFC 7693), unkeyed, 64-byte output. Used by BACAP as the underlying hash for HKDF.",
+		Vectors:       vs,
+	}
+}
+
+// BLAKE2b-256, unkeyed and keyed. Used by kem/combiner's split-PRF construction: an unkeyed
+// BLAKE2b-256 hash derives the per-component PRF key, and a keyed BLAKE2b-256 hash is the PRF
+// itself. CryptWalker's Lean port generalized its BLAKE2b-512-only implementation to support
+// this (arbitrary digest length, RFC 7693 keyed mode); these vectors are what that generalization
+// was checked against.
+
+type blake2b256Vector struct {
+	Name      string `json:"name"`
+	KeyHex    string `json:"key_hex"`
+	MsgHex    string `json:"msg_hex"`
+	DigestHex string `json:"digest_hex"`
+}
+
+func genBLAKE2b256() vectorFile {
+	cases := []struct {
+		name string
+		key  []byte
+		msg  []byte
+	}{
+		{"unkeyed_empty", nil, nil},
+		{"unkeyed_abc", nil, []byte("abc")},
+		{"unkeyed_one_block_exact_128", nil, bytesPattern(0x61, 128)},
+		{"unkeyed_multi_block_300", nil, bytesPattern(0x62, 300)},
+		{"keyed_32b_key_empty_msg", bytesPattern(0x01, 32), nil},
+		{"keyed_32b_key_short_msg", bytesPattern(0x02, 32), []byte("splitprf-v1")},
+		{"keyed_32b_key_multi_block_300", bytesPattern(0x03, 32), bytesPattern(0x64, 300)},
+	}
+	vs := make([]blake2b256Vector, 0, len(cases))
+	for _, c := range cases {
+		h, err := blake2b.New256(c.key)
+		must(err)
+		h.Write(c.msg)
+		vs = append(vs, blake2b256Vector{
+			Name:      c.name,
+			KeyHex:    hex.EncodeToString(c.key),
+			MsgHex:    hex.EncodeToString(c.msg),
+			DigestHex: hex.EncodeToString(h.Sum(nil)),
+		})
+	}
+	return vectorFile{
+		FormatVersion: formatVersion,
+		Generator:     generatorName,
+		Primitive:     "blake2b_256",
+		Description:   "BLAKE2b-256 (RFC 7693), unkeyed and keyed, for cross-checking CryptWalker's Lean port.",
 		Vectors:       vs,
 	}
 }
