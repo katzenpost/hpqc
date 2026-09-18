@@ -34,8 +34,11 @@ import (
 	"github.com/katzenpost/falcon/padded1024"
 	"github.com/katzenpost/falcon/padded512"
 
+	"filippo.io/mlkem768"
+
 	"github.com/katzenpost/hpqc/bacap"
 	"github.com/katzenpost/hpqc/kem/adapter"
+	"github.com/katzenpost/hpqc/kem/combiner"
 	"github.com/katzenpost/hpqc/kem/mkem"
 	"github.com/katzenpost/hpqc/nike"
 	"github.com/katzenpost/hpqc/nike/hybrid"
@@ -69,6 +72,7 @@ func main() {
 
 	writeFile(*out, "primitives/sha512_256.json", genSHA512_256())
 	writeFile(*out, "primitives/blake2b_512.json", genBLAKE2b512())
+	writeFile(*out, "primitives/blake2b_256.json", genBLAKE2b256())
 	writeFile(*out, "primitives/hkdf_blake2b.json", genHKDFBlake2b())
 	writeFile(*out, "primitives/aes_gcm_siv.json", genAESGCMSIV())
 	writeFile(*out, "primitives/blinded_ed25519.json", genBlindedEd25519())
@@ -84,6 +88,7 @@ func main() {
 
 	writeFile(*out, "kem/mkem.json", genKEMMkem())
 	writeFile(*out, "kem/adapter_test_vectors.json", genKEMAdapter())
+	writeFile(*out, "kem/mlkem768_x25519_combiner.json", genKEMHybridCombiner())
 
 	fmt.Println("ok")
 }
@@ -163,6 +168,54 @@ func genBLAKE2b512() vectorFile {
 		Generator:     generatorName,
 		Primitive:     "blake2b_512",
 		Description:   "BLAKE2b-512 (RFC 7693), unkeyed, 64-byte output. Used by BACAP as the underlying hash for HKDF.",
+		Vectors:       vs,
+	}
+}
+
+// BLAKE2b-256, unkeyed and keyed. Used by kem/combiner's split-PRF construction: an unkeyed
+// BLAKE2b-256 hash derives the per-component PRF key, and a keyed BLAKE2b-256 hash is the PRF
+// itself. CryptWalker's Lean port generalized its BLAKE2b-512-only implementation to support
+// this (arbitrary digest length, RFC 7693 keyed mode); these vectors are what that generalization
+// was checked against.
+
+type blake2b256Vector struct {
+	Name      string `json:"name"`
+	KeyHex    string `json:"key_hex"`
+	MsgHex    string `json:"msg_hex"`
+	DigestHex string `json:"digest_hex"`
+}
+
+func genBLAKE2b256() vectorFile {
+	cases := []struct {
+		name string
+		key  []byte
+		msg  []byte
+	}{
+		{"unkeyed_empty", nil, nil},
+		{"unkeyed_abc", nil, []byte("abc")},
+		{"unkeyed_one_block_exact_128", nil, bytesPattern(0x61, 128)},
+		{"unkeyed_multi_block_300", nil, bytesPattern(0x62, 300)},
+		{"keyed_32b_key_empty_msg", bytesPattern(0x01, 32), nil},
+		{"keyed_32b_key_short_msg", bytesPattern(0x02, 32), []byte("splitprf-v1")},
+		{"keyed_32b_key_multi_block_300", bytesPattern(0x03, 32), bytesPattern(0x64, 300)},
+	}
+	vs := make([]blake2b256Vector, 0, len(cases))
+	for _, c := range cases {
+		h, err := blake2b.New256(c.key)
+		must(err)
+		h.Write(c.msg)
+		vs = append(vs, blake2b256Vector{
+			Name:      c.name,
+			KeyHex:    hex.EncodeToString(c.key),
+			MsgHex:    hex.EncodeToString(c.msg),
+			DigestHex: hex.EncodeToString(h.Sum(nil)),
+		})
+	}
+	return vectorFile{
+		FormatVersion: formatVersion,
+		Generator:     generatorName,
+		Primitive:     "blake2b_256",
+		Description:   "BLAKE2b-256 (RFC 7693), unkeyed and keyed, for cross-checking CryptWalker's Lean port.",
 		Vectors:       vs,
 	}
 }
@@ -628,6 +681,126 @@ func genFalconHybrid(primitive, description string, scheme sign.Scheme, falconHa
 		Primitive:     primitive,
 		Description:   description,
 		Vectors:       vs,
+	}
+}
+
+// ===== ML-KEM-768 + X25519 hybrid combiner vectors =====
+//
+// hpqc's registered "MLKEM768-X25519" scheme (kem/schemes/schemes.go) pairs
+// mlkem768.Scheme() with adapter.FromNIKE(x25519...), which defaults to the
+// deployed BLAKE2bXOF adapter PRF -- not ported to the Lean side (see
+// genKEMAdapter's comment; only sha256-v1 is). These vectors instead use
+// adapter.FromNIKEWithPRF(x25519, SHA256v1) for the X25519 half, exactly the
+// KEM CryptWalker registers as "x25519-kem", so the combined vectors are
+// fully cross-checkable there -- same accepted scope boundary as the plain
+// adapter vectors above, just carried through the combiner.
+//
+// Component algorithms are already independently vendor-checked elsewhere
+// (X25519 adapter vectors above; ML-KEM-768 against NIST ACVP on the Lean
+// side); these vectors exist to check the combiner glue -- SplitPRF and
+// ciphertext concatenation -- given matching component outputs.
+
+type hybridCombinerVector struct {
+	Name                         string `json:"name"`
+	X25519StaticPrivateKeyHex    string `json:"x25519_static_private_key_hex"`
+	X25519StaticPublicKeyHex     string `json:"x25519_static_public_key_hex"`
+	X25519EphemeralPrivateKeyHex string `json:"x25519_ephemeral_private_key_hex"`
+	X25519CiphertextHex          string `json:"x25519_ciphertext_hex"`
+	X25519SharedSecretHex        string `json:"x25519_shared_secret_hex"`
+	MLKEMDHex                    string `json:"mlkem_d_hex"`
+	MLKEMZHex                    string `json:"mlkem_z_hex"`
+	MLKEMMHex                    string `json:"mlkem_m_hex"`
+	MLKEMEncapsulationKeyHex     string `json:"mlkem_encapsulation_key_hex"`
+	MLKEMCiphertextHex           string `json:"mlkem_ciphertext_hex"`
+	MLKEMSharedSecretHex         string `json:"mlkem_shared_secret_hex"`
+	CombinedCiphertextHex        string `json:"combined_ciphertext_hex"`
+	CombinedSharedSecretHex      string `json:"combined_shared_secret_hex"`
+}
+
+// label32 derives 32 deterministic bytes from a label, for inputs (ML-KEM's
+// d/z/m) with no clamping requirement -- unlike adapterScalar, which is
+// X25519-scalar-specific.
+func label32(label string) []byte {
+	sum := sha512.Sum512_256([]byte(label))
+	return sum[:]
+}
+
+func genKEMHybridCombiner() vectorFile {
+	nikeScheme := ecdh.Scheme(rand.Reader)
+	x25519KEM := adapter.FromNIKEWithPRF(nikeScheme, adapter.SHA256v1)
+
+	cases := []struct {
+		name                   string
+		staticLabel, ephLabel  string
+		dLabel, zLabel, mLabel string
+	}{
+		{"hybrid_case_1", "hybrid x25519 static 1", "hybrid x25519 ephemeral 1",
+			"hybrid mlkem d 1", "hybrid mlkem z 1", "hybrid mlkem m 1"},
+		{"hybrid_case_2", "hybrid x25519 static 2", "hybrid x25519 ephemeral 2",
+			"hybrid mlkem d 2", "hybrid mlkem z 2", "hybrid mlkem m 2"},
+		{"hybrid_case_3", "hybrid x25519 static 3", "hybrid x25519 ephemeral 3",
+			"hybrid mlkem d 3", "hybrid mlkem z 3", "hybrid mlkem m 3"},
+	}
+
+	vs := make([]hybridCombinerVector, 0, len(cases))
+	for _, c := range cases {
+		staticPrivBytes := adapterScalar(c.staticLabel)
+		ephPrivBytes := adapterScalar(c.ephLabel)
+		staticPriv, err := x25519KEM.UnmarshalBinaryPrivateKey(staticPrivBytes)
+		must(err)
+		ephPriv, err := x25519KEM.UnmarshalBinaryPrivateKey(ephPrivBytes)
+		must(err)
+		staticPubBytes, err := staticPriv.Public().MarshalBinary()
+		must(err)
+		ephPubBytes, err := ephPriv.Public().MarshalBinary()
+		must(err)
+		ctX25519 := ephPubBytes
+		ssX25519, err := x25519KEM.Decapsulate(staticPriv, ctX25519)
+		must(err)
+
+		dBytes := label32(c.dLabel)
+		zBytes := label32(c.zLabel)
+		mBytes := label32(c.mLabel)
+		seed := append(append([]byte{}, dBytes...), zBytes...)
+		dk, err := mlkem768.NewKeyFromSeed(seed)
+		must(err)
+		ek := dk.EncapsulationKey()
+		ctMLKEM, ssMLKEM, err := mlkem768.EncapsulateDerand(ek, mBytes)
+		must(err)
+
+		ctCombined := append(append([]byte{}, ctX25519...), ctMLKEM...)
+		ssCombined, err := combiner.SplitPRF([][]byte{ssX25519, ssMLKEM}, [][]byte{ctX25519, ctMLKEM})
+		must(err)
+
+		vs = append(vs, hybridCombinerVector{
+			Name:                         c.name,
+			X25519StaticPrivateKeyHex:    hex.EncodeToString(staticPrivBytes),
+			X25519StaticPublicKeyHex:     hex.EncodeToString(staticPubBytes),
+			X25519EphemeralPrivateKeyHex: hex.EncodeToString(ephPrivBytes),
+			X25519CiphertextHex:          hex.EncodeToString(ctX25519),
+			X25519SharedSecretHex:        hex.EncodeToString(ssX25519),
+			MLKEMDHex:                    hex.EncodeToString(dBytes),
+			MLKEMZHex:                    hex.EncodeToString(zBytes),
+			MLKEMMHex:                    hex.EncodeToString(mBytes),
+			MLKEMEncapsulationKeyHex:     hex.EncodeToString(ek),
+			MLKEMCiphertextHex:           hex.EncodeToString(ctMLKEM),
+			MLKEMSharedSecretHex:         hex.EncodeToString(ssMLKEM),
+			CombinedCiphertextHex:        hex.EncodeToString(ctCombined),
+			CombinedSharedSecretHex:      hex.EncodeToString(ssCombined),
+		})
+	}
+
+	return vectorFile{
+		FormatVersion: formatVersion,
+		Generator:     generatorName,
+		Primitive:     "mlkem768_x25519_combiner",
+		Description: "X25519 (adapter, sha256-v1 PRF -- matching CryptWalker's \"x25519-kem\", " +
+			"not hpqc's deployed BLAKE2bXOF default) combined with ML-KEM-768 via the generic " +
+			"split-PRF combiner (kem/combiner), now using real BLAKE2b-256. Each vector gives " +
+			"both components' raw inputs (X25519 static/ephemeral private keys; ML-KEM-768 d, z, " +
+			"m) and every intermediate output, so an implementation can check the combiner glue " +
+			"independent of how it derives the individual component outputs.",
+		Vectors: vs,
 	}
 }
 
