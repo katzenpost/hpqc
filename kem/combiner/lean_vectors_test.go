@@ -23,6 +23,7 @@ import (
 // gen_mlkem768_x25519_combiner_vectors.lean.
 type hybridVector struct {
 	Name                         string `json:"name"`
+	PRF                          string `json:"prf"`
 	X25519StaticPrivateKeyHex    string `json:"x25519_static_private_key_hex"`
 	X25519StaticPublicKeyHex     string `json:"x25519_static_public_key_hex"`
 	X25519EphemeralPrivateKeyHex string `json:"x25519_ephemeral_private_key_hex"`
@@ -63,10 +64,14 @@ func TestLeanMLKEM768X25519CombinerVectors(t *testing.T) {
 		t.Fatal("no vectors")
 	}
 
-	x25519KEM := adapter.FromNIKEWithPRF(x25519.Scheme(rand.Reader), adapter.SHA256v1)
-
 	for _, v := range f.Vectors {
 		t.Run(v.Name, func(t *testing.T) {
+			prf, err := adapter.PRFByName(v.PRF)
+			if err != nil {
+				t.Fatalf("resolve PRF: %v", err)
+			}
+			x25519KEM := adapter.FromNIKEWithPRF(x25519.Scheme(rand.Reader), prf)
+
 			staticPrivBytes := mustHexDecode(t, v.X25519StaticPrivateKeyHex)
 			ephPrivBytes := mustHexDecode(t, v.X25519EphemeralPrivateKeyHex)
 

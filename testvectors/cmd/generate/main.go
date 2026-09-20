@@ -73,6 +73,7 @@ func main() {
 	writeFile(*out, "primitives/sha512_256.json", genSHA512_256())
 	writeFile(*out, "primitives/blake2b_512.json", genBLAKE2b512())
 	writeFile(*out, "primitives/blake2b_256.json", genBLAKE2b256())
+	writeFile(*out, "primitives/blake2b_xof.json", genBLAKE2bXOF())
 	writeFile(*out, "primitives/hkdf_blake2b.json", genHKDFBlake2b())
 	writeFile(*out, "primitives/aes_gcm_siv.json", genAESGCMSIV())
 	writeFile(*out, "primitives/blinded_ed25519.json", genBlindedEd25519())
@@ -217,6 +218,71 @@ func genBLAKE2b256() vectorFile {
 		Primitive:     "blake2b_256",
 		Description:   "BLAKE2b-256 (RFC 7693), unkeyed and keyed, for cross-checking CryptWalker's Lean port.",
 		Vectors:       vs,
+	}
+}
+
+// BLAKE2b's XOF (BLAKE2Xb, blake2x.pdf): the configured size is part of the parameter block, so
+// it changes the output stream independent of how many bytes are actually read back -- exactly
+// the property the deployed adapter PRF (`kem/adapter/kem.go`'s `blake2bXOF`) relies on, sizing
+// the XOF at SharedKeySize but reading len(ss) bytes. `kem/adapter/blake2b_xof_vectors_test.go`
+// pins that: same_inputs_size_64_read_32 shares key, message and read length with
+// adapter_shape_32byte_key_64byte_msg_32 and must still produce different bytes.
+
+type blake2bXOFVector struct {
+	Name    string `json:"name"`
+	KeyHex  string `json:"key_hex"`
+	MsgHex  string `json:"msg_hex"`
+	XOFSize uint32 `json:"xof_size"`
+	Length  int    `json:"length"`
+	OutHex  string `json:"out_hex"`
+}
+
+func genBLAKE2bXOF() vectorFile {
+	cases := []struct {
+		name    string
+		key     []byte
+		msg     []byte
+		xofSize uint32
+		length  int
+	}{
+		{"empty_key_empty_msg_32", nil, nil, 32, 32},
+		{"adapter_shape_32byte_key_64byte_msg_32", bytesPattern(0xaa, 32),
+			append(bytesPattern(0xbb, 32), bytesPattern(0xcc, 32)...), 32, 32},
+		{"same_inputs_size_64_read_32", bytesPattern(0xaa, 32),
+			append(bytesPattern(0xbb, 32), bytesPattern(0xcc, 32)...), 64, 32},
+		{"output_length_unknown_read_64", bytesPattern(0xdd, 32), []byte("hpqc xof unknown length"),
+			uint32(blake2b.OutputLengthUnknown), 64},
+		{"long_output_spans_blocks_200", bytesPattern(0xee, 32), []byte("hpqc xof streaming"), 200, 200},
+	}
+	vs := make([]blake2bXOFVector, 0, len(cases))
+	for _, c := range cases {
+		x, err := blake2b.NewXOF(c.xofSize, c.key)
+		must(err)
+		_, err = x.Write(c.msg)
+		must(err)
+		out := make([]byte, c.length)
+		_, err = io.ReadFull(x, out)
+		must(err)
+		vs = append(vs, blake2bXOFVector{
+			Name:    c.name,
+			KeyHex:  hex.EncodeToString(c.key),
+			MsgHex:  hex.EncodeToString(c.msg),
+			XOFSize: c.xofSize,
+			Length:  c.length,
+			OutHex:  hex.EncodeToString(out),
+		})
+	}
+	return vectorFile{
+		FormatVersion: formatVersion,
+		Generator:     generatorName,
+		Primitive:     "blake2b_xof",
+		Description: "BLAKE2b XOF (BLAKE2Xb) as exposed by golang.org/x/crypto/blake2b.NewXOF(size, key). " +
+			"The configured size is part of the parameter block, so it changes the output stream and is " +
+			"recorded separately from the number of bytes read: note that same_inputs_size_64_read_32 " +
+			"shares key, message and read length with adapter_shape_32byte_key_64byte_msg_32 yet must " +
+			"produce different bytes. xof_size 0 means OutputLengthUnknown. This is the PRF the " +
+			"NIKE-to-KEM adapter keys with the raw shared secret; BACAP does not use it.",
+		Vectors: vs,
 	}
 }
 
@@ -702,6 +768,7 @@ func genFalconHybrid(primitive, description string, scheme sign.Scheme, falconHa
 
 type hybridCombinerVector struct {
 	Name                         string `json:"name"`
+	PRFName                      string `json:"prf"`
 	X25519StaticPrivateKeyHex    string `json:"x25519_static_private_key_hex"`
 	X25519StaticPublicKeyHex     string `json:"x25519_static_public_key_hex"`
 	X25519EphemeralPrivateKeyHex string `json:"x25519_ephemeral_private_key_hex"`
@@ -727,7 +794,6 @@ func label32(label string) []byte {
 
 func genKEMHybridCombiner() vectorFile {
 	nikeScheme := ecdh.Scheme(rand.Reader)
-	x25519KEM := adapter.FromNIKEWithPRF(nikeScheme, adapter.SHA256v1)
 
 	cases := []struct {
 		name                   string
@@ -742,64 +808,75 @@ func genKEMHybridCombiner() vectorFile {
 			"hybrid mlkem d 3", "hybrid mlkem z 3", "hybrid mlkem m 3"},
 	}
 
-	vs := make([]hybridCombinerVector, 0, len(cases))
-	for _, c := range cases {
-		staticPrivBytes := adapterScalar(c.staticLabel)
-		ephPrivBytes := adapterScalar(c.ephLabel)
-		staticPriv, err := x25519KEM.UnmarshalBinaryPrivateKey(staticPrivBytes)
-		must(err)
-		ephPriv, err := x25519KEM.UnmarshalBinaryPrivateKey(ephPrivBytes)
-		must(err)
-		staticPubBytes, err := staticPriv.Public().MarshalBinary()
-		must(err)
-		ephPubBytes, err := ephPriv.Public().MarshalBinary()
-		must(err)
-		ctX25519 := ephPubBytes
-		ssX25519, err := x25519KEM.Decapsulate(staticPriv, ctX25519)
-		must(err)
+	// Both the deployed PRF and the portable one, matching genKEMAdapter's rationale: a consumer
+	// with only SHA-256 still has vectors it can check, and one with BLAKE2b can check the
+	// configuration actually shipped (hpqc's registered "MLKEM768-X25519" scheme).
+	prfs := []adapter.PRF{adapter.BLAKE2bXOF, adapter.SHA256v1}
 
-		dBytes := label32(c.dLabel)
-		zBytes := label32(c.zLabel)
-		mBytes := label32(c.mLabel)
-		seed := append(append([]byte{}, dBytes...), zBytes...)
-		dk, err := mlkem768.NewKeyFromSeed(seed)
-		must(err)
-		ek := dk.EncapsulationKey()
-		ctMLKEM, ssMLKEM, err := mlkem768.EncapsulateDerand(ek, mBytes)
-		must(err)
+	vs := make([]hybridCombinerVector, 0, len(cases)*len(prfs))
+	for _, prf := range prfs {
+		x25519KEM := adapter.FromNIKEWithPRF(nikeScheme, prf)
+		for _, c := range cases {
+			staticPrivBytes := adapterScalar(c.staticLabel)
+			ephPrivBytes := adapterScalar(c.ephLabel)
+			staticPriv, err := x25519KEM.UnmarshalBinaryPrivateKey(staticPrivBytes)
+			must(err)
+			ephPriv, err := x25519KEM.UnmarshalBinaryPrivateKey(ephPrivBytes)
+			must(err)
+			staticPubBytes, err := staticPriv.Public().MarshalBinary()
+			must(err)
+			ephPubBytes, err := ephPriv.Public().MarshalBinary()
+			must(err)
+			ctX25519 := ephPubBytes
+			ssX25519, err := x25519KEM.Decapsulate(staticPriv, ctX25519)
+			must(err)
 
-		ctCombined := append(append([]byte{}, ctX25519...), ctMLKEM...)
-		ssCombined, err := combiner.SplitPRF([][]byte{ssX25519, ssMLKEM}, [][]byte{ctX25519, ctMLKEM})
-		must(err)
+			dBytes := label32(c.dLabel)
+			zBytes := label32(c.zLabel)
+			mBytes := label32(c.mLabel)
+			seed := append(append([]byte{}, dBytes...), zBytes...)
+			dk, err := mlkem768.NewKeyFromSeed(seed)
+			must(err)
+			ek := dk.EncapsulationKey()
+			ctMLKEM, ssMLKEM, err := mlkem768.EncapsulateDerand(ek, mBytes)
+			must(err)
 
-		vs = append(vs, hybridCombinerVector{
-			Name:                         c.name,
-			X25519StaticPrivateKeyHex:    hex.EncodeToString(staticPrivBytes),
-			X25519StaticPublicKeyHex:     hex.EncodeToString(staticPubBytes),
-			X25519EphemeralPrivateKeyHex: hex.EncodeToString(ephPrivBytes),
-			X25519CiphertextHex:          hex.EncodeToString(ctX25519),
-			X25519SharedSecretHex:        hex.EncodeToString(ssX25519),
-			MLKEMDHex:                    hex.EncodeToString(dBytes),
-			MLKEMZHex:                    hex.EncodeToString(zBytes),
-			MLKEMMHex:                    hex.EncodeToString(mBytes),
-			MLKEMEncapsulationKeyHex:     hex.EncodeToString(ek),
-			MLKEMCiphertextHex:           hex.EncodeToString(ctMLKEM),
-			MLKEMSharedSecretHex:         hex.EncodeToString(ssMLKEM),
-			CombinedCiphertextHex:        hex.EncodeToString(ctCombined),
-			CombinedSharedSecretHex:      hex.EncodeToString(ssCombined),
-		})
+			ctCombined := append(append([]byte{}, ctX25519...), ctMLKEM...)
+			ssCombined, err := combiner.SplitPRF([][]byte{ssX25519, ssMLKEM}, [][]byte{ctX25519, ctMLKEM})
+			must(err)
+
+			vs = append(vs, hybridCombinerVector{
+				Name:                         c.name + "_" + prf.Name(),
+				PRFName:                      prf.Name(),
+				X25519StaticPrivateKeyHex:    hex.EncodeToString(staticPrivBytes),
+				X25519StaticPublicKeyHex:     hex.EncodeToString(staticPubBytes),
+				X25519EphemeralPrivateKeyHex: hex.EncodeToString(ephPrivBytes),
+				X25519CiphertextHex:          hex.EncodeToString(ctX25519),
+				X25519SharedSecretHex:        hex.EncodeToString(ssX25519),
+				MLKEMDHex:                    hex.EncodeToString(dBytes),
+				MLKEMZHex:                    hex.EncodeToString(zBytes),
+				MLKEMMHex:                    hex.EncodeToString(mBytes),
+				MLKEMEncapsulationKeyHex:     hex.EncodeToString(ek),
+				MLKEMCiphertextHex:           hex.EncodeToString(ctMLKEM),
+				MLKEMSharedSecretHex:         hex.EncodeToString(ssMLKEM),
+				CombinedCiphertextHex:        hex.EncodeToString(ctCombined),
+				CombinedSharedSecretHex:      hex.EncodeToString(ssCombined),
+			})
+		}
 	}
 
 	return vectorFile{
 		FormatVersion: formatVersion,
 		Generator:     generatorName,
 		Primitive:     "mlkem768_x25519_combiner",
-		Description: "X25519 (adapter, sha256-v1 PRF -- matching CryptWalker's \"x25519-kem\", " +
-			"not hpqc's deployed BLAKE2bXOF default) combined with ML-KEM-768 via the generic " +
-			"split-PRF combiner (kem/combiner), now using real BLAKE2b-256. Each vector gives " +
-			"both components' raw inputs (X25519 static/ephemeral private keys; ML-KEM-768 d, z, " +
-			"m) and every intermediate output, so an implementation can check the combiner glue " +
-			"independent of how it derives the individual component outputs.",
+		Description: "X25519 (adapter) combined with ML-KEM-768 via the generic split-PRF " +
+			"combiner (kem/combiner, real BLAKE2b-256). The \"prf\" field names the X25519 " +
+			"adapter's shared-key derivation: \"blake2b-xof\" is hpqc's deployed default " +
+			"(hpqc's registered \"MLKEM768-X25519\" scheme), \"sha256-v1\" a portable alternative " +
+			"for implementations without BLAKE2b. Each vector gives both components' raw inputs " +
+			"(X25519 static/ephemeral private keys; ML-KEM-768 d, z, m) and every intermediate " +
+			"output, so an implementation can check the combiner glue independent of how it " +
+			"derives the individual component outputs.",
 		Vectors: vs,
 	}
 }
