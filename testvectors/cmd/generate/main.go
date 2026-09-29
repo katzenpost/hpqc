@@ -16,6 +16,7 @@
 package main
 
 import (
+	"bytes"
 	stded25519 "crypto/ed25519"
 	"crypto/sha512"
 	"encoding/hex"
@@ -37,9 +38,13 @@ import (
 	"filippo.io/mlkem768"
 
 	"github.com/katzenpost/hpqc/bacap"
+	"github.com/katzenpost/hpqc/kem"
 	"github.com/katzenpost/hpqc/kem/adapter"
 	"github.com/katzenpost/hpqc/kem/combiner"
 	"github.com/katzenpost/hpqc/kem/mkem"
+	hpqcmlkem768 "github.com/katzenpost/hpqc/kem/mlkem768"
+	"github.com/katzenpost/hpqc/kem/mrhybrid"
+	kemschemes "github.com/katzenpost/hpqc/kem/schemes"
 	"github.com/katzenpost/hpqc/nike"
 	"github.com/katzenpost/hpqc/nike/hybrid"
 	ecdh "github.com/katzenpost/hpqc/nike/x25519"
@@ -90,6 +95,7 @@ func main() {
 	writeFile(*out, "kem/mkem.json", genKEMMkem())
 	writeFile(*out, "kem/adapter_test_vectors.json", genKEMAdapter())
 	writeFile(*out, "kem/mlkem768_x25519_combiner.json", genKEMHybridCombiner())
+	writeFile(*out, "kem/multirecipient_hybrid.json", genMultiRecipientHybrid())
 
 	fmt.Println("ok")
 }
@@ -1395,4 +1401,109 @@ func genKEMAdapter() vectorFile {
 		Description:   "NIKE-to-KEM adapter (hashed ElGamal) over X25519. Each vector fixes a static recipient keypair and an ephemeral keypair; the ciphertext is the encoded ephemeral public key and the shared secret is what both Encapsulate (with that ephemeral) and Decapsulate produce. The \"prf\" field names the shared-key derivation: \"blake2b-xof\" is the deployed one, \"sha256-v1\" is a portable fixed-width alternative for implementations without BLAKE2b. Consumers must dispatch on it rather than assume. Private keys are recorded already clamped per RFC 7748 so implementations clamping on load and at use time agree. Vectors are deterministic: regenerating does not change the bytes.",
 		Vectors:       vs,
 	}
+}
+
+// ===== Multi-recipient hybrid (kem/mrhybrid) =====
+//
+// Over hpqc's registered "MLKEM768-X25519" (X25519 under the blake2b-xof
+// adapter PRF, combined with ML-KEM-768), which is CryptWalker's
+// kemMLKEM768X25519Blake2b. kem.Scheme has no derandomized encapsulation,
+// so the KEM ciphertexts, DEKs and envelopes are fresh on every run; the
+// recipient keys are fixed. Checked by decapsulation in both directions.
+
+type mrhybridRecipient struct {
+	X25519PrivateKeyHex string `json:"x25519_private_key_hex"`
+	MLKEMDHex           string `json:"mlkem_d_hex"`
+	MLKEMZHex           string `json:"mlkem_z_hex"`
+	DerivedKeyHex       string `json:"derived_key_hex"`
+	KEMCiphertextHex    string `json:"kem_ciphertext_hex"`
+	DEKHex              string `json:"dek_hex"`
+}
+
+type mrhybridVector struct {
+	Name              string              `json:"name"`
+	PayloadHex        string              `json:"payload_hex"`
+	Recipients        []mrhybridRecipient `json:"recipients"`
+	EnvelopeHex       string              `json:"envelope_hex"`
+	ReplyPlaintextHex string              `json:"reply_plaintext_hex"`
+	ReplyEnvelopeHex  string              `json:"reply_envelope_hex"`
+}
+
+func genMultiRecipientHybrid() vectorFile {
+	k := kemschemes.ByName("MLKEM768-X25519")
+	s := mrhybrid.NewScheme(k)
+	cases := []struct {
+		name    string
+		n       int
+		payload []byte
+	}{
+		{"mrhybrid_case_1", 1, []byte{}},
+		{"mrhybrid_case_2", 2, []byte("one payload, two recipients")},
+		{"mrhybrid_case_3", 3, bytes.Repeat([]byte("three recipients "), 8)},
+	}
+	vs := make([]mrhybridVector, 0, len(cases))
+	for ci, c := range cases {
+		pks := make([]kem.PublicKey, c.n)
+		sks := make([]kem.PrivateKey, c.n)
+		rs := make([]mrhybridRecipient, c.n)
+		for i := range c.n {
+			x := adapterScalar(fmt.Sprintf("mrhybrid x25519 %d %d", ci+1, i+1))
+			d := label32(fmt.Sprintf("mrhybrid mlkem d %d %d", ci+1, i+1))
+			z := label32(fmt.Sprintf("mrhybrid mlkem z %d %d", ci+1, i+1))
+			sks[i] = mrhybridPrivateKey(k, x, d, z)
+			pks[i] = sks[i].Public()
+			rs[i] = mrhybridRecipient{
+				X25519PrivateKeyHex: hex.EncodeToString(x),
+				MLKEMDHex:           hex.EncodeToString(d),
+				MLKEMZHex:           hex.EncodeToString(z),
+			}
+		}
+		derived, ct, err := s.Encapsulate(pks, c.payload)
+		must(err)
+		for i := range c.n {
+			k, got, err := s.Decapsulate(sks[i], ct.ForRecipient(i))
+			must(err)
+			if !bytes.Equal(k, derived[i]) || !bytes.Equal(got, c.payload) {
+				panic("mrhybrid vector " + c.name + ": self-decap mismatch")
+			}
+			rs[i].DerivedKeyHex = hex.EncodeToString(derived[i])
+			rs[i].KEMCiphertextHex = hex.EncodeToString(ct.KEMCiphertexts[i])
+			rs[i].DEKHex = hex.EncodeToString(ct.DEKCiphertexts[i])
+		}
+		reply := []byte("reply to " + c.name)
+		replyEnv, err := s.EnvelopeReply(derived[0], reply)
+		must(err)
+		vs = append(vs, mrhybridVector{
+			Name:              c.name,
+			PayloadHex:        hex.EncodeToString(c.payload),
+			Recipients:        rs,
+			EnvelopeHex:       hex.EncodeToString(ct.Envelope),
+			ReplyPlaintextHex: hex.EncodeToString(reply),
+			ReplyEnvelopeHex:  hex.EncodeToString(replyEnv),
+		})
+	}
+	return vectorFile{
+		FormatVersion: formatVersion,
+		Generator:     generatorName,
+		Primitive:     "multirecipient_hybrid_mlkem768_x25519",
+		Description: "Multi-recipient hybrid encryption (hpqc kem/mrhybrid, CryptWalker " +
+			"MultiRecipientHybrid) over hpqc's MLKEM768-X25519 (X25519 KEM adapter with the " +
+			"blake2b-xof PRF, ML-KEM-768 from seed (d, z)), AES-256-GCM-SIV and BLAKE2b-256. " +
+			"Each recipient's private key is its X25519 scalar and ML-KEM-768 (d, z). " +
+			"Decapsulating the ciphertext reduced to recipient i (its KEM ciphertext and DEK, " +
+			"plus the envelope) yields derived_key and the payload. reply_envelope opens " +
+			"under recipient 0's derived key to reply_plaintext.",
+		Vectors: vs,
+	}
+}
+
+// mrhybridPrivateKey builds an MLKEM768-X25519 private key from an X25519
+// scalar and an ML-KEM-768 seed (d, z).
+func mrhybridPrivateKey(k kem.Scheme, x, d, z []byte) kem.PrivateKey {
+	_, mlkemSk := hpqcmlkem768.Scheme().DeriveKeyPair(append(append([]byte{}, d...), z...))
+	mlkemBytes, err := mlkemSk.MarshalBinary()
+	must(err)
+	sk, err := k.UnmarshalBinaryPrivateKey(append(append([]byte{}, x...), mlkemBytes...))
+	must(err)
+	return sk
 }
