@@ -17,6 +17,7 @@ package main
 
 import (
 	stded25519 "crypto/ed25519"
+	"crypto/sha3"
 	"crypto/sha512"
 	"encoding/hex"
 	"encoding/json"
@@ -40,6 +41,7 @@ import (
 	"github.com/katzenpost/hpqc/kem/adapter"
 	"github.com/katzenpost/hpqc/kem/combiner"
 	"github.com/katzenpost/hpqc/kem/mkem"
+	hpqcmlkem768 "github.com/katzenpost/hpqc/kem/mlkem768"
 	"github.com/katzenpost/hpqc/nike"
 	"github.com/katzenpost/hpqc/nike/hybrid"
 	ecdh "github.com/katzenpost/hpqc/nike/x25519"
@@ -90,6 +92,7 @@ func main() {
 	writeFile(*out, "kem/mkem.json", genKEMMkem())
 	writeFile(*out, "kem/adapter_test_vectors.json", genKEMAdapter())
 	writeFile(*out, "kem/mlkem768_x25519_combiner.json", genKEMHybridCombiner())
+	writeFile(*out, "kem/mlkem768_hedged.json", genMLKEMHedged768())
 
 	fmt.Println("ok")
 }
@@ -877,6 +880,69 @@ func genKEMHybridCombiner() vectorFile {
 			"(X25519 static/ephemeral private keys; ML-KEM-768 d, z, m) and every intermediate " +
 			"output, so an implementation can check the combiner glue independent of how it " +
 			"derives the individual component outputs.",
+		Vectors: vs,
+	}
+}
+
+// ===== Hedged ML-KEM-768 (MLKEMHedged768) =====
+//
+// ML-KEM-768 with round-3 Kyber's m <- H(m) pre-hash restored. There is no
+// standard to check it against, so these vectors exist for cross-checking
+// against CryptWalker's MLKEMHedged768. The outputs are computed from the
+// definition, FIPS 203 Encaps_internal on SHA3-256(m), and each is then
+// decapsulated with hpqc's MLKEMHedged768 scheme.
+
+type mlkemHedgedVector struct {
+	Name                string `json:"name"`
+	DHex                string `json:"d_hex"`
+	ZHex                string `json:"z_hex"`
+	MHex                string `json:"m_hex"`
+	MHashHex            string `json:"m_hash_hex"`
+	EncapsulationKeyHex string `json:"encapsulation_key_hex"`
+	CiphertextHex       string `json:"ciphertext_hex"`
+	SharedSecretHex     string `json:"shared_secret_hex"`
+}
+
+func genMLKEMHedged768() vectorFile {
+	s := hpqcmlkem768.SchemeHedged()
+	vs := make([]mlkemHedgedVector, 0, 5)
+	for i := 1; i <= 5; i++ {
+		d := label32(fmt.Sprintf("mlkem hedged d %d", i))
+		z := label32(fmt.Sprintf("mlkem hedged z %d", i))
+		m := label32(fmt.Sprintf("mlkem hedged m %d", i))
+		mh := sha3.Sum256(m)
+
+		_, sk := s.DeriveKeyPair(append(append([]byte{}, d...), z...))
+		ek, err := sk.Public().MarshalBinary()
+		must(err)
+		ct, ss, err := mlkem768.EncapsulateDerand(ek, mh[:])
+		must(err)
+		ss2, err := s.Decapsulate(sk, ct)
+		must(err)
+		if hex.EncodeToString(ss) != hex.EncodeToString(ss2) {
+			panic("mlkem hedged: decapsulation mismatch")
+		}
+
+		vs = append(vs, mlkemHedgedVector{
+			Name:                fmt.Sprintf("hedged_case_%d", i),
+			DHex:                hex.EncodeToString(d),
+			ZHex:                hex.EncodeToString(z),
+			MHex:                hex.EncodeToString(m),
+			MHashHex:            hex.EncodeToString(mh[:]),
+			EncapsulationKeyHex: hex.EncodeToString(ek),
+			CiphertextHex:       hex.EncodeToString(ct),
+			SharedSecretHex:     hex.EncodeToString(ss),
+		})
+	}
+	return vectorFile{
+		FormatVersion: formatVersion,
+		Generator:     generatorName,
+		Primitive:     "mlkem768_hedged",
+		Description: "Hedged ML-KEM-768 (hpqc \"MLKEMHedged768\"): FIPS 203 ML-KEM-768 with " +
+			"round-3 Kyber's pre-hash of m restored, H = SHA3-256. Key generation from " +
+			"(d, z) is FIPS 203 KeyGen_internal. Encapsulation of m is FIPS 203 " +
+			"Encaps_internal(ek, m_hash), where m_hash = SHA3-256(m). Decapsulating the " +
+			"ciphertext yields the shared secret. Not FIPS 203 conformant.",
 		Vectors: vs,
 	}
 }

@@ -4,6 +4,7 @@
 package mlkem768
 
 import (
+	"crypto/sha3"
 	"encoding/hex"
 	"encoding/json"
 	"os"
@@ -138,4 +139,54 @@ func TestHedgedNISTCheckEK(t *testing.T) {
 		}
 	}
 	require.NotZero(t, n)
+}
+
+// Cross-check vectors: hpqc's own (testvectors/cmd/generate) and
+// CryptWalker's (gen_mlkem768_hedged_vectors.lean). Unlike the NIST
+// vectors these start from the unhashed m, so they cover the pre-hash.
+func TestHedgedCrossCheckVectors(t *testing.T) {
+	for _, file := range []string{"mlkem768_hedged.json", "lean_mlkem768_hedged_vectors.json"} {
+		t.Run(file, func(t *testing.T) {
+			raw, err := os.ReadFile(filepath.Join("testdata", file))
+			require.NoError(t, err)
+			var f struct {
+				Primitive string `json:"primitive"`
+				Vectors   []struct {
+					Name                string `json:"name"`
+					DHex                string `json:"d_hex"`
+					ZHex                string `json:"z_hex"`
+					MHex                string `json:"m_hex"`
+					MHashHex            string `json:"m_hash_hex"`
+					EncapsulationKeyHex string `json:"encapsulation_key_hex"`
+					CiphertextHex       string `json:"ciphertext_hex"`
+					SharedSecretHex     string `json:"shared_secret_hex"`
+				} `json:"vectors"`
+			}
+			require.NoError(t, json.Unmarshal(raw, &f))
+			require.Equal(t, "mlkem768_hedged", f.Primitive)
+			require.NotEmpty(t, f.Vectors)
+
+			s := SchemeHedged()
+			for _, v := range f.Vectors {
+				seed := append(unhex(t, v.DHex), unhex(t, v.ZHex)...)
+				pk, sk := s.DeriveKeyPair(seed)
+				ek, err := pk.MarshalBinary()
+				require.NoError(t, err)
+				require.Equal(t, unhex(t, v.EncapsulationKeyHex), ek, v.Name)
+
+				m := unhex(t, v.MHex)
+				mh := sha3.Sum256(m)
+				require.Equal(t, unhex(t, v.MHashHex), mh[:], v.Name)
+
+				ct, ss, err := encapsInternal(ek, mh[:])
+				require.NoError(t, err, v.Name)
+				require.Equal(t, unhex(t, v.CiphertextHex), ct, v.Name)
+				require.Equal(t, unhex(t, v.SharedSecretHex), ss, v.Name)
+
+				ss2, err := s.Decapsulate(sk, unhex(t, v.CiphertextHex))
+				require.NoError(t, err, v.Name)
+				require.Equal(t, unhex(t, v.SharedSecretHex), ss2, v.Name)
+			}
+		})
+	}
 }
