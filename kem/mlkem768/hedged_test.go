@@ -26,7 +26,7 @@ func TestHedgedRoundTrip(t *testing.T) {
 	require.Equal(t, ss, ss2)
 }
 
-func TestHedgedMatchesMLKEM(t *testing.T) {
+func TestHedgedIsPreHashedEncapsInternal(t *testing.T) {
 	pk, _, err := SchemeHedged().GenerateKeyPair()
 	require.NoError(t, err)
 	ek, err := pk.MarshalBinary()
@@ -36,13 +36,19 @@ func TestHedgedMatchesMLKEM(t *testing.T) {
 	for i := range m {
 		m[i] = byte(i)
 	}
+	mh := sha3.Sum256(m)
 
 	ct, ss, err := encapsulateHedgedDerand(ek, m)
 	require.NoError(t, err)
+	wantCt, wantSs, err := mlkem768.EncapsulateDerand(ek, mh[:])
+	require.NoError(t, err)
+	require.Equal(t, wantCt, ct)
+	require.Equal(t, wantSs, ss)
+
 	fipsCt, fipsSs, err := mlkem768.EncapsulateDerand(ek, m)
 	require.NoError(t, err)
-	require.Equal(t, fipsCt, ct)
-	require.Equal(t, fipsSs, ss)
+	require.NotEqual(t, fipsCt, ct)
+	require.NotEqual(t, fipsSs, ss)
 }
 
 func TestHedgedSharesKeyFormat(t *testing.T) {
@@ -107,14 +113,14 @@ func TestHedgedNISTKeyGen(t *testing.T) {
 	}
 }
 
-func TestHedgedNISTEncap(t *testing.T) {
+func TestHedgedNISTEncapsInternal(t *testing.T) {
 	n := 0
 	for _, v := range loadNIST(t, "mlkem768_encapdecap.json").Vectors {
 		if v.Mode != "encap" {
 			continue
 		}
 		n++
-		ct, ss, err := encapsulateHedgedDerand(unhex(t, v.EkHex), unhex(t, v.MHex))
+		ct, ss, err := encapsInternal(unhex(t, v.EkHex), unhex(t, v.MHex))
 		require.NoError(t, err, v.Name)
 		require.Equal(t, unhex(t, v.CHex), ct, v.Name)
 		require.Equal(t, unhex(t, v.KHex), ss, v.Name)
@@ -178,7 +184,7 @@ func TestHedgedCrossCheckVectors(t *testing.T) {
 				mh := sha3.Sum256(m)
 				require.Equal(t, unhex(t, v.MHashHex), mh[:], v.Name)
 
-				ct, ss, err := encapsInternal(ek, mh[:])
+				ct, ss, err := encapsulateHedgedDerand(ek, m)
 				require.NoError(t, err, v.Name)
 				require.Equal(t, unhex(t, v.CiphertextHex), ct, v.Name)
 				require.Equal(t, unhex(t, v.SharedSecretHex), ss, v.Name)
