@@ -58,7 +58,7 @@ hpqc/
 │
 ├── kem/                       # Key Encapsulation Mechanisms (Go)
 │   ├── interfaces.go          #   Scheme/PublicKey/PrivateKey interfaces
-│   ├── mlkem768/              #   ML-KEM-768
+│   ├── mlkem768/              #   ML-KEM-768, and hedged MLKEMHedged768
 │   ├── sntrup/                #   sntrup4591761 (NTRU Prime)
 │   ├── hqc/                   #   HQC (NIST round 4)
 │   ├── xwing/                 #   XWING (ML-KEM-768 + X25519)
@@ -474,12 +474,14 @@ __________
 | Primitive | HPQC name | security |
 |  --------  |  -------  | -------  | 
 | ML-KEM-768| "MLKEM768" | post-quantum |
+| ML-KEM-768 with round-3 Kyber's m ← H(m) pre-hash restored, hedging against a weak RNG; matches [CryptWalker](https://github.com/katzenpost/CryptWalker)'s verified `MLKEMHedged768`. Not FIPS 203. | "MLKEMHedged768" | post-quantum |
 | XWING is a hybrid primitive that pre-combines ML-KEM-768 and X25519. Due to [security properties](https://eprint.iacr.org/2018/024) of our combiner, we also implement our own combination of the two below.| "XWING" | hybrid |
 | The sntrup4591761 version of the NTRU cryptosystem. | "sntrup4591761" | post-quantum |
 | FrodoKEM-640-SHAKE |"FrodoKEM-640-SHAKE"| post-quantum|
 | Various forms of the McEliece cryptosystem| "mceliece348864", "mceliece348864f", "mceliece460896", "mceliece460896f", "mceliece6688128", "mceliece6688128f", "mceliece6960119", "mceliece6960119f", "mceliece8192128", "mceliece8192128f" | post-quantum|
 | The HQC code-based cryptosystem, in its three NIST parameter sets | "HQC-128", "HQC-192", "HQC-256" | post-quantum |
 |A hybrid of ML-KEM-768 and X25519. The [KEM Combiners paper](https://eprint.iacr.org/2018/024.pdf) is the reason we implemented our own combination in addition to including XWING. |"MLKEM768-X25519"| hybrid |
+|A hybrid of hedged ML-KEM-768 and X25519|"MLKEMHedged768-X25519"| hybrid |
 |A hybrid of ML-KEM-768 and X448|"MLKEM768-X448"| hybrid |
 |A hybrid of FrodoKEM-640-SHAKE and X448|"FrodoKEM-640-SHAKE-X448"| hybrid |
 |A hybrid of NTRU and X448| "sntrup4591761-X448"| hybrid |

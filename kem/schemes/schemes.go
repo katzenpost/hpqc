@@ -87,6 +87,7 @@ var allSchemes = []kem.Scheme{
 	// post quantum KEM schemes
 
 	mlkem768.Scheme(),
+	mlkem768.SchemeHedged(),
 	sntrup.Scheme(),
 	hqc.Scheme128(),
 	hqc.Scheme192(),
@@ -123,6 +124,13 @@ var allSchemes = []kem.Scheme{
 		[]kem.Scheme{
 			adapter.FromNIKE(x25519.Scheme(rand.Reader)),
 			mlkem768.Scheme(),
+		},
+	),
+	mustCombine(
+		"MLKEMHedged768-X25519",
+		[]kem.Scheme{
+			adapter.FromNIKE(x25519.Scheme(rand.Reader)),
+			mlkem768.SchemeHedged(),
 		},
 	),
 	mustCombine(
