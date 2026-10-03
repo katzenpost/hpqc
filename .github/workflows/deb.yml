@@ -2,6 +2,7 @@ name: Debian packages
 
 on:
   push:
+    branches: [main]
     paths:
       - 'debian/**'
       - 'packaging/debian/**'
@@ -11,6 +12,7 @@ on:
       - 'debian/**'
       - 'packaging/debian/**'
       - '.github/workflows/deb.yml'
+  merge_group:
 
 permissions:
   contents: read
@@ -34,3 +36,23 @@ jobs:
             make git ca-certificates
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
       - run: make deb-ci
+
+  deb-result:
+    needs: deb
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Report the Debian package verdict
+        run: |
+          result='${{ needs.deb.result }}'
+          echo "deb: $result"
+          case "$result" in
+            success)
+              exit 0 ;;
+            skipped)
+              echo "::notice::no packaging files changed; the Debian build did not run"
+              exit 0 ;;
+            *)
+              echo "::error::the Debian package build did not pass"
+              exit 1 ;;
+          esac
