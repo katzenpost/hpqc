@@ -1,0 +1,16 @@
+#!/usr/bin/make -f
+
+export DH_GOLANG_INSTALL_ALL := 1
+export SOURCE_DATE_EPOCH ?= $(shell dpkg-parsechangelog -STimestamp)
+
+%:
+	dh $@ --buildsystem=golang --with=golang
+
+override_dh_golang:
+	:
+
+override_dh_auto_build:
+	:
+
+override_dh_auto_test:
+	:

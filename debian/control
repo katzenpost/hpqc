@@ -1,0 +1,23 @@
+Source: hpqc
+Section: devel
+Priority: optional
+Maintainer: Katzenpost <packages@katzenpost.network>
+Build-Depends: debhelper-compat (= 13),
+               dh-golang,
+               golang-any
+Standards-Version: 4.7.2
+Homepage: https://katzenpost.network/
+Rules-Requires-Root: no
+XS-Go-Import-Path: github.com/katzenpost/hpqc
+
+Package: golang-github-katzenpost-hpqc-dev
+Architecture: all
+Depends: ${misc:Depends}
+Description: hybrid post-quantum cryptography for Katzenpost (Go source)
+ hpqc provides the KEM, NIKE, signature, hash and BACAP primitives the
+ Katzenpost mix network is built on, combining classical and post-quantum
+ constructions.
+ .
+ This package ships the Go source for use as a build dependency. It
+ contains no compiled code, so no Go toolchain newer than the archive's
+ own is required to build it.
