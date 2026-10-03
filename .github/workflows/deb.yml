@@ -3,37 +3,91 @@ name: Debian packages
 on:
   push:
     branches: [main]
-    paths:
-      - 'debian/**'
-      - 'packaging/debian/**'
-      - '.github/workflows/deb.yml'
   pull_request:
-    paths:
-      - 'debian/**'
-      - 'packaging/debian/**'
-      - '.github/workflows/deb.yml'
   merge_group:
 
 permissions:
   contents: read
 
 jobs:
-  deb:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      packaging: ${{ steps.filter.outputs.packaging }}
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+        with:
+          fetch-depth: 0
+      - id: filter
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+        run: |
+          if [ "$EVENT" != pull_request ]; then
+            echo "packaging=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          want='^(debian/|packaging/|\.github/workflows/deb\.yml$)'
+          if git diff --name-only "$BASE"...HEAD | grep -qE "$want"; then
+            echo "packaging=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "packaging=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  tag:
+    needs: changes
+    if: needs.changes.outputs.packaging == 'true'
+    runs-on: ubuntu-latest
+    outputs:
+      ref_debian_13: ${{ steps.refs.outputs.ref_debian_13 }}
+      ref_debian_forky: ${{ steps.refs.outputs.ref_debian_forky }}
+      ref_ubuntu_24_04: ${{ steps.refs.outputs.ref_ubuntu_24_04 }}
+      ref_ubuntu_26_04: ${{ steps.refs.outputs.ref_ubuntu_26_04 }}
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+      - id: refs
+        run: make deb-image-refs >> "$GITHUB_OUTPUT"
+
+  image:
+    needs: [changes, tag]
+    if: needs.changes.outputs.packaging == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     strategy:
       fail-fast: false
       matrix:
-        image:
-          - "debian:13"
-          - "debian:forky"
-          - "ubuntu:24.04"
-          - "ubuntu:26.04"
-    runs-on: ubuntu-latest
-    container: ${{ matrix.image }}
+        distro:
+          - debian-13
+          - debian-forky
+          - ubuntu-24.04
+          - ubuntu-26.04
     steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
       - run: |
-          apt-get update
-          apt-get install -y --no-install-recommends \
-            make git ca-certificates
+          echo "${{ secrets.GITHUB_TOKEN }}" \
+            | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+      - run: make deb-image-push DISTRO=${{ matrix.distro }} PODMAN=docker
+
+  deb:
+    needs: [changes, tag, image]
+    if: needs.changes.outputs.packaging == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        key:
+          - ref_debian_13
+          - ref_debian_forky
+          - ref_ubuntu_24_04
+          - ref_ubuntu_26_04
+    container:
+      image: ${{ needs.tag.outputs[matrix.key] }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
       - run: make deb-ci
 
@@ -50,7 +104,7 @@ jobs:
             success)
               exit 0 ;;
             skipped)
-              echo "::notice::no packaging files changed; the Debian build did not run"
+              echo "::notice::no packaging files changed"
               exit 0 ;;
             *)
               echo "::error::the Debian package build did not pass"
