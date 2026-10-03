@@ -1,0 +1,36 @@
+name: Debian packages
+
+on:
+  push:
+    paths:
+      - 'debian/**'
+      - 'packaging/debian/**'
+      - '.github/workflows/deb.yml'
+  pull_request:
+    paths:
+      - 'debian/**'
+      - 'packaging/debian/**'
+      - '.github/workflows/deb.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  deb:
+    strategy:
+      fail-fast: false
+      matrix:
+        image:
+          - "debian:13"
+          - "debian:forky"
+          - "ubuntu:24.04"
+          - "ubuntu:26.04"
+    runs-on: ubuntu-latest
+    container: ${{ matrix.image }}
+    steps:
+      - run: |
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            make git ca-certificates
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
+      - run: make deb-ci
