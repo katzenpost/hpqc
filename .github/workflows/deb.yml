@@ -65,15 +65,21 @@ jobs:
           - ubuntu-26.04
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
-      - run: |
-          echo "${{ secrets.GITHUB_TOKEN }}" \
-            | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+      - env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ACTOR: ${{ github.actor }}
+        run: |
+          printf '%s' "$TOKEN" \
+            | docker login ghcr.io -u "$ACTOR" --password-stdin
       - run: make deb-image-push DISTRO=${{ matrix.distro }} PODMAN=docker
 
   deb:
     needs: [changes, tag, image]
     if: needs.changes.outputs.packaging == 'true'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
     strategy:
       fail-fast: false
       matrix:
@@ -92,21 +98,28 @@ jobs:
       - run: make deb-ci
 
   deb-result:
-    needs: deb
+    needs: [changes, tag, image, deb]
     if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     steps:
       - name: Report the Debian package verdict
+        env:
+          PACKAGING: ${{ needs.changes.outputs.packaging }}
+          CHANGES: ${{ needs.changes.result }}
+          TAG: ${{ needs.tag.result }}
+          IMAGE: ${{ needs.image.result }}
+          DEB: ${{ needs.deb.result }}
         run: |
-          result='${{ needs.deb.result }}'
-          echo "deb: $result"
-          case "$result" in
-            success)
-              exit 0 ;;
-            skipped)
-              echo "::notice::no packaging files changed"
-              exit 0 ;;
-            *)
+          echo "changes: $CHANGES ($PACKAGING), tag: $TAG, image: $IMAGE, deb: $DEB"
+          # A skipped build passes only when changes ran and found nothing to
+          # build; a skip caused by a failed tag or image job does not.
+          if [ "$CHANGES" = success ] && [ "$PACKAGING" = false ]; then
+            echo "::notice::no packaging files changed"
+            exit 0
+          fi
+          for result in "$CHANGES" "$TAG" "$IMAGE" "$DEB"; do
+            if [ "$result" != success ]; then
               echo "::error::the Debian package build did not pass"
-              exit 1 ;;
-          esac
+              exit 1
+            fi
+          done
