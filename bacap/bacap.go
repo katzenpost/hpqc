@@ -63,6 +63,7 @@ package bacap
 
 import (
 	"bytes"
+	stded25519 "crypto/ed25519"
 	"encoding"
 	"encoding/binary"
 	"errors"
@@ -260,6 +261,13 @@ func NewEmptyWriteCap() *WriteCap {
 func (o *WriteCap) UnmarshalBinary(data []byte) error {
 	if len(data) != WriteCapSize {
 		return errors.New("invalid BoxOwnerCap binary size")
+	}
+	// The stored public half must be the one the seed derives: otherwise
+	// box IDs would be derived from one key and boxes signed with another,
+	// and nothing written with the cap could be opened.
+	derived := stded25519.NewKeyFromSeed(data[:stded25519.SeedSize])
+	if !bytes.Equal(derived[stded25519.SeedSize:], data[stded25519.SeedSize:ed25519.PrivateKeySize]) {
+		return errors.New("WriteCap public key does not match its seed")
 	}
 	o.rootPrivateKey = new(ed25519.PrivateKey)
 	err := o.rootPrivateKey.FromBytes(data[:ed25519.PrivateKeySize])
