@@ -30,8 +30,12 @@ from hpqc.sign.ed25519 import (
 )
 
 from .exceptions import (
+    BoxIDMismatch,
     CannotRewind,
     DecryptionFailed,
+    EmptyBox,
+    IndexNotInChannel,
+    IndexTooFar,
     InvalidArgument,
     SignatureVerificationFailed,
 )
@@ -307,6 +311,47 @@ class MessageBoxIndex:
             raise DecryptionFailed("AES-256-GCM-SIV authentication failed") from e
 
 
+    def open_for_context(
+        self,
+        read_cap: "ReadCap",
+        ctx: bytes,
+        box: bytes,
+        ciphertext: bytes,
+        signature: bytes,
+    ) -> bytes:
+        """Verifies and decrypts the box at this index on read_cap's stream.
+
+        Unlike decrypt_for_context, it first checks that box is the one
+        read_cap and this index derive under ctx. That matters most for
+        tombstones: a tombstone has no ciphertext to authenticate, so
+        decrypt_for_context alone accepts a tombstone signed for any box.
+        """
+        if len(box) != BoxIDSize:
+            raise InvalidArgument("invalid box length")
+        if not any(box):
+            raise EmptyBox("empty box, no message received")
+        if not hmac.compare_digest(box, self.box_id_for_context(read_cap, ctx)):
+            raise BoxIDMismatch("box is not the one the capability and index derive")
+        return self.decrypt_for_context(box, ctx, ciphertext, signature)
+
+
+# contains walks at most this many ratchet steps: a few microseconds each in
+# Go, far more boxes than a stream holds between rewrites, and a cap on what a
+# hostile index can cost. The same bound as Go's.
+MAX_CONTAINS_WALK = 1 << 18
+
+
+def _contains(start: MessageBoxIndex, idx: MessageBoxIndex) -> None:
+    if idx is None:
+        raise InvalidArgument("nil index")
+    if idx.idx_64 < start.idx_64:
+        raise IndexNotInChannel("index is not on this capability's stream")
+    if idx.idx_64 - start.idx_64 > MAX_CONTAINS_WALK:
+        raise IndexTooFar("index is too far ahead to check")
+    if not hmac.compare_digest(start.advance_index_to(idx.idx_64).to_bytes(), idx.to_bytes()):
+        raise IndexNotInChannel("index is not on this capability's stream")
+
+
 def _seed_from_signing_key(sk: BlindableSigningKey) -> bytes:
     """Returns the 32-byte ed25519 seed from a SigningKey."""
     return bytes(sk)
@@ -410,6 +455,21 @@ class WriteCap:
     def derive_box_id(self, message_box_index: MessageBoxIndex) -> bytes:
         return message_box_index.derive_message_box_id(self.root_public_key)
 
+    def contains(self, idx: MessageBoxIndex) -> None:
+        """Raises unless idx lies on this cap's stream. See ReadCap.contains."""
+        _contains(self.message_box_index, idx)
+
+    def start(self) -> "WritePosition":
+        """The position of the cap's own index: the first box it writes."""
+        from .positions import WritePosition
+        return WritePosition._make(self, self.message_box_index)
+
+    def position_at(self, idx: MessageBoxIndex) -> "WritePosition":
+        """The position of idx on this cap's stream, after checking it is on it."""
+        from .positions import WritePosition
+        self.contains(idx)
+        return WritePosition._make(self, idx)
+
 
 @dataclasses.dataclass(frozen=True)
 class ReadCap:
@@ -459,3 +519,24 @@ class ReadCap:
         if idx is None:
             raise InvalidArgument("with_message_box_index: nil index")
         return ReadCap(self.root_public_key, idx)
+
+    def contains(self, idx: MessageBoxIndex) -> None:
+        """Raises unless idx lies on this cap's stream.
+
+        Steps the cap's own index forward to idx. Raises IndexNotInChannel if
+        idx is not on the stream (another stream's, one re-seeded by
+        mutate_kdf_state, or one behind the cap's own index), and IndexTooFar
+        if it lies further ahead than MAX_CONTAINS_WALK steps.
+        """
+        _contains(self.message_box_index, idx)
+
+    def start(self) -> "ReadPosition":
+        """The position of the cap's own index: the first box its holder can read."""
+        from .positions import ReadPosition
+        return ReadPosition._make(self, self.message_box_index)
+
+    def position_at(self, idx: MessageBoxIndex) -> "ReadPosition":
+        """The position of idx on this cap's stream, after checking it is on it."""
+        from .positions import ReadPosition
+        self.contains(idx)
+        return ReadPosition._make(self, idx)

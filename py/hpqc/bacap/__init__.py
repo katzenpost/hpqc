@@ -16,8 +16,13 @@ The package exposes two complementary APIs:
     layer. They carry the next-index pointer and advance it after each
     successful read or write, mirroring the Go API.
 
-Both APIs sit on the same primitives and produce byte-identical
-output; pick whichever shape suits your application.
+  - **Positions** (``hpqc.bacap.positions``): ``ReadPosition`` and
+    ``WritePosition`` bind a capability to one box on its stream, so a
+    capability is never paired with another stream's index. Get one from
+    ``start`` or ``position_at`` on a cap. The recommended API, mirroring
+    Go's.
+
+All of them sit on the same primitives and produce byte-identical output.
 """
 from .exceptions import (
     BACAPError,
@@ -25,10 +30,13 @@ from .exceptions import (
     CannotRewind,
     DecryptionFailed,
     EmptyBox,
+    IndexNotInChannel,
+    IndexTooFar,
     InvalidArgument,
     SignatureVerificationFailed,
 )
 from .stateless import (
+    MAX_CONTAINS_WALK,
     BoxIDSize,
     MessageBoxIndex,
     MessageBoxIndexSize,
@@ -39,6 +47,7 @@ from .stateless import (
     WriteCapSize,
 )
 from .stateful import StatefulReader, StatefulWriter
+from .positions import ReadPosition, WritePosition
 
 __all__ = [
     # exceptions
@@ -47,9 +56,12 @@ __all__ = [
     "CannotRewind",
     "DecryptionFailed",
     "EmptyBox",
+    "IndexNotInChannel",
+    "IndexTooFar",
     "InvalidArgument",
     "SignatureVerificationFailed",
     # stateless
+    "MAX_CONTAINS_WALK",
     "BoxIDSize",
     "MessageBoxIndex",
     "MessageBoxIndexSize",
@@ -61,4 +73,7 @@ __all__ = [
     # stateful
     "StatefulReader",
     "StatefulWriter",
+    # positions
+    "ReadPosition",
+    "WritePosition",
 ]

@@ -31,6 +31,12 @@ distinct subclasses let a caller act on the specific failure mode:
 
   - ``DecryptionFailed``: AES-256-GCM-SIV authentication failed at
     decryption time. Always a protocol failure or tampering.
+
+  - ``IndexNotInChannel``: an index is not on a capability's stream:
+    stepping the capability's own index forward never reaches it.
+
+  - ``IndexTooFar``: an index lies further ahead of a capability's own
+    index than ``contains`` will walk.
 """
 from __future__ import annotations
 
@@ -61,3 +67,11 @@ class SignatureVerificationFailed(BACAPError):
 
 class DecryptionFailed(BACAPError):
     """AES-256-GCM-SIV authentication failed at decryption time."""
+
+
+class IndexNotInChannel(BACAPError):
+    """The index is not on this capability's stream."""
+
+
+class IndexTooFar(BACAPError):
+    """The index lies further ahead than contains will walk."""

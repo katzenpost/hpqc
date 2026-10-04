@@ -16,6 +16,7 @@ from hpqc.bacap import (
     BoxIDMismatch,
     CannotRewind,
     DecryptionFailed,
+    IndexNotInChannel,
     InvalidArgument,
     MessageBoxIndex,
     ReadCap,
@@ -68,18 +69,18 @@ def test_tombstone(vector: dict) -> None:
     assert idx.decrypt_for_context(box, ctx, b"", sig) == b""
 
 
-def _reachable(rc: ReadCap, idx: MessageBoxIndex) -> bool:
-    start = rc.message_box_index
-    if idx.idx_64 < start.idx_64:
-        return False
-    return start.advance_index_to(idx.idx_64).to_bytes() == idx.to_bytes()
-
-
 @pytest.mark.parametrize("vector", _load("position.json", "bacap_position"), ids=lambda v: v["name"])
 def test_position(vector: dict) -> None:
     rc = ReadCap.from_bytes(bytes.fromhex(vector["readcap_hex"]))
     idx = MessageBoxIndex.from_bytes(bytes.fromhex(vector["index_hex"]))
-    assert _reachable(rc, idx) == vector["reachable"]
+    if vector["reachable"]:
+        rc.contains(idx)
+        assert rc.position_at(idx).index.to_bytes() == idx.to_bytes()
+    else:
+        with pytest.raises(IndexNotInChannel):
+            rc.contains(idx)
+        with pytest.raises(IndexNotInChannel):
+            rc.position_at(idx)
 
 
 # What each category must raise in this port.
@@ -111,6 +112,13 @@ def test_negative(vector: dict) -> None:
     if op == "verify_box":
         assert MessageBoxIndex.verify_box(box, ct, sig) is False
         return
+
+    if op == "open":
+        wc, idx = cap_index()
+        with pytest.raises(expected):
+            idx.open_for_context(wc.read_cap(), ctx, box, ct, sig)
+        with pytest.raises(expected):
+            wc.read_cap().position_at(idx).open(ctx, box, ct, sig)
 
     with pytest.raises(expected):
         if op == "advance_index_to":

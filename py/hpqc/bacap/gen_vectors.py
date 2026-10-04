@@ -16,6 +16,7 @@ import json
 from pathlib import Path
 from typing import Callable, Dict, List, Optional
 
+from .exceptions import BACAPError
 from .stateless import MessageBoxIndex, ReadCap, WriteCap, _hkdf_blake2b
 from hpqc.sign.ed25519 import SigningKey as BlindableSigningKey
 
@@ -69,10 +70,11 @@ def advanced(idx: MessageBoxIndex, by: int) -> MessageBoxIndex:
 
 
 def reachable(rc: ReadCap, idx: MessageBoxIndex) -> bool:
-    start = rc.message_box_index
-    if idx.idx_64 < start.idx_64:
+    try:
+        rc.contains(idx)
+    except BACAPError:
         return False
-    return start.advance_index_to(idx.idx_64).to_bytes() == idx.to_bytes()
+    return True
 
 
 def flipped(b: bytes, i: int) -> bytes:
@@ -218,6 +220,14 @@ def generate(inputs: dict) -> Dict[str, dict]:
                     sig = flipped(sig, flip["byte"])
                 else:
                     raise ValueError(f"unknown flip field {flip['field']}")
+            if op == "open":
+                try:
+                    advanced(wc.message_box_index, v["advance_by"]).open_for_context(
+                        wc.read_cap(), spec_bytes(v.get("ctx")), box, ct, sig)
+                except BACAPError:
+                    pass
+                else:
+                    raise AssertionError(f"negative vector {v['name']}: opens")
             fields.update(writecap_hex=wc.to_bytes().hex(), advance_by=v["advance_by"],
                           ctx_hex=spec_bytes(v.get("ctx")).hex(), box_id_hex=box.hex(),
                           ciphertext_hex=ct.hex(), signature_hex=sig.hex())

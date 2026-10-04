@@ -303,15 +303,6 @@ func advanced(idx *bacap.MessageBoxIndex, by uint64) *bacap.MessageBoxIndex {
 	return out
 }
 
-// reachable reports whether stepping rc's own index forward reaches idx.
-func reachable(rc *bacap.ReadCap, idx *bacap.MessageBoxIndex) bool {
-	start := rc.GetMessageBoxIndex()
-	if idx.Idx64 < start.Idx64 {
-		return false
-	}
-	return string(marshalIndex(advanced(start, idx.Idx64-start.Idx64))) == string(marshalIndex(idx))
-}
-
 func flipped(b []byte, i int) []byte {
 	out := append([]byte{}, b...)
 	out[i] ^= 0x01
@@ -447,7 +438,7 @@ func genBACAPFiles(in *bacapInputs) map[string]vectorFile {
 		}
 		rcb, err := rc.MarshalBinary()
 		must(err)
-		pos = append(pos, bacapPositionVector{v.Name, h(rcb), h(marshalIndex(idx)), reachable(rc, idx), v.Description})
+		pos = append(pos, bacapPositionVector{v.Name, h(rcb), h(marshalIndex(idx)), rc.Contains(idx) == nil, v.Description})
 	}
 	out["position"] = file("position", pos)
 
@@ -484,6 +475,12 @@ func genBACAPFiles(in *bacapInputs) map[string]vectorFile {
 					sig = flipped(sig, v.Flip.Byte)
 				default:
 					panic("unknown flip field " + v.Flip.Field)
+				}
+			}
+			if v.Operation == "open" {
+				idx := advanced(c.wc.GetMessageBoxIndex(), v.AdvanceBy)
+				if _, err := idx.OpenForContext(c.wc.ReadCap(), v.Ctx.bytes(), b, ct, sig); err == nil {
+					panic("negative vector " + v.Name + ": opens")
 				}
 			}
 			n.WriteCapHex, n.AdvanceBy, n.CtxHex = h(c.blob), v.AdvanceBy, h(v.Ctx.bytes())
