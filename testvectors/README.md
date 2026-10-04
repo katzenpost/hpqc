@@ -97,6 +97,32 @@ randomised on every run; leave it alone unless the MKEM format changed. With
 `-out` pointing elsewhere, copy `primitives/sha512.json` there first:
 `bacap/bundle.json` is assembled from the files in the output directory.
 
+## BACAP inputs
+
+The BACAP vector files are generated from `bacap/inputs.json`, which describes
+every case by its inputs only, never by an expected value. Three
+implementations generate the files from it: the Go program above, the Python
+port (`py/hpqc/bacap/gen_vectors.py`) and the Lean implementation in
+CryptWalker. They must agree on every value, and each repository's tests
+check that its generator reproduces the committed files. Add a case by
+adding it to `inputs.json` and regenerating.
+
+- `files` gives each vector file's `primitive` and `description`.
+- `caps` are write caps, either an explicit `seed` and `index`, or a `seed`,
+  an `hkdf_state` and a `start_idx64` from which the first index is one step
+  on, as `NewMessageBoxIndex` does. `start_idx64` is a number, or
+  `{"irwin_hall": bytes}`: two little-endian halves of 16 bytes, each with its
+  top two bits cleared, added together.
+- Byte strings are `{"hex": ...}`, `{"utf8": ...}`,
+  `{"repeat": {"byte", "count"}}`, or `{"derive": {"label", "name", "length"}}`.
+  The last is HKDF-BLAKE2b-512 with secret `"hpqc-vector-seed-" + label`, an
+  empty salt and info `name`, as the generator's `deterministicBytes` does.
+- One section per vector file lists its cases, naming a cap and the advance,
+  context, plaintext or salt. `position` cases have a `kind` (`advance`,
+  `foreign`, `mutated`, `tampered`, `behind`), and `negative` cases an
+  `operation`, a `category` and the tampering to apply. The expected value of
+  each is computed by the generator.
+
 ## File format
 
 Every file is a JSON object with the same envelope:

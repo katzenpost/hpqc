@@ -1,0 +1,1311 @@
+{
+  "format_version": 1,
+  "description": "Inputs to the BACAP vector files. Every generator (Go, Python, Lean) reads this file and must produce the same vector files from it. See testvectors/README.md for the format.",
+  "files": {
+    "message_box_index": {
+      "primitive": "bacap_message_box_index",
+      "description": "MessageBoxIndex.AdvanceIndexTo vectors. The initial 104-byte MessageBoxIndex blob is advanced by N steps via the HKDF-BLAKE2b-512 chain; the expected 104-byte resulting blob is recorded."
+    },
+    "box_id": {
+      "primitive": "bacap_box_id",
+      "description": "Box-ID derivation vectors. For each vector, advance the WriteCap's first MessageBoxIndex by N, then derive the box ID. If use_context is true, BoxIDForContext is used (HKDFs the context into the blinding); otherwise DeriveMessageBoxID is used (blinds the root pubkey with the index's CurBlindingFactor directly)."
+    },
+    "encrypt": {
+      "primitive": "bacap_encrypt",
+      "description": "BACAP MessageBoxIndex.EncryptForContext vectors. For each vector, the WriteCap is deserialized, its first MessageBoxIndex advanced by N, and the plaintext encrypted under the given context. Records the box ID, ciphertext (AES-256-GCM-SIV with 12-byte nonce), and signature (blinded ed25519 over the ciphertext)."
+    },
+    "mutate_kdf_state": {
+      "primitive": "bacap_mutate_kdf_state",
+      "description": "MessageBoxIndex.MutateKDFState vectors. For each vector, the WriteCap's first MessageBoxIndex is advanced by N, then re-seeded by the salt via HKDF-BLAKE2b-512 under the domain label \"bacap-mutate-kdf-state-v1\" (salt slot = the salt, read order H,E,K, Idx64 preserved). Records the resulting 104-byte mutated index and the box ID derived from it under the read context. This is the BACAP primitive behind the Contact Voucher VoucherSalt."
+    },
+    "layout": {
+      "primitive": "bacap_layout",
+      "description": "Byte layouts. A 168-byte WriteCap is the 64-byte ed25519 private key (seed || public key) followed by the 104-byte MessageBoxIndex; a 136-byte ReadCap is the 32-byte root public key followed by the MessageBoxIndex; a MessageBoxIndex is Idx64 (8 bytes, little-endian), then the blinding factor, encryption key and HKDF state (32 bytes each). For each WriteCap: the root public key, the ReadCap derived from it, and its MessageBoxIndex and Idx64. Each blob must also round-trip through its parser."
+    },
+    "tombstone": {
+      "primitive": "bacap_tombstone",
+      "description": "Tombstone vectors. For each vector, the WriteCap's first MessageBoxIndex is advanced by N and the empty payload signed with SignBox under the context. Records the box ID and the signature. Decrypting the box with an empty ciphertext and that signature must succeed and return an empty plaintext."
+    },
+    "position": {
+      "primitive": "bacap_position",
+      "description": "Binding of an index to a read cap. An index lies on the cap's stream exactly when advancing the cap's own MessageBoxIndex to the index's Idx64 yields the same 104 bytes. reachable records whether it does; an Idx64 below the cap's is never reachable."
+    },
+    "negative": {
+      "primitive": "bacap_negative",
+      "description": "Inputs every implementation must reject, by operation. advance_index_to and next_index take index_hex (and advance_to). decrypt advances the WriteCap's first index by advance_by and decrypts box_id_hex, ciphertext_hex and signature_hex under ctx_hex. open does the same after first comparing box_id_hex with the box ID the derived read cap and index give under ctx_hex. verify_box checks signature_hex over ciphertext_hex under box_id_hex. The parse_* operations parse blob_hex. category names the failure independently of any implementation's error type: cannot_rewind, index_exhausted, signature_invalid, decrypt_failed, box_mismatch, malformed."
+    }
+  },
+  "caps": [
+    {
+      "name": "cap_fixed",
+      "seed": {
+        "hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+      },
+      "index": {
+        "hex": "0100000000000000aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+      }
+    },
+    {
+      "name": "cap_random_start",
+      "seed": {
+        "derive": {
+          "label": "bacap-cap-seed",
+          "name": "cap_random_start",
+          "length": 32
+        }
+      },
+      "hkdf_state": {
+        "derive": {
+          "label": "bacap-cap-hkdf",
+          "name": "cap_random_start",
+          "length": 32
+        }
+      },
+      "start_idx64": {
+        "irwin_hall": {
+          "derive": {
+            "label": "bacap-start",
+            "name": "cap_random_start",
+            "length": 16
+          }
+        }
+      }
+    },
+    {
+      "name": "cap_near_2_63",
+      "seed": {
+        "derive": {
+          "label": "bacap-cap-seed",
+          "name": "cap_near_2_63",
+          "length": 32
+        }
+      },
+      "hkdf_state": {
+        "derive": {
+          "label": "bacap-cap-hkdf",
+          "name": "cap_near_2_63",
+          "length": 32
+        }
+      },
+      "start_idx64": 9223372036854775804
+    },
+    {
+      "name": "cap_near_2_64",
+      "seed": {
+        "derive": {
+          "label": "bacap-cap-seed",
+          "name": "cap_near_2_64",
+          "length": 32
+        }
+      },
+      "hkdf_state": {
+        "derive": {
+          "label": "bacap-cap-hkdf",
+          "name": "cap_near_2_64",
+          "length": 32
+        }
+      },
+      "start_idx64": 18446744073709551606
+    }
+  ],
+  "message_box_index": [
+    {
+      "name": "advance_by_1",
+      "cap": "cap_fixed",
+      "advance_by": 1
+    },
+    {
+      "name": "advance_by_2",
+      "cap": "cap_fixed",
+      "advance_by": 2
+    },
+    {
+      "name": "advance_by_5",
+      "cap": "cap_fixed",
+      "advance_by": 5
+    },
+    {
+      "name": "advance_by_100",
+      "cap": "cap_fixed",
+      "advance_by": 100
+    },
+    {
+      "name": "advance_by_1000",
+      "cap": "cap_fixed",
+      "advance_by": 1000
+    },
+    {
+      "name": "cap_random_start_advance_by_1",
+      "cap": "cap_random_start",
+      "advance_by": 1
+    },
+    {
+      "name": "cap_random_start_advance_by_17",
+      "cap": "cap_random_start",
+      "advance_by": 17
+    },
+    {
+      "name": "cap_random_start_advance_by_250",
+      "cap": "cap_random_start",
+      "advance_by": 250
+    },
+    {
+      "name": "cap_near_2_63_advance_by_1",
+      "cap": "cap_near_2_63",
+      "advance_by": 1
+    },
+    {
+      "name": "cap_near_2_63_advance_by_17",
+      "cap": "cap_near_2_63",
+      "advance_by": 17
+    },
+    {
+      "name": "cap_near_2_63_advance_by_250",
+      "cap": "cap_near_2_63",
+      "advance_by": 250
+    },
+    {
+      "name": "cap_near_2_64_advance_by_1",
+      "cap": "cap_near_2_64",
+      "advance_by": 1
+    },
+    {
+      "name": "cap_near_2_64_advance_by_4",
+      "cap": "cap_near_2_64",
+      "advance_by": 4
+    },
+    {
+      "name": "cap_near_2_64_advance_by_8",
+      "cap": "cap_near_2_64",
+      "advance_by": 8
+    }
+  ],
+  "box_id": [
+    {
+      "name": "derive_at_first_index",
+      "cap": "cap_fixed",
+      "advance_by": 0,
+      "ctx": null,
+      "use_context": false
+    },
+    {
+      "name": "derive_after_advance_5",
+      "cap": "cap_fixed",
+      "advance_by": 5,
+      "ctx": null,
+      "use_context": false
+    },
+    {
+      "name": "box_id_for_context_at_first_index",
+      "cap": "cap_fixed",
+      "advance_by": 0,
+      "ctx": {
+        "utf8": "hpqc-bacap-vector-context"
+      },
+      "use_context": true
+    },
+    {
+      "name": "box_id_for_context_after_advance_3",
+      "cap": "cap_fixed",
+      "advance_by": 3,
+      "ctx": {
+        "utf8": "alternate context"
+      },
+      "use_context": true
+    },
+    {
+      "name": "cap_random_start_box_id_after_advance_0",
+      "cap": "cap_random_start",
+      "advance_by": 0,
+      "ctx": null,
+      "use_context": false
+    },
+    {
+      "name": "cap_random_start_box_id_after_advance_4",
+      "cap": "cap_random_start",
+      "advance_by": 4,
+      "ctx": {
+        "utf8": "pigeonhole context"
+      },
+      "use_context": true
+    },
+    {
+      "name": "cap_near_2_63_box_id_after_advance_0",
+      "cap": "cap_near_2_63",
+      "advance_by": 0,
+      "ctx": null,
+      "use_context": false
+    },
+    {
+      "name": "cap_near_2_63_box_id_after_advance_4",
+      "cap": "cap_near_2_63",
+      "advance_by": 4,
+      "ctx": {
+        "utf8": "pigeonhole context"
+      },
+      "use_context": true
+    },
+    {
+      "name": "cap_near_2_64_box_id_after_advance_0",
+      "cap": "cap_near_2_64",
+      "advance_by": 0,
+      "ctx": null,
+      "use_context": false
+    },
+    {
+      "name": "cap_near_2_64_box_id_after_advance_4",
+      "cap": "cap_near_2_64",
+      "advance_by": 4,
+      "ctx": {
+        "utf8": "pigeonhole context"
+      },
+      "use_context": true
+    }
+  ],
+  "encrypt": [
+    {
+      "name": "encrypt_short_at_first",
+      "cap": "cap_fixed",
+      "advance_by": 0,
+      "ctx": {
+        "utf8": "ctx-A"
+      },
+      "plaintext": {
+        "utf8": "hello"
+      }
+    },
+    {
+      "name": "encrypt_short_after_advance",
+      "cap": "cap_fixed",
+      "advance_by": 7,
+      "ctx": {
+        "utf8": "ctx-B"
+      },
+      "plaintext": {
+        "utf8": "after advance"
+      }
+    },
+    {
+      "name": "encrypt_long_payload",
+      "cap": "cap_fixed",
+      "advance_by": 0,
+      "ctx": {
+        "utf8": "ctx-C"
+      },
+      "plaintext": {
+        "repeat": {
+          "byte": 85,
+          "count": 1024
+        }
+      }
+    },
+    {
+      "name": "cap_random_start_encrypt_short",
+      "cap": "cap_random_start",
+      "advance_by": 0,
+      "ctx": {
+        "utf8": "pigeonhole context"
+      },
+      "plaintext": {
+        "utf8": "hello from cap_random_start"
+      }
+    },
+    {
+      "name": "cap_random_start_encrypt_empty_plaintext",
+      "cap": "cap_random_start",
+      "advance_by": 3,
+      "ctx": {
+        "utf8": "pigeonhole context"
+      },
+      "plaintext": {
+        "hex": ""
+      }
+    },
+    {
+      "name": "cap_random_start_encrypt_box_sized",
+      "cap": "cap_random_start",
+      "advance_by": 1,
+      "ctx": {
+        "utf8": "pigeonhole context"
+      },
+      "plaintext": {
+        "derive": {
+          "label": "bacap-plaintext",
+          "name": "cap_random_start",
+          "length": 1530
+        }
+      }
+    },
+    {
+      "name": "cap_near_2_63_encrypt_short",
+      "cap": "cap_near_2_63",
+      "advance_by": 0,
+      "ctx": {
+        "utf8": "pigeonhole context"
+      },
+      "plaintext": {
+        "utf8": "hello from cap_near_2_63"
+      }
+    },
+    {
+      "name": "cap_near_2_63_encrypt_empty_plaintext",
+      "cap": "cap_near_2_63",
+      "advance_by": 3,
+      "ctx": {
+        "utf8": "pigeonhole context"
+      },
+      "plaintext": {
+        "hex": ""
+      }
+    },
+    {
+      "name": "cap_near_2_63_encrypt_box_sized",
+      "cap": "cap_near_2_63",
+      "advance_by": 1,
+      "ctx": {
+        "utf8": "pigeonhole context"
+      },
+      "plaintext": {
+        "derive": {
+          "label": "bacap-plaintext",
+          "name": "cap_near_2_63",
+          "length": 1530
+        }
+      }
+    },
+    {
+      "name": "cap_near_2_64_encrypt_short",
+      "cap": "cap_near_2_64",
+      "advance_by": 0,
+      "ctx": {
+        "utf8": "pigeonhole context"
+      },
+      "plaintext": {
+        "utf8": "hello from cap_near_2_64"
+      }
+    },
+    {
+      "name": "cap_near_2_64_encrypt_empty_plaintext",
+      "cap": "cap_near_2_64",
+      "advance_by": 3,
+      "ctx": {
+        "utf8": "pigeonhole context"
+      },
+      "plaintext": {
+        "hex": ""
+      }
+    },
+    {
+      "name": "cap_near_2_64_encrypt_box_sized",
+      "cap": "cap_near_2_64",
+      "advance_by": 1,
+      "ctx": {
+        "utf8": "pigeonhole context"
+      },
+      "plaintext": {
+        "derive": {
+          "label": "bacap-plaintext",
+          "name": "cap_near_2_64",
+          "length": 1530
+        }
+      }
+    }
+  ],
+  "mutate_kdf_state": [
+    {
+      "name": "mutate_at_first_index",
+      "cap": "cap_fixed",
+      "advance_by": 0,
+      "salt": {
+        "repeat": {
+          "byte": 17,
+          "count": 32
+        }
+      },
+      "read_ctx": {
+        "utf8": "pigeonhole context"
+      }
+    },
+    {
+      "name": "mutate_after_advance_5",
+      "cap": "cap_fixed",
+      "advance_by": 5,
+      "salt": {
+        "repeat": {
+          "byte": 34,
+          "count": 32
+        }
+      },
+      "read_ctx": {
+        "utf8": "pigeonhole context"
+      }
+    },
+    {
+      "name": "mutate_distinct_salt",
+      "cap": "cap_fixed",
+      "advance_by": 0,
+      "salt": {
+        "repeat": {
+          "byte": 51,
+          "count": 32
+        }
+      },
+      "read_ctx": {
+        "utf8": "alternate context"
+      }
+    },
+    {
+      "name": "cap_random_start_mutate_after_advance_0",
+      "cap": "cap_random_start",
+      "advance_by": 0,
+      "salt": {
+        "derive": {
+          "label": "bacap-salt",
+          "name": "cap_random_start_0",
+          "length": 32
+        }
+      },
+      "read_ctx": {
+        "utf8": "pigeonhole context"
+      }
+    },
+    {
+      "name": "cap_random_start_mutate_after_advance_2",
+      "cap": "cap_random_start",
+      "advance_by": 2,
+      "salt": {
+        "derive": {
+          "label": "bacap-salt",
+          "name": "cap_random_start_2",
+          "length": 32
+        }
+      },
+      "read_ctx": {
+        "utf8": "pigeonhole context"
+      }
+    },
+    {
+      "name": "cap_near_2_63_mutate_after_advance_0",
+      "cap": "cap_near_2_63",
+      "advance_by": 0,
+      "salt": {
+        "derive": {
+          "label": "bacap-salt",
+          "name": "cap_near_2_63_0",
+          "length": 32
+        }
+      },
+      "read_ctx": {
+        "utf8": "pigeonhole context"
+      }
+    },
+    {
+      "name": "cap_near_2_63_mutate_after_advance_2",
+      "cap": "cap_near_2_63",
+      "advance_by": 2,
+      "salt": {
+        "derive": {
+          "label": "bacap-salt",
+          "name": "cap_near_2_63_2",
+          "length": 32
+        }
+      },
+      "read_ctx": {
+        "utf8": "pigeonhole context"
+      }
+    },
+    {
+      "name": "cap_near_2_64_mutate_after_advance_0",
+      "cap": "cap_near_2_64",
+      "advance_by": 0,
+      "salt": {
+        "derive": {
+          "label": "bacap-salt",
+          "name": "cap_near_2_64_0",
+          "length": 32
+        }
+      },
+      "read_ctx": {
+        "utf8": "pigeonhole context"
+      }
+    },
+    {
+      "name": "cap_near_2_64_mutate_after_advance_2",
+      "cap": "cap_near_2_64",
+      "advance_by": 2,
+      "salt": {
+        "derive": {
+          "label": "bacap-salt",
+          "name": "cap_near_2_64_2",
+          "length": 32
+        }
+      },
+      "read_ctx": {
+        "utf8": "pigeonhole context"
+      }
+    }
+  ],
+  "layout": [
+    {
+      "name": "cap_fixed",
+      "cap": "cap_fixed"
+    },
+    {
+      "name": "cap_random_start",
+      "cap": "cap_random_start"
+    },
+    {
+      "name": "cap_near_2_63",
+      "cap": "cap_near_2_63"
+    },
+    {
+      "name": "cap_near_2_64",
+      "cap": "cap_near_2_64"
+    }
+  ],
+  "tombstone": [
+    {
+      "name": "cap_fixed_tombstone_after_advance_0",
+      "cap": "cap_fixed",
+      "advance_by": 0,
+      "ctx": {
+        "utf8": "pigeonhole context"
+      }
+    },
+    {
+      "name": "cap_fixed_tombstone_after_advance_6",
+      "cap": "cap_fixed",
+      "advance_by": 6,
+      "ctx": {
+        "utf8": "pigeonhole context"
+      }
+    },
+    {
+      "name": "cap_random_start_tombstone_after_advance_0",
+      "cap": "cap_random_start",
+      "advance_by": 0,
+      "ctx": {
+        "utf8": "pigeonhole context"
+      }
+    },
+    {
+      "name": "cap_random_start_tombstone_after_advance_6",
+      "cap": "cap_random_start",
+      "advance_by": 6,
+      "ctx": {
+        "utf8": "pigeonhole context"
+      }
+    },
+    {
+      "name": "cap_near_2_63_tombstone_after_advance_0",
+      "cap": "cap_near_2_63",
+      "advance_by": 0,
+      "ctx": {
+        "utf8": "pigeonhole context"
+      }
+    },
+    {
+      "name": "cap_near_2_63_tombstone_after_advance_6",
+      "cap": "cap_near_2_63",
+      "advance_by": 6,
+      "ctx": {
+        "utf8": "pigeonhole context"
+      }
+    },
+    {
+      "name": "cap_near_2_64_tombstone_after_advance_0",
+      "cap": "cap_near_2_64",
+      "advance_by": 0,
+      "ctx": {
+        "utf8": "pigeonhole context"
+      }
+    },
+    {
+      "name": "cap_near_2_64_tombstone_after_advance_6",
+      "cap": "cap_near_2_64",
+      "advance_by": 6,
+      "ctx": {
+        "utf8": "pigeonhole context"
+      }
+    }
+  ],
+  "position": [
+    {
+      "name": "cap_fixed_same_index",
+      "cap": "cap_fixed",
+      "kind": "advance",
+      "advance_by": 0,
+      "description": "the cap's own index"
+    },
+    {
+      "name": "cap_fixed_next_index",
+      "cap": "cap_fixed",
+      "kind": "advance",
+      "advance_by": 1,
+      "description": "one step forward"
+    },
+    {
+      "name": "cap_fixed_advance_37",
+      "cap": "cap_fixed",
+      "kind": "advance",
+      "advance_by": 37,
+      "description": "several steps forward"
+    },
+    {
+      "name": "cap_fixed_foreign_ratchet",
+      "cap": "cap_fixed",
+      "kind": "foreign",
+      "other_cap": "cap_random_start",
+      "idx64_offset": 1,
+      "description": "another stream's ratchet state under this cap's next Idx64"
+    },
+    {
+      "name": "cap_fixed_mutated",
+      "cap": "cap_fixed",
+      "kind": "mutated",
+      "salt": {
+        "derive": {
+          "label": "bacap-salt",
+          "name": "cap_fixed_position",
+          "length": 32
+        }
+      },
+      "advance_by": 1,
+      "description": "the same Idx64 as one step forward, on the sequence MutateKDFState re-seeds"
+    },
+    {
+      "name": "cap_fixed_tampered_hkdf_state",
+      "cap": "cap_fixed",
+      "kind": "tampered",
+      "advance_by": 1,
+      "field": "hkdf_state",
+      "byte": 0,
+      "xor": 1,
+      "description": "one step forward with one bit of the HKDF state flipped"
+    },
+    {
+      "name": "cap_fixed_behind_cap",
+      "cap": "cap_fixed",
+      "kind": "behind",
+      "rebase_advance_by": 5,
+      "description": "an index five steps behind the cap's own index: the ratchet only moves forward"
+    },
+    {
+      "name": "cap_random_start_same_index",
+      "cap": "cap_random_start",
+      "kind": "advance",
+      "advance_by": 0,
+      "description": "the cap's own index"
+    },
+    {
+      "name": "cap_random_start_next_index",
+      "cap": "cap_random_start",
+      "kind": "advance",
+      "advance_by": 1,
+      "description": "one step forward"
+    },
+    {
+      "name": "cap_random_start_advance_37",
+      "cap": "cap_random_start",
+      "kind": "advance",
+      "advance_by": 37,
+      "description": "several steps forward"
+    },
+    {
+      "name": "cap_random_start_foreign_ratchet",
+      "cap": "cap_random_start",
+      "kind": "foreign",
+      "other_cap": "cap_near_2_63",
+      "idx64_offset": 1,
+      "description": "another stream's ratchet state under this cap's next Idx64"
+    },
+    {
+      "name": "cap_random_start_mutated",
+      "cap": "cap_random_start",
+      "kind": "mutated",
+      "salt": {
+        "derive": {
+          "label": "bacap-salt",
+          "name": "cap_random_start_position",
+          "length": 32
+        }
+      },
+      "advance_by": 1,
+      "description": "the same Idx64 as one step forward, on the sequence MutateKDFState re-seeds"
+    },
+    {
+      "name": "cap_random_start_tampered_hkdf_state",
+      "cap": "cap_random_start",
+      "kind": "tampered",
+      "advance_by": 1,
+      "field": "hkdf_state",
+      "byte": 0,
+      "xor": 1,
+      "description": "one step forward with one bit of the HKDF state flipped"
+    },
+    {
+      "name": "cap_random_start_behind_cap",
+      "cap": "cap_random_start",
+      "kind": "behind",
+      "rebase_advance_by": 5,
+      "description": "an index five steps behind the cap's own index: the ratchet only moves forward"
+    },
+    {
+      "name": "cap_near_2_63_same_index",
+      "cap": "cap_near_2_63",
+      "kind": "advance",
+      "advance_by": 0,
+      "description": "the cap's own index"
+    },
+    {
+      "name": "cap_near_2_63_next_index",
+      "cap": "cap_near_2_63",
+      "kind": "advance",
+      "advance_by": 1,
+      "description": "one step forward"
+    },
+    {
+      "name": "cap_near_2_63_advance_37",
+      "cap": "cap_near_2_63",
+      "kind": "advance",
+      "advance_by": 37,
+      "description": "several steps forward"
+    },
+    {
+      "name": "cap_near_2_63_foreign_ratchet",
+      "cap": "cap_near_2_63",
+      "kind": "foreign",
+      "other_cap": "cap_near_2_64",
+      "idx64_offset": 1,
+      "description": "another stream's ratchet state under this cap's next Idx64"
+    },
+    {
+      "name": "cap_near_2_63_mutated",
+      "cap": "cap_near_2_63",
+      "kind": "mutated",
+      "salt": {
+        "derive": {
+          "label": "bacap-salt",
+          "name": "cap_near_2_63_position",
+          "length": 32
+        }
+      },
+      "advance_by": 1,
+      "description": "the same Idx64 as one step forward, on the sequence MutateKDFState re-seeds"
+    },
+    {
+      "name": "cap_near_2_63_tampered_hkdf_state",
+      "cap": "cap_near_2_63",
+      "kind": "tampered",
+      "advance_by": 1,
+      "field": "hkdf_state",
+      "byte": 0,
+      "xor": 1,
+      "description": "one step forward with one bit of the HKDF state flipped"
+    },
+    {
+      "name": "cap_near_2_63_behind_cap",
+      "cap": "cap_near_2_63",
+      "kind": "behind",
+      "rebase_advance_by": 5,
+      "description": "an index five steps behind the cap's own index: the ratchet only moves forward"
+    },
+    {
+      "name": "cap_near_2_64_same_index",
+      "cap": "cap_near_2_64",
+      "kind": "advance",
+      "advance_by": 0,
+      "description": "the cap's own index"
+    },
+    {
+      "name": "cap_near_2_64_next_index",
+      "cap": "cap_near_2_64",
+      "kind": "advance",
+      "advance_by": 1,
+      "description": "one step forward"
+    },
+    {
+      "name": "cap_near_2_64_advance_8",
+      "cap": "cap_near_2_64",
+      "kind": "advance",
+      "advance_by": 8,
+      "description": "several steps forward"
+    },
+    {
+      "name": "cap_near_2_64_foreign_ratchet",
+      "cap": "cap_near_2_64",
+      "kind": "foreign",
+      "other_cap": "cap_fixed",
+      "idx64_offset": 1,
+      "description": "another stream's ratchet state under this cap's next Idx64"
+    },
+    {
+      "name": "cap_near_2_64_mutated",
+      "cap": "cap_near_2_64",
+      "kind": "mutated",
+      "salt": {
+        "derive": {
+          "label": "bacap-salt",
+          "name": "cap_near_2_64_position",
+          "length": 32
+        }
+      },
+      "advance_by": 1,
+      "description": "the same Idx64 as one step forward, on the sequence MutateKDFState re-seeds"
+    },
+    {
+      "name": "cap_near_2_64_tampered_hkdf_state",
+      "cap": "cap_near_2_64",
+      "kind": "tampered",
+      "advance_by": 1,
+      "field": "hkdf_state",
+      "byte": 0,
+      "xor": 1,
+      "description": "one step forward with one bit of the HKDF state flipped"
+    }
+  ],
+  "negative": [
+    {
+      "name": "cap_fixed_rewind",
+      "operation": "advance_index_to",
+      "category": "cannot_rewind",
+      "description": "advancing to an Idx64 below the current one",
+      "cap": "cap_fixed",
+      "rewind_by": 1
+    },
+    {
+      "name": "cap_random_start_rewind",
+      "operation": "advance_index_to",
+      "category": "cannot_rewind",
+      "description": "advancing to an Idx64 below the current one",
+      "cap": "cap_random_start",
+      "rewind_by": 1
+    },
+    {
+      "name": "cap_near_2_63_rewind",
+      "operation": "advance_index_to",
+      "category": "cannot_rewind",
+      "description": "advancing to an Idx64 below the current one",
+      "cap": "cap_near_2_63",
+      "rewind_by": 1
+    },
+    {
+      "name": "cap_near_2_64_rewind",
+      "operation": "advance_index_to",
+      "category": "cannot_rewind",
+      "description": "advancing to an Idx64 below the current one",
+      "cap": "cap_near_2_64",
+      "rewind_by": 1
+    },
+    {
+      "name": "next_index_at_max",
+      "operation": "next_index",
+      "category": "index_exhausted",
+      "description": "the index after Idx64 = 2^64 - 1, which does not exist",
+      "cap": "cap_near_2_64",
+      "index_advance_by": 8
+    },
+    {
+      "cap": "cap_fixed",
+      "source": {
+        "kind": "encrypt",
+        "advance_by": 2,
+        "ctx": {
+          "utf8": "pigeonhole context"
+        },
+        "plaintext": {
+          "utf8": "the original message"
+        }
+      },
+      "advance_by": 2,
+      "ctx": {
+        "utf8": "pigeonhole context"
+      },
+      "name": "cap_fixed_tampered_ciphertext",
+      "operation": "decrypt",
+      "category": "signature_invalid",
+      "description": "one ciphertext bit flipped; the signature over the ciphertext no longer verifies",
+      "flip": {
+        "field": "ciphertext",
+        "byte": 0
+      }
+    },
+    {
+      "cap": "cap_fixed",
+      "source": {
+        "kind": "encrypt",
+        "advance_by": 2,
+        "ctx": {
+          "utf8": "pigeonhole context"
+        },
+        "plaintext": {
+          "utf8": "the original message"
+        }
+      },
+      "advance_by": 2,
+      "ctx": {
+        "utf8": "pigeonhole context"
+      },
+      "name": "cap_fixed_tampered_signature",
+      "operation": "decrypt",
+      "category": "signature_invalid",
+      "description": "one signature bit flipped",
+      "flip": {
+        "field": "signature",
+        "byte": 5
+      }
+    },
+    {
+      "cap": "cap_fixed",
+      "source": {
+        "kind": "encrypt",
+        "advance_by": 2,
+        "ctx": {
+          "utf8": "pigeonhole context"
+        },
+        "plaintext": {
+          "utf8": "the original message"
+        }
+      },
+      "advance_by": 2,
+      "ctx": {
+        "utf8": "another context"
+      },
+      "name": "cap_fixed_wrong_ctx",
+      "operation": "decrypt",
+      "category": "decrypt_failed",
+      "description": "a valid box decrypted under another context: the signature verifies, the AEAD does not open"
+    },
+    {
+      "cap": "cap_fixed",
+      "source": {
+        "kind": "encrypt",
+        "advance_by": 2,
+        "ctx": {
+          "utf8": "pigeonhole context"
+        },
+        "plaintext": {
+          "utf8": "the original message"
+        }
+      },
+      "advance_by": 3,
+      "ctx": {
+        "utf8": "pigeonhole context"
+      },
+      "name": "cap_fixed_wrong_index",
+      "operation": "decrypt",
+      "category": "decrypt_failed",
+      "description": "a valid box decrypted with the next index's keys: the signature verifies, the AEAD does not open"
+    },
+    {
+      "cap": "cap_fixed",
+      "source": {
+        "kind": "encrypt",
+        "advance_by": 2,
+        "ctx": {
+          "utf8": "pigeonhole context"
+        },
+        "plaintext": {
+          "utf8": "the original message"
+        }
+      },
+      "advance_by": 2,
+      "ctx": {
+        "utf8": "pigeonhole context"
+      },
+      "name": "cap_fixed_verify_tampered_signature",
+      "operation": "verify_box",
+      "category": "signature_invalid",
+      "description": "VerifyBox on a signature with one bit flipped",
+      "flip": {
+        "field": "signature",
+        "byte": 5
+      }
+    },
+    {
+      "name": "cap_fixed_open_tombstone_of_another_box",
+      "operation": "open",
+      "category": "box_mismatch",
+      "description": "a valid tombstone for the box at advance 3, opened at advance 2: its signature verifies and there is nothing to decrypt, so only comparing the box ID with the one the read cap and index derive rejects it",
+      "cap": "cap_fixed",
+      "source": {
+        "kind": "tombstone",
+        "advance_by": 3,
+        "ctx": {
+          "utf8": "pigeonhole context"
+        }
+      },
+      "advance_by": 2,
+      "ctx": {
+        "utf8": "pigeonhole context"
+      }
+    },
+    {
+      "cap": "cap_random_start",
+      "source": {
+        "kind": "encrypt",
+        "advance_by": 2,
+        "ctx": {
+          "utf8": "pigeonhole context"
+        },
+        "plaintext": {
+          "utf8": "the original message"
+        }
+      },
+      "advance_by": 2,
+      "ctx": {
+        "utf8": "pigeonhole context"
+      },
+      "name": "cap_random_start_tampered_ciphertext",
+      "operation": "decrypt",
+      "category": "signature_invalid",
+      "description": "one ciphertext bit flipped; the signature over the ciphertext no longer verifies",
+      "flip": {
+        "field": "ciphertext",
+        "byte": 0
+      }
+    },
+    {
+      "cap": "cap_random_start",
+      "source": {
+        "kind": "encrypt",
+        "advance_by": 2,
+        "ctx": {
+          "utf8": "pigeonhole context"
+        },
+        "plaintext": {
+          "utf8": "the original message"
+        }
+      },
+      "advance_by": 2,
+      "ctx": {
+        "utf8": "pigeonhole context"
+      },
+      "name": "cap_random_start_tampered_signature",
+      "operation": "decrypt",
+      "category": "signature_invalid",
+      "description": "one signature bit flipped",
+      "flip": {
+        "field": "signature",
+        "byte": 5
+      }
+    },
+    {
+      "cap": "cap_random_start",
+      "source": {
+        "kind": "encrypt",
+        "advance_by": 2,
+        "ctx": {
+          "utf8": "pigeonhole context"
+        },
+        "plaintext": {
+          "utf8": "the original message"
+        }
+      },
+      "advance_by": 2,
+      "ctx": {
+        "utf8": "another context"
+      },
+      "name": "cap_random_start_wrong_ctx",
+      "operation": "decrypt",
+      "category": "decrypt_failed",
+      "description": "a valid box decrypted under another context: the signature verifies, the AEAD does not open"
+    },
+    {
+      "cap": "cap_random_start",
+      "source": {
+        "kind": "encrypt",
+        "advance_by": 2,
+        "ctx": {
+          "utf8": "pigeonhole context"
+        },
+        "plaintext": {
+          "utf8": "the original message"
+        }
+      },
+      "advance_by": 3,
+      "ctx": {
+        "utf8": "pigeonhole context"
+      },
+      "name": "cap_random_start_wrong_index",
+      "operation": "decrypt",
+      "category": "decrypt_failed",
+      "description": "a valid box decrypted with the next index's keys: the signature verifies, the AEAD does not open"
+    },
+    {
+      "cap": "cap_random_start",
+      "source": {
+        "kind": "encrypt",
+        "advance_by": 2,
+        "ctx": {
+          "utf8": "pigeonhole context"
+        },
+        "plaintext": {
+          "utf8": "the original message"
+        }
+      },
+      "advance_by": 2,
+      "ctx": {
+        "utf8": "pigeonhole context"
+      },
+      "name": "cap_random_start_verify_tampered_signature",
+      "operation": "verify_box",
+      "category": "signature_invalid",
+      "description": "VerifyBox on a signature with one bit flipped",
+      "flip": {
+        "field": "signature",
+        "byte": 5
+      }
+    },
+    {
+      "name": "cap_random_start_open_tombstone_of_another_box",
+      "operation": "open",
+      "category": "box_mismatch",
+      "description": "a valid tombstone for the box at advance 3, opened at advance 2: its signature verifies and there is nothing to decrypt, so only comparing the box ID with the one the read cap and index derive rejects it",
+      "cap": "cap_random_start",
+      "source": {
+        "kind": "tombstone",
+        "advance_by": 3,
+        "ctx": {
+          "utf8": "pigeonhole context"
+        }
+      },
+      "advance_by": 2,
+      "ctx": {
+        "utf8": "pigeonhole context"
+      }
+    },
+    {
+      "name": "index_empty",
+      "operation": "parse_message_box_index",
+      "category": "malformed",
+      "description": "a MessageBoxIndex of 0 bytes",
+      "blob": {
+        "from": "index",
+        "cap": "cap_random_start",
+        "edit": {
+          "kind": "empty"
+        }
+      }
+    },
+    {
+      "name": "index_short",
+      "operation": "parse_message_box_index",
+      "category": "malformed",
+      "description": "a MessageBoxIndex one byte short",
+      "blob": {
+        "from": "index",
+        "cap": "cap_random_start",
+        "edit": {
+          "kind": "truncate",
+          "count": 1
+        }
+      }
+    },
+    {
+      "name": "index_long",
+      "operation": "parse_message_box_index",
+      "category": "malformed",
+      "description": "a MessageBoxIndex one byte long",
+      "blob": {
+        "from": "index",
+        "cap": "cap_random_start",
+        "edit": {
+          "kind": "append_zero",
+          "count": 1
+        }
+      }
+    },
+    {
+      "name": "readcap_short",
+      "operation": "parse_read_cap",
+      "category": "malformed",
+      "description": "a ReadCap one byte short",
+      "blob": {
+        "from": "readcap",
+        "cap": "cap_random_start",
+        "edit": {
+          "kind": "truncate",
+          "count": 1
+        }
+      }
+    },
+    {
+      "name": "readcap_long",
+      "operation": "parse_read_cap",
+      "category": "malformed",
+      "description": "a ReadCap one byte long",
+      "blob": {
+        "from": "readcap",
+        "cap": "cap_random_start",
+        "edit": {
+          "kind": "append_zero",
+          "count": 1
+        }
+      }
+    },
+    {
+      "name": "readcap_off_curve_root_key",
+      "operation": "parse_read_cap",
+      "category": "malformed",
+      "description": "a ReadCap whose root public key is not a curve point",
+      "blob": {
+        "from": "readcap",
+        "cap": "cap_random_start",
+        "edit": {
+          "kind": "replace",
+          "offset": 0,
+          "bytes": {
+            "hex": "0200000000000000000000000000000000000000000000000000000000000000"
+          }
+        }
+      }
+    },
+    {
+      "name": "writecap_short",
+      "operation": "parse_write_cap",
+      "category": "malformed",
+      "description": "a WriteCap one byte short",
+      "blob": {
+        "from": "writecap",
+        "cap": "cap_random_start",
+        "edit": {
+          "kind": "truncate",
+          "count": 1
+        }
+      }
+    },
+    {
+      "name": "writecap_off_curve_public_half",
+      "operation": "parse_write_cap",
+      "category": "malformed",
+      "description": "a WriteCap whose stored public key is not a curve point",
+      "blob": {
+        "from": "writecap",
+        "cap": "cap_random_start",
+        "edit": {
+          "kind": "replace",
+          "offset": 32,
+          "bytes": {
+            "hex": "0200000000000000000000000000000000000000000000000000000000000000"
+          }
+        }
+      }
+    },
+    {
+      "name": "writecap_public_half_mismatch",
+      "operation": "parse_write_cap",
+      "category": "malformed",
+      "description": "a WriteCap whose stored public key is a valid point but not the one its seed derives",
+      "blob": {
+        "from": "writecap",
+        "cap": "cap_random_start",
+        "edit": {
+          "kind": "replace",
+          "offset": 32,
+          "public_key_of": "cap_near_2_63"
+        }
+      }
+    }
+  ]
+}
