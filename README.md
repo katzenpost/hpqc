@@ -426,6 +426,51 @@ One example, that we are implementing in our group chat protocol, is for multi-c
 
 In the context of a messaging system, the protocol is used by Alice to send an infinite sequence of messages to Bob, one per box (public key in the sequence), with Bob using a separate, second instance of the protocol to send messages to Alice. Alice will use a root private key to derive a root public key for Bob. The root key and a CSPRNG instantiated from recursive KDF applications are then used to obtain a sequence of context-specific values for exercising and verifying a capability. A context value ctx, which is a hash of a universally public value, will be used as additional input. It can, for simplicity, be a hash of the name of the storage network, or can be bound to a specific period of time, e.g., the long epoch SRV published by the Katzenpost directories at regular intervals, similar to how Tor uses its SRV in onion services. The context value makes it safe to unlinkably relocate messages to a different network. The BACAP API is described in the library’s documentation: https://pkg.go.dev/github.com/katzenpost/hpqc/bacap
 
+### Addressing boxes: positions
+
+A box is named by a capability and a `MessageBoxIndex` together. The index
+alone does not say which stream it belongs to: paired with the wrong
+capability, it still derives a valid-looking box. A reader then waits
+forever on a box nobody writes, and a writer writes where nobody reads, and
+neither sees an error.
+
+A position is a capability bound to one box on its stream. Positions come
+only from `Start`, `PositionAt` and `Next`, so a mismatched pair cannot be
+built. Use them:
+
+```go
+w := writeCap.Start()                     // the first box the cap writes
+box, ct, sig, err := w.Encrypt(ctx, msg)  // encrypt and sign for this box
+w, err = w.Next()                         // the following box
+
+r := readCap.Start()                      // the first box the cap reads
+pt, err := r.Open(ctx, box, ct, sig)      // checks it is r's box, then decrypts
+r, err = r.Next()
+```
+
+An index that arrives from outside, from storage or another process, is
+checked once and then used as a position:
+
+```go
+r, err := readCap.PositionAt(idx) // ErrIndexNotInChannel unless idx is on the cap's stream
+```
+
+The capabilities and the stateless methods on `MessageBoxIndex`
+(`EncryptForContext`, `OpenForContext`, `NextIndex`) remain the lower-level
+API, for code that keeps its own indexes; `ReadCap.Contains` checks an index
+there. The old way, which passes a capability and an index side by side,
+still works:
+
+```go
+// Old: nothing checks that idx belongs to readCap.
+sr, err := bacap.NewStatefulReaderWithIndex(readCap, ctx, idx)
+pt, err := sr.DecryptNext(ctx, box, ct, sig)
+```
+
+`StatefulReader` and `StatefulWriter` are deprecated and will be removed in a
+later release; [PLANNED_CHANGES.md](PLANNED_CHANGES.md) lists what replaces
+each of their methods.
+
 ## The PQ NIKE: CTIDH via highctidh
 
 This library includes the post quantum NIKE (non-interactive key exchange) known as [CTIDH](https://ctidh.isogeny.org/) via CGO bindings. However these CGO bindings are now being maintained by the highctidh fork: https://codeberg.org/vula/highctidh.git If you are going to use CTIDH you'll want to read the highctidh README; below we reproduce some of the notes about the golang cgo bindings.
