@@ -79,24 +79,15 @@ func TestMutateKDFStateRoundTrip(t *testing.T) {
 	wc, err := NewWriteCap(rand.Reader)
 	require.NoError(t, err)
 
-	sw, err := NewStatefulWriter(wc.MutateKDFState(salt), ctx)
-	require.NoError(t, err)
-	boxID, ciphertext, sig, err := sw.EncryptNext(plaintext)
+	boxID, ciphertext, sig, err := wc.MutateKDFState(salt).Start().Encrypt(ctx, plaintext)
 	require.NoError(t, err)
 
-	var sigArr [SignatureSize]byte
-	copy(sigArr[:], sig)
-
-	sr, err := NewStatefulReader(wc.ReadCap().MutateKDFState(salt), ctx)
-	require.NoError(t, err)
-	recovered, err := sr.DecryptNext(ctx, boxID, ciphertext, sigArr)
+	recovered, err := wc.ReadCap().MutateKDFState(salt).Start().Open(ctx, boxID, ciphertext, sig)
 	require.NoError(t, err)
 	require.Equal(t, plaintext, recovered)
 
 	// A reader on the un-mutated cap follows a different box sequence, so it
 	// does not even recognise the box ID: a voucher snoop is locked out.
-	snoop, err := NewStatefulReader(wc.ReadCap(), ctx)
-	require.NoError(t, err)
-	_, err = snoop.DecryptNext(ctx, boxID, ciphertext, sigArr)
-	require.Error(t, err)
+	_, err = wc.ReadCap().Start().Open(ctx, boxID, ciphertext, sig)
+	require.ErrorIs(t, err, ErrBoxMismatch)
 }

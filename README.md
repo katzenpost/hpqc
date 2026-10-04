@@ -99,7 +99,7 @@ hpqc/
 │   │   ├── nike/              #     X25519, CTIDH 511/512/1024/2048, hybrid
 │   │   ├── kem/               #     mkem, scheme adapter
 │   │   ├── sign/              #     Ed25519, blinded Ed25519
-│   │   └── bacap/             #     stateless and stateful BACAP APIs
+│   │   └── bacap/             #     BACAP: positions and the stateless API
 │   └── tests/                 #   pytest suites; share vectors with Go
 │
 ├── testvectors/               # Cross-language test vectors (JSON)
@@ -126,10 +126,10 @@ drift silently from the other.
 
 What is currently ported:
 
-* **BACAP** (`hpqc.bacap`): both the stateless API (immutable
-  `MessageBoxIndex`, `ReadCap`, `WriteCap`) and the stateful
-  reader/writer wrappers, with full coverage of encrypt, decrypt,
-  sign, verify and tombstones. Cross-language vectors live under
+* **BACAP** (`hpqc.bacap`): positions (`ReadPosition`,
+  `WritePosition`) and the stateless API (immutable
+  `MessageBoxIndex`, `ReadCap`, `WriteCap`), with full coverage of
+  encrypt, decrypt, sign, verify and tombstones. Cross-language vectors live under
   `testvectors/bacap/`; the underlying primitive vectors
   (SHA-512/256, BLAKE2b-512, HKDF-BLAKE2b-512, AES-256-GCM-SIV)
   live under `testvectors/primitives/`.
@@ -458,18 +458,11 @@ r, err := readCap.PositionAt(idx) // ErrIndexNotInChannel unless idx is on the c
 The capabilities and the stateless methods on `MessageBoxIndex`
 (`EncryptForContext`, `OpenForContext`, `NextIndex`) remain the lower-level
 API, for code that keeps its own indexes; `ReadCap.Contains` checks an index
-there. The old way, which passes a capability and an index side by side,
-still works:
+there.
 
-```go
-// Old: nothing checks that idx belongs to readCap.
-sr, err := bacap.NewStatefulReaderWithIndex(readCap, ctx, idx)
-pt, err := sr.DecryptNext(ctx, box, ct, sig)
-```
-
-`StatefulReader` and `StatefulWriter` are deprecated and will be removed in a
-later release; [PLANNED_CHANGES.md](PLANNED_CHANGES.md) lists what replaces
-each of their methods.
+`StatefulReader` and `StatefulWriter` have been removed;
+[BREAKING_CHANGES.md](BREAKING_CHANGES.md) lists what replaces each of their
+methods.
 
 ## The PQ NIKE: CTIDH via highctidh
 

@@ -13,7 +13,17 @@ side, are also recorded in the repository-root
 
 ## [Unreleased]
 
-Nothing here yet.
+### Added
+
+- BACAP positions (`ReadPosition`, `WritePosition`), `contains`,
+  `start` and `position_at` on both caps, and
+  `MessageBoxIndex.open_for_context`, matching the Go API.
+
+### Removed
+
+- `hpqc.bacap.StatefulReader` and `StatefulWriter`. Use positions; the
+  repository-root BREAKING_CHANGES.md maps each method to its
+  replacement.
 
 
 ## [0.0.2] - 2026-05-11

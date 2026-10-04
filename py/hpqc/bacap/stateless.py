@@ -4,11 +4,9 @@
 
 Direct port of the stateless surface of bacap/bacap.go. The classes
 here are immutable values; every cryptographic operation either
-returns a new object or returns a tuple of bytes. Callers managing
-sequential state across messages can either re-derive each step from
-a known starting point on demand, or use the StatefulReader /
-StatefulWriter wrappers in stateful.py, which simply hold a mutable
-next-index pointer and advance it after each successful operation.
+returns a new object or returns a tuple of bytes. Callers moving
+through a stream hold their own index, or a position from
+positions.py, which binds a capability to one box on its stream.
 """
 from __future__ import annotations
 

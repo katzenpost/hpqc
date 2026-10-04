@@ -21,10 +21,10 @@ in Go, see the
 
 ## What is ported
 
-* **BACAP** (`hpqc.bacap`): blinding-and-capability scheme. Stateless
-  API (immutable `MessageBoxIndex`, `WriteCap`, `ReadCap`) plus
-  stateful reader/writer wrappers. Encrypt, decrypt, sign, verify,
-  and tombstones are all covered.
+* **BACAP** (`hpqc.bacap`): blinding-and-capability scheme. Positions
+  (`ReadPosition`, `WritePosition`) and the stateless API (immutable
+  `MessageBoxIndex`, `WriteCap`, `ReadCap`). Encrypt, decrypt, sign,
+  verify, and tombstones are all covered.
 * **MKEM** (`hpqc.kem.mkem`): multi-recipient KEM construction over
   any NIKE.
 * **NIKE abstractions** (`hpqc.nike.scheme`): `Scheme`, `PublicKey`,

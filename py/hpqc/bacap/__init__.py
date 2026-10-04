@@ -11,18 +11,13 @@ The package exposes two complementary APIs:
     that already manage the per-conversation state themselves and want
     a thin layer over the BACAP primitives.
 
-  - **Stateful** (``hpqc.bacap.stateful``): ``StatefulReader`` and
-    ``StatefulWriter`` are mutable wrappers built on the stateless
-    layer. They carry the next-index pointer and advance it after each
-    successful read or write, mirroring the Go API.
-
   - **Positions** (``hpqc.bacap.positions``): ``ReadPosition`` and
     ``WritePosition`` bind a capability to one box on its stream, so a
     capability is never paired with another stream's index. Get one from
     ``start`` or ``position_at`` on a cap. The recommended API, mirroring
     Go's.
 
-All of them sit on the same primitives and produce byte-identical output.
+Both sit on the same primitives and produce byte-identical output.
 """
 from .exceptions import (
     BACAPError,
@@ -46,7 +41,6 @@ from .stateless import (
     WriteCap,
     WriteCapSize,
 )
-from .stateful import StatefulReader, StatefulWriter
 from .positions import ReadPosition, WritePosition
 
 __all__ = [
@@ -70,9 +64,6 @@ __all__ = [
     "SignatureSize",
     "WriteCap",
     "WriteCapSize",
-    # stateful
-    "StatefulReader",
-    "StatefulWriter",
     # positions
     "ReadPosition",
     "WritePosition",

@@ -21,7 +21,6 @@ from hpqc.bacap import (
     MessageBoxIndex,
     ReadCap,
     SignatureVerificationFailed,
-    StatefulReader,
     WriteCap,
 )
 
@@ -131,7 +130,7 @@ def test_negative(vector: dict) -> None:
         elif op == "open":
             wc, idx = cap_index()
             assert idx.box_id_for_context(wc.read_cap(), ctx) != box
-            StatefulReader(wc.read_cap(), ctx, next_index=idx).decrypt_next(ctx, box, ct, sig)
+            idx.open_for_context(wc.read_cap(), ctx, box, ct, sig)
         elif op == "parse_message_box_index":
             MessageBoxIndex.from_bytes(blob)
         elif op == "parse_read_cap":

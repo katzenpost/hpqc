@@ -7,8 +7,6 @@ import pytest
 
 from hpqc.bacap import (
     InvalidArgument,
-    StatefulReader,
-    StatefulWriter,
     WriteCap,
 )
 
@@ -33,12 +31,10 @@ def test_with_message_box_index_rebases_and_preserves_source() -> None:
     assert wc.message_box_index == orig
     assert rc.message_box_index.idx_64 != target.idx_64
 
-    # A reader and writer built from the re-based caps meet at target.
-    reader = StatefulReader(rc2, CTX)
-    writer = StatefulWriter(wc2, CTX)
+    # The re-based caps start at target: a message written there opens there.
     msg = b"written at the re-based position"
-    box_id, ct, sig = writer.encrypt_next(msg)
-    assert reader.decrypt_next(CTX, box_id, ct, sig) == msg
+    box_id, ct, sig = wc2.start().encrypt(CTX, msg)
+    assert rc2.start().open(CTX, box_id, ct, sig) == msg
 
 
 def test_with_message_box_index_nil_rejected() -> None:

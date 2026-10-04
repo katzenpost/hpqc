@@ -12,7 +12,7 @@ import (
 )
 
 // TestWithMessageBoxIndex checks that re-basing a cap to a chosen index sets the
-// cap's embedded index (the one the StatefulReader/Writer constructors consume),
+// cap's embedded index (the one Start returns),
 // leaves the source cap untouched, and rejects a nil index.
 func TestWithMessageBoxIndex(t *testing.T) {
 	t.Parallel()
@@ -47,24 +47,16 @@ func TestWithMessageBoxIndex(t *testing.T) {
 	// ...and the embedded index is a copy, not aliased to target.
 	require.NotSame(t, target, rc2.GetMessageBoxIndex())
 
-	// A reader/writer built from the re-based caps (which read the cap's embedded
-	// index) meet at target: a message written there decrypts there.
-	reader, err := NewStatefulReader(rc2, ctx)
-	require.NoError(t, err)
-	writer, err := NewStatefulWriter(wc2, ctx)
-	require.NoError(t, err)
-
+	// The re-based caps start at target: a message written there opens there.
 	msg := []byte("written at the re-based position")
-	boxID, ciphertext, sigraw, err := writer.EncryptNext(msg)
+	boxID, ciphertext, sig, err := wc2.Start().Encrypt(ctx, msg)
 	require.NoError(t, err)
 
-	expectedBoxID, err := reader.NextBoxID()
+	expectedBoxID, err := rc2.Start().BoxID(ctx)
 	require.NoError(t, err)
-	require.Equal(t, expectedBoxID[:], boxID[:])
+	require.Equal(t, expectedBoxID.Bytes(), boxID[:])
 
-	sig := [SignatureSize]byte{}
-	copy(sig[:], sigraw)
-	plaintext, err := reader.DecryptNext(ctx, boxID, ciphertext, sig)
+	plaintext, err := rc2.Start().Open(ctx, boxID, ciphertext, sig)
 	require.NoError(t, err)
 	require.Equal(t, msg, plaintext)
 }

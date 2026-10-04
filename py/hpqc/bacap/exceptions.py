@@ -16,12 +16,12 @@ distinct subclasses let a caller act on the specific failure mode:
     because rewind is a recurring, recognisable misuse worth catching
     on its own.
 
-  - ``EmptyBox``: a stateful reader was handed a zero-byte box ID,
+  - ``EmptyBox``: ``open_for_context`` was handed an all-zero box ID,
     indicating no message has been deposited at that index yet.
     Typically a transient condition rather than a protocol violation.
 
-  - ``BoxIDMismatch``: the box ID supplied to a stateful reader does
-    not match the box ID it expected next. The caller may have read
+  - ``BoxIDMismatch``: the box ID supplied to ``open_for_context``
+    does not match the one the capability and index derive. The caller may have read
     out of order, or the message may belong to a different
     conversation.
 

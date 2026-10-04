@@ -61,9 +61,6 @@
 // lower-level API, for code that tracks indexes itself. An index that
 // arrives from outside can be checked against a capability with Contains.
 //
-// StatefulReader and StatefulWriter are deprecated; PLANNED_CHANGES.md says
-// what replaces them.
-//
 // # TODOs
 //
 // This BACAP implementation could possibly be improved, here's a ticket for
