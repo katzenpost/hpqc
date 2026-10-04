@@ -11,6 +11,7 @@ import (
 	circlSign "github.com/katzenpost/circl/sign"
 
 	"github.com/katzenpost/hpqc/sign"
+	"github.com/katzenpost/hpqc/sign/pem"
 )
 
 var _ sign.Scheme = (*Scheme)(nil)
@@ -29,6 +30,10 @@ func (pk *PublicKey) Scheme() sign.Scheme {
 
 func (pk *PublicKey) MarshalBinary() ([]byte, error) {
 	return pk.key.MarshalBinary()
+}
+
+func (pk *PublicKey) MarshalText() ([]byte, error) {
+	return pem.ToPublicPEMBytes(pk), nil
 }
 
 func (pk *PublicKey) Equal(other crypto.PublicKey) bool {

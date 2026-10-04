@@ -1,0 +1,7 @@
+debian/.debhelper/
+debian/debhelper-build-stamp
+debian/files
+debian/golang-github-katzenpost-hpqc-dev/
+debian/golang-github-katzenpost-hpqc-dev.substvars
+dist/
+obj-*/

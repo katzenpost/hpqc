@@ -1,6 +1,10 @@
 name: MacOS Golang build and test
 
-on: [pull_request]
+on:
+  push:
+    branches: [main]
+  pull_request:
+  merge_group:
 
 permissions:
   contents: read

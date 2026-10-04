@@ -1,0 +1,5 @@
+hpqc (0.0.0+git20261003.d7ea2ca) unstable; urgency=medium
+
+  * Package the Go source as a build dependency.
+
+ -- Katzenpost <packages@katzenpost.network>  Fri, 03 Oct 2026 10:40:00 +0200

@@ -26,7 +26,7 @@ var _ kem.Scheme = (*scheme)(nil)
 var _ kem.PublicKey = (*PublicKey)(nil)
 var _ kem.PrivateKey = (*PrivateKey)(nil)
 
-var sch kem.Scheme = &scheme{}
+var sch kem.Scheme = &scheme{name: "MLKEM768"}
 
 // Scheme returns a KEM interface.
 func Scheme() kem.Scheme { return sch }
@@ -82,10 +82,12 @@ func (p *PrivateKey) Public() kem.PublicKey {
 }
 
 type scheme struct {
+	name   string
+	hedged bool
 }
 
 func (s *scheme) Name() string {
-	return "MLKEM768"
+	return s.name
 }
 
 func (a *scheme) GenerateKeyPair() (kem.PublicKey, kem.PrivateKey, error) {
@@ -107,6 +109,9 @@ func (s *scheme) Encapsulate(pk kem.PublicKey) (ct, ss []byte, err error) {
 	pub, ok := pk.(*PublicKey)
 	if !ok {
 		return nil, nil, kem.ErrTypeMismatch
+	}
+	if s.hedged {
+		return encapsulateHedged(pub.encapKey)
 	}
 	return mlkem768.Encapsulate(pub.encapKey)
 }
