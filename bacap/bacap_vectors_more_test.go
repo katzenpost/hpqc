@@ -120,6 +120,11 @@ func TestBACAPPositionVectors(t *testing.T) {
 			idx, err := NewEmptyMessageBoxIndexFromBytes(mustHexBytes(t, v.IndexHex))
 			require.NoError(t, err)
 			require.Equal(t, v.Reachable, reachable(t, rc, idx))
+			if v.Reachable {
+				require.NoError(t, rc.Contains(idx))
+			} else {
+				require.ErrorIs(t, rc.Contains(idx), ErrIndexNotInChannel)
+			}
 		})
 	}
 }
@@ -188,13 +193,8 @@ func TestBACAPNegativeVectors(t *testing.T) {
 				expected, err := idx.BoxIDForContext(wc.ReadCap(), ctx)
 				require.NoError(t, err)
 				require.NotEqual(t, expected.Bytes(), box[:], "the box must differ from the one the cap and index derive")
-				// The stateful reader is Go's one open path that checks the box.
-				reader, err := NewStatefulReaderWithIndex(wc.ReadCap(), ctx, idx)
-				require.NoError(t, err)
-				var sigArr [SignatureSize]byte
-				copy(sigArr[:], sig)
-				_, err = reader.DecryptNext(ctx, box, ct, sigArr)
-				require.Error(t, err)
+				_, err = idx.OpenForContext(wc.ReadCap(), ctx, box, ct, sig)
+				require.ErrorIs(t, err, ErrBoxMismatch)
 			case "verify_box":
 				ok, err := idx0(t).VerifyBox(box, ct, sig)
 				require.False(t, ok && err == nil)

@@ -49,9 +49,20 @@
 // Each of the above two capabilities are used with the MessageBoxIndex
 // to perform their respective encrypt and sign vs verify and decrypt operations.
 //
-// Beyond that we have two high-level types: StatefulReader and StatefulWriter,
-// which encapsulate all the operational details of advancing state
-// after message processing.
+// # Addressing boxes
+//
+// A position, ReadPosition or WritePosition, is a capability together with
+// one box on its stream. Positions come only from Start, PositionAt and Next
+// (or AdvanceTo), so a capability is never paired with an index from another
+// stream; they are the recommended way to read and write boxes.
+//
+// The capabilities and the stateless methods on MessageBoxIndex
+// (EncryptForContext, OpenForContext, NextIndex, AdvanceIndexTo) are the
+// lower-level API, for code that tracks indexes itself. An index that
+// arrives from outside can be checked against a capability with Contains.
+//
+// StatefulReader and StatefulWriter are deprecated; PLANNED_CHANGES.md says
+// what replaces them.
 //
 // # TODOs
 //

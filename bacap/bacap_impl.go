@@ -49,9 +49,20 @@
 // Each of the above two capabilities are used with the MessageBoxIndex
 // to perform their respective encrypt and sign vs verify and decrypt operations.
 //
-// Beyond that we have two high-level types: StatefulReader and StatefulWriter,
-// which encapsulate all the operational details of advancing state
-// after message processing.
+// # Addressing boxes
+//
+// A position, ReadPosition or WritePosition, is a capability together with
+// one box on its stream. Positions come only from Start, PositionAt and Next
+// (or AdvanceTo), so a capability is never paired with an index from another
+// stream; they are the recommended way to read and write boxes.
+//
+// The capabilities and the stateless methods on MessageBoxIndex
+// (EncryptForContext, OpenForContext, NextIndex, AdvanceIndexTo) are the
+// lower-level API, for code that tracks indexes itself. An index that
+// arrives from outside can be checked against a capability with Contains.
+//
+// StatefulReader and StatefulWriter are deprecated; PLANNED_CHANGES.md says
+// what replaces them.
 //
 // # TODOs
 //
@@ -451,6 +462,8 @@ func (*noCopy) Lock()   {}
 func (*noCopy) Unlock() {}
 
 // StatefulReader is a helper type with mutable state for sequential reading
+//
+// Deprecated: use ReadPosition, or the stateless methods on MessageBoxIndex.
 type StatefulReader struct {
 	noCopy        noCopy
 	Rcap          *ReadCap
@@ -460,6 +473,8 @@ type StatefulReader struct {
 }
 
 // NewStatefulReader initializes a StatefulReader for the given ReadCap and context.
+//
+// Deprecated: use ReadCap.Start.
 func NewStatefulReader(urcap *ReadCap, ctx []byte) (*StatefulReader, error) {
 	if urcap == nil {
 		return nil, errors.New("urcap is nil")
@@ -485,6 +500,8 @@ func NewStatefulReader(urcap *ReadCap, ctx []byte) (*StatefulReader, error) {
 // Note: This creates a reader that starts from the given nextIndex, with LastInboxRead set to nil.
 // This means the reader has no history of previously read messages, which is appropriate for
 // scenarios where you're resuming from a known checkpoint or starting fresh from a specific index.
+//
+// Deprecated: use ReadCap.PositionAt, which also checks the index is on the cap's stream.
 func NewStatefulReaderWithIndex(urcap *ReadCap, ctx []byte, nextIndex *MessageBoxIndex) (*StatefulReader, error) {
 	if urcap == nil {
 		return nil, errors.New("urcap is nil")
@@ -513,6 +530,8 @@ func NewStatefulReaderWithIndex(urcap *ReadCap, ctx []byte, nextIndex *MessageBo
 }
 
 // NewStatefulReaderFromBytes initializes a StatefulReader from a CBOR blob.
+//
+// Deprecated: use UnmarshalReadPosition.
 func NewStatefulReaderFromBytes(data []byte) (*StatefulReader, error) {
 	if data == nil {
 		return nil, errors.New("data is nil")
@@ -637,6 +656,8 @@ func (sr *StatefulReader) DecryptNext(ctx []byte, box [BoxIDSize]byte, ciphertex
 }
 
 // StatefulWriter maintains sequential state for encrypting messages.
+//
+// Deprecated: use WritePosition, or the stateless methods on MessageBoxIndex.
 type StatefulWriter struct {
 	noCopy        noCopy
 	Wcap          *WriteCap
@@ -646,6 +667,8 @@ type StatefulWriter struct {
 }
 
 // NewStatefulWriter initializes a StatefulWriter for the given owner and context.
+//
+// Deprecated: use WriteCap.Start.
 func NewStatefulWriter(owner *WriteCap, ctx []byte) (*StatefulWriter, error) {
 	if ctx == nil {
 		return nil, errors.New("ctx is nil")
@@ -665,6 +688,8 @@ func NewStatefulWriter(owner *WriteCap, ctx []byte) (*StatefulWriter, error) {
 }
 
 // NewStatefulWriterWithIndex initializes a StatefulWriter with a specific next index.
+//
+// Deprecated: use WriteCap.PositionAt, which also checks the index is on the cap's stream.
 func NewStatefulWriterWithIndex(owner *WriteCap, ctx []byte, nextIndex *MessageBoxIndex) (*StatefulWriter, error) {
 	if owner == nil {
 		return nil, errors.New("owner is nil")
@@ -689,6 +714,9 @@ func NewStatefulWriterWithIndex(owner *WriteCap, ctx []byte, nextIndex *MessageB
 	return sw, nil
 }
 
+// NewStatefulWriterFromBytes initializes a StatefulWriter from a CBOR blob.
+//
+// Deprecated: use UnmarshalWritePosition.
 func NewStatefulWriterFromBytes(data []byte) (*StatefulWriter, error) {
 	sw := &StatefulWriter{
 		Wcap:          NewEmptyWriteCap(),
