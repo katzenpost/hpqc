@@ -15,20 +15,34 @@ files.
 ```
 testvectors/
 ├── primitives/                 # primitives used by BACAP and friends
+│   ├── sha512.json             #   curated by hand; not generated
 │   ├── sha512_256.json
-│   ├── blake2b_512.json
+│   ├── blake2b_256.json, blake2b_512.json, blake2b_xof.json
 │   ├── hkdf_blake2b.json
 │   ├── aes_gcm_siv.json
-│   └── blinded_ed25519.json
+│   ├── ed25519.json, blinded_ed25519.json
+│   └── falcon_padded_*.json
 ├── bacap/                      # BACAP-level vectors (built atop primitives)
-│   ├── message_box_index.json
-│   ├── box_id.json
-│   ├── encrypt_decrypt.json
-│   └── stateful.json
+│   ├── message_box_index.json  #   ratchet advance
+│   ├── box_id.json             #   box ID derivation
+│   ├── encrypt.json            #   encrypt, sign, decrypt
+│   ├── mutate_kdf_state.json   #   Contact Voucher re-seed
+│   ├── layout.json             #   WriteCap, ReadCap, MessageBoxIndex bytes
+│   ├── tombstone.json          #   boxes signed over the empty payload
+│   ├── position.json           #   whether an index lies on a cap's stream
+│   ├── negative.json           #   inputs every implementation must reject
+│   └── bundle.json             #   all of the above plus the primitives, in one file
+├── kem/                        # KEM vectors
 └── cmd/
     └── generate/               # Go program that emits the JSON files
-        └── main.go
 ```
+
+The BACAP vectors cover several write caps, including indexes starting at a
+random value, just below 2^63 and just below 2^64. Their expected values come
+from the Go implementation, so passing them shows agreement with Go; the
+Python port here and the Lean implementation in
+[CryptWalker](https://github.com/katzenpost/CryptWalker) both check every
+file, including every rejection in `negative.json`.
 
 The vectors form a hierarchy. If a Python (or Go) implementation fails the
 BACAP-level vectors, the primitive-level vectors usually pinpoint where the
@@ -78,7 +92,10 @@ The vectors are not random. They are emitted by the Go program at
 go run ./testvectors/cmd/generate
 ```
 
-Commit the resulting JSON whenever the primitives change.
+Commit the resulting JSON whenever the primitives change. `kem/mkem.json` is
+randomised on every run; leave it alone unless the MKEM format changed. With
+`-out` pointing elsewhere, copy `primitives/sha512.json` there first:
+`bacap/bundle.json` is assembled from the files in the output directory.
 
 ## File format
 

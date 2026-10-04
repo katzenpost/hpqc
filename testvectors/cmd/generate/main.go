@@ -84,10 +84,29 @@ func main() {
 	writeFile(*out, "primitives/falcon_padded_512_ed25519.json", genFalconPadded512Ed25519())
 	writeFile(*out, "primitives/falcon_padded_1024_ed25519.json", genFalconPadded1024Ed25519())
 
-	writeFile(*out, "bacap/message_box_index.json", genBACAPMessageBoxIndex())
-	writeFile(*out, "bacap/box_id.json", genBACAPBoxID())
-	writeFile(*out, "bacap/encrypt.json", genBACAPEncrypt())
-	writeFile(*out, "bacap/mutate_kdf_state.json", genBACAPMutateKDFState())
+	bacapFiles := []struct {
+		rel string
+		v   vectorFile
+	}{
+		{"bacap/message_box_index.json", genBACAPMessageBoxIndex()},
+		{"bacap/box_id.json", genBACAPBoxID()},
+		{"bacap/encrypt.json", genBACAPEncrypt()},
+		{"bacap/mutate_kdf_state.json", genBACAPMutateKDFState()},
+		{"bacap/layout.json", genBACAPLayout()},
+		{"bacap/tombstone.json", genBACAPTombstone()},
+		{"bacap/position.json", genBACAPPosition()},
+		{"bacap/negative.json", genBACAPNegative()},
+	}
+	bundle := []string{
+		"primitives/sha512.json", "primitives/sha512_256.json", "primitives/blake2b_512.json",
+		"primitives/hkdf_blake2b.json", "primitives/aes_gcm_siv.json", "primitives/ed25519.json",
+		"primitives/blinded_ed25519.json",
+	}
+	for _, f := range bacapFiles {
+		writeFile(*out, f.rel, f.v)
+		bundle = append(bundle, f.rel)
+	}
+	writeJSON(*out, "bacap/bundle.json", genBundle(*out, bundle))
 
 	writeFile(*out, "kem/mkem.json", genKEMMkem())
 	writeFile(*out, "kem/adapter_test_vectors.json", genKEMAdapter())
@@ -948,6 +967,10 @@ func genMLKEMHedged768() vectorFile {
 }
 
 func writeFile(root, rel string, v vectorFile) {
+	writeJSON(root, rel, v)
+}
+
+func writeJSON(root, rel string, v any) {
 	b, err := json.MarshalIndent(v, "", "  ")
 	must(err)
 	b = append(b, '\n')
@@ -1053,6 +1076,7 @@ func genBACAPMessageBoxIndex() vectorFile {
 			ExpectedIndexHex: hex.EncodeToString(advancedBytes),
 		})
 	}
+	vs = append(vs, extraMessageBoxIndexVectors()...)
 	return vectorFile{
 		FormatVersion: formatVersion,
 		Generator:     generatorName,
@@ -1121,6 +1145,7 @@ func genBACAPBoxID() vectorFile {
 			ExpectedBoxIDHex: hex.EncodeToString(boxID),
 		})
 	}
+	vs = append(vs, extraBoxIDVectors()...)
 	return vectorFile{
 		FormatVersion: formatVersion,
 		Generator:     generatorName,
@@ -1200,6 +1225,7 @@ func genBACAPEncrypt() vectorFile {
 			ExpectedSignatureHex: hex.EncodeToString(sig),
 		})
 	}
+	vs = append(vs, extraEncryptVectors()...)
 	return vectorFile{
 		FormatVersion: formatVersion,
 		Generator:     generatorName,
@@ -1275,6 +1301,7 @@ func genBACAPMutateKDFState() vectorFile {
 			ExpectedBoxIDHex: hex.EncodeToString(boxID),
 		})
 	}
+	vs = append(vs, extraMutateVectors()...)
 	return vectorFile{
 		FormatVersion: formatVersion,
 		Generator:     generatorName,
