@@ -1,0 +1,40 @@
+{
+  "format_version": 1,
+  "generator": "github.com/katzenpost/hpqc/testvectors/cmd/generate",
+  "primitive": "bacap_layout",
+  "description": "Byte layouts. A 168-byte WriteCap is the 64-byte ed25519 private key (seed || public key) followed by the 104-byte MessageBoxIndex; a 136-byte ReadCap is the 32-byte root public key followed by the MessageBoxIndex; a MessageBoxIndex is Idx64 (8 bytes, little-endian), then the blinding factor, encryption key and HKDF state (32 bytes each). For each WriteCap: the root public key, the ReadCap derived from it, and its MessageBoxIndex and Idx64. Each blob must also round-trip through its parser.",
+  "vectors": [
+    {
+      "name": "cap_fixed",
+      "writecap_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b80100000000000000aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "expected_root_public_key_hex": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8",
+      "expected_readcap_hex": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b80100000000000000aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "expected_index_hex": "0100000000000000aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "expected_idx64": 1
+    },
+    {
+      "name": "cap_random_start",
+      "writecap_hex": "81e57dfd17959c30d4cba5cb6de8b1d8f1a38e634ef12977e8a67127b2ea41c3f68b22740ef28487f4997e2cdc09aad996e2508ada874a8ba488472b0d65d415768b615b9bd25f4c35a3e765b421a60a843d0e75333ee639219102953d71a465b671c6b8163d8c2406072990458a9054d0e3269639d0ea851417cd2f1e9989f85de3a96dec4905b15407243c19fdc4524c842d0795988b7962b498b3b3c341b012cbf06dbb4a4900",
+      "expected_root_public_key_hex": "f68b22740ef28487f4997e2cdc09aad996e2508ada874a8ba488472b0d65d415",
+      "expected_readcap_hex": "f68b22740ef28487f4997e2cdc09aad996e2508ada874a8ba488472b0d65d415768b615b9bd25f4c35a3e765b421a60a843d0e75333ee639219102953d71a465b671c6b8163d8c2406072990458a9054d0e3269639d0ea851417cd2f1e9989f85de3a96dec4905b15407243c19fdc4524c842d0795988b7962b498b3b3c341b012cbf06dbb4a4900",
+      "expected_index_hex": "768b615b9bd25f4c35a3e765b421a60a843d0e75333ee639219102953d71a465b671c6b8163d8c2406072990458a9054d0e3269639d0ea851417cd2f1e9989f85de3a96dec4905b15407243c19fdc4524c842d0795988b7962b498b3b3c341b012cbf06dbb4a4900",
+      "expected_idx64": 5503348834364918646
+    },
+    {
+      "name": "cap_near_2_63",
+      "writecap_hex": "d46d4ec0410cdac719ccb5eb0fd3734a548cbd93ec225ed1f710bd354e01c5602483b1751be5907f855dafeb00823fed5ffb5afba4411bc4e6ce66f881ef8acafdffffffffffff7f7b2708626685e5786dee736d147f2a15716304522c22f13734321c6979421e6a763703c58bef846ab7dc92d998a8fa8ad062877f08cf370087a9244fd895899e2218a4bf004c046bf1ba1f88b4fcb73854f5d487500620199990961deb13b9a4",
+      "expected_root_public_key_hex": "2483b1751be5907f855dafeb00823fed5ffb5afba4411bc4e6ce66f881ef8aca",
+      "expected_readcap_hex": "2483b1751be5907f855dafeb00823fed5ffb5afba4411bc4e6ce66f881ef8acafdffffffffffff7f7b2708626685e5786dee736d147f2a15716304522c22f13734321c6979421e6a763703c58bef846ab7dc92d998a8fa8ad062877f08cf370087a9244fd895899e2218a4bf004c046bf1ba1f88b4fcb73854f5d487500620199990961deb13b9a4",
+      "expected_index_hex": "fdffffffffffff7f7b2708626685e5786dee736d147f2a15716304522c22f13734321c6979421e6a763703c58bef846ab7dc92d998a8fa8ad062877f08cf370087a9244fd895899e2218a4bf004c046bf1ba1f88b4fcb73854f5d487500620199990961deb13b9a4",
+      "expected_idx64": 9223372036854775805
+    },
+    {
+      "name": "cap_near_2_64",
+      "writecap_hex": "5029bcc71b89cb89b8db7124e044de9bba32bf56538a25749488cb3f4f829b5b240b7948b940c6d358b579677fc7ae1a51d0297d427673b761131e30d84096dbf7ffffffffffffff1fd105c465f4bbd86fb8673347fda5aeede50fd7a8aac495b4cb1ad24151f3270fb0bc52f18d26f5ec4357d9ed82c864729eac9fe409c0cf6916a6ec331de977c0d088d52ba786870d8353a1f41c584de417848915c8a715e09b4e8693093a85",
+      "expected_root_public_key_hex": "240b7948b940c6d358b579677fc7ae1a51d0297d427673b761131e30d84096db",
+      "expected_readcap_hex": "240b7948b940c6d358b579677fc7ae1a51d0297d427673b761131e30d84096dbf7ffffffffffffff1fd105c465f4bbd86fb8673347fda5aeede50fd7a8aac495b4cb1ad24151f3270fb0bc52f18d26f5ec4357d9ed82c864729eac9fe409c0cf6916a6ec331de977c0d088d52ba786870d8353a1f41c584de417848915c8a715e09b4e8693093a85",
+      "expected_index_hex": "f7ffffffffffffff1fd105c465f4bbd86fb8673347fda5aeede50fd7a8aac495b4cb1ad24151f3270fb0bc52f18d26f5ec4357d9ed82c864729eac9fe409c0cf6916a6ec331de977c0d088d52ba786870d8353a1f41c584de417848915c8a715e09b4e8693093a85",
+      "expected_idx64": 18446744073709551607
+    }
+  ]
+}

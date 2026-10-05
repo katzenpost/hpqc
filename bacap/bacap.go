@@ -49,9 +49,17 @@
 // Each of the above two capabilities are used with the MessageBoxIndex
 // to perform their respective encrypt and sign vs verify and decrypt operations.
 //
-// Beyond that we have two high-level types: StatefulReader and StatefulWriter,
-// which encapsulate all the operational details of advancing state
-// after message processing.
+// # Addressing boxes
+//
+// A position, ReadPosition or WritePosition, is a capability together with
+// one box on its stream. Positions come only from Start, PositionAt and Next
+// (or AdvanceTo), so a capability is never paired with an index from another
+// stream; they are the recommended way to read and write boxes.
+//
+// The capabilities and the stateless methods on MessageBoxIndex
+// (EncryptForContext, OpenForContext, NextIndex, AdvanceIndexTo) are the
+// lower-level API, for code that tracks indexes itself. An index that
+// arrives from outside can be checked against a capability with Contains.
 //
 // # TODOs
 //
@@ -63,6 +71,7 @@ package bacap
 
 import (
 	"bytes"
+	stded25519 "crypto/ed25519"
 	"encoding"
 	"encoding/binary"
 	"errors"
@@ -260,6 +269,13 @@ func NewEmptyWriteCap() *WriteCap {
 func (o *WriteCap) UnmarshalBinary(data []byte) error {
 	if len(data) != WriteCapSize {
 		return errors.New("invalid BoxOwnerCap binary size")
+	}
+	// The stored public half must be the one the seed derives: otherwise
+	// box IDs would be derived from one key and boxes signed with another,
+	// and nothing written with the cap could be opened.
+	derived := stded25519.NewKeyFromSeed(data[:stded25519.SeedSize])
+	if !bytes.Equal(derived[stded25519.SeedSize:], data[stded25519.SeedSize:ed25519.PrivateKeySize]) {
+		return errors.New("WriteCap public key does not match its seed")
 	}
 	o.rootPrivateKey = new(ed25519.PrivateKey)
 	err := o.rootPrivateKey.FromBytes(data[:ed25519.PrivateKeySize])

@@ -1,0 +1,265 @@
+{
+  "format_version": 1,
+  "generator": "github.com/katzenpost/hpqc/testvectors/cmd/generate",
+  "primitive": "bacap_negative",
+  "description": "Inputs every implementation must reject, by operation. advance_index_to and next_index take index_hex (and advance_to). decrypt advances the WriteCap's first index by advance_by and decrypts box_id_hex, ciphertext_hex and signature_hex under ctx_hex. open does the same after first comparing box_id_hex with the box ID the derived read cap and index give under ctx_hex. verify_box checks signature_hex over ciphertext_hex under box_id_hex. The parse_* operations parse blob_hex. category names the failure independently of any implementation's error type: cannot_rewind, index_exhausted, signature_invalid, decrypt_failed, box_mismatch, malformed.",
+  "vectors": [
+    {
+      "name": "cap_fixed_rewind",
+      "operation": "advance_index_to",
+      "category": "cannot_rewind",
+      "description": "advancing to an Idx64 below the current one",
+      "index_hex": "0100000000000000aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "advance_to": 0,
+      "advance_by": 0
+    },
+    {
+      "name": "cap_random_start_rewind",
+      "operation": "advance_index_to",
+      "category": "cannot_rewind",
+      "description": "advancing to an Idx64 below the current one",
+      "index_hex": "768b615b9bd25f4c35a3e765b421a60a843d0e75333ee639219102953d71a465b671c6b8163d8c2406072990458a9054d0e3269639d0ea851417cd2f1e9989f85de3a96dec4905b15407243c19fdc4524c842d0795988b7962b498b3b3c341b012cbf06dbb4a4900",
+      "advance_to": 5503348834364918645,
+      "advance_by": 0
+    },
+    {
+      "name": "cap_near_2_63_rewind",
+      "operation": "advance_index_to",
+      "category": "cannot_rewind",
+      "description": "advancing to an Idx64 below the current one",
+      "index_hex": "fdffffffffffff7f7b2708626685e5786dee736d147f2a15716304522c22f13734321c6979421e6a763703c58bef846ab7dc92d998a8fa8ad062877f08cf370087a9244fd895899e2218a4bf004c046bf1ba1f88b4fcb73854f5d487500620199990961deb13b9a4",
+      "advance_to": 9223372036854775804,
+      "advance_by": 0
+    },
+    {
+      "name": "cap_near_2_64_rewind",
+      "operation": "advance_index_to",
+      "category": "cannot_rewind",
+      "description": "advancing to an Idx64 below the current one",
+      "index_hex": "f7ffffffffffffff1fd105c465f4bbd86fb8673347fda5aeede50fd7a8aac495b4cb1ad24151f3270fb0bc52f18d26f5ec4357d9ed82c864729eac9fe409c0cf6916a6ec331de977c0d088d52ba786870d8353a1f41c584de417848915c8a715e09b4e8693093a85",
+      "advance_to": 18446744073709551606,
+      "advance_by": 0
+    },
+    {
+      "name": "next_index_at_max",
+      "operation": "next_index",
+      "category": "index_exhausted",
+      "description": "the index after Idx64 = 2^64 - 1, which does not exist",
+      "index_hex": "ffffffffffffffffb8becd3b98d721abdd9a6f9e810056d9bc75b9d346f1a92523979457085b73b1925ebacef6d497d4dc30a2091e80615c4987b30d5cddaf990327a1b02a7130e8b47996a398d46ef830dd616c8349aa89423e9dcfc2285e4cb250e94a652b6a50",
+      "advance_by": 0
+    },
+    {
+      "name": "cap_fixed_tampered_ciphertext",
+      "operation": "decrypt",
+      "category": "signature_invalid",
+      "description": "one ciphertext bit flipped; the signature over the ciphertext no longer verifies",
+      "writecap_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b80100000000000000aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "advance_by": 2,
+      "ctx_hex": "706967656f6e686f6c6520636f6e74657874",
+      "box_id_hex": "572a4e1dc5d96eca55133e1c82871864d5d497fbae567250951775090b2dc2ae",
+      "ciphertext_hex": "ac54da226e3e3b528ad7413cda23d69419c4a3796d50b9a5158d1dfa000f607b34db0fe9",
+      "signature_hex": "6a9825adcd015bdfa8b5d12258e5e32ff58fb27bdd48fd8695e2da1f81affb086f83d95f89442c591f51332a3dc47c55400fabee2a735e91e9b5b1574622ef02"
+    },
+    {
+      "name": "cap_fixed_tampered_signature",
+      "operation": "decrypt",
+      "category": "signature_invalid",
+      "description": "one signature bit flipped",
+      "writecap_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b80100000000000000aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "advance_by": 2,
+      "ctx_hex": "706967656f6e686f6c6520636f6e74657874",
+      "box_id_hex": "572a4e1dc5d96eca55133e1c82871864d5d497fbae567250951775090b2dc2ae",
+      "ciphertext_hex": "ad54da226e3e3b528ad7413cda23d69419c4a3796d50b9a5158d1dfa000f607b34db0fe9",
+      "signature_hex": "6a9825adcd005bdfa8b5d12258e5e32ff58fb27bdd48fd8695e2da1f81affb086f83d95f89442c591f51332a3dc47c55400fabee2a735e91e9b5b1574622ef02"
+    },
+    {
+      "name": "cap_fixed_wrong_ctx",
+      "operation": "decrypt",
+      "category": "decrypt_failed",
+      "description": "a valid box decrypted under another context: the signature verifies, the AEAD does not open",
+      "writecap_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b80100000000000000aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "advance_by": 2,
+      "ctx_hex": "616e6f7468657220636f6e74657874",
+      "box_id_hex": "572a4e1dc5d96eca55133e1c82871864d5d497fbae567250951775090b2dc2ae",
+      "ciphertext_hex": "ad54da226e3e3b528ad7413cda23d69419c4a3796d50b9a5158d1dfa000f607b34db0fe9",
+      "signature_hex": "6a9825adcd015bdfa8b5d12258e5e32ff58fb27bdd48fd8695e2da1f81affb086f83d95f89442c591f51332a3dc47c55400fabee2a735e91e9b5b1574622ef02"
+    },
+    {
+      "name": "cap_fixed_wrong_index",
+      "operation": "decrypt",
+      "category": "decrypt_failed",
+      "description": "a valid box decrypted with the next index's keys: the signature verifies, the AEAD does not open",
+      "writecap_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b80100000000000000aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "advance_by": 3,
+      "ctx_hex": "706967656f6e686f6c6520636f6e74657874",
+      "box_id_hex": "572a4e1dc5d96eca55133e1c82871864d5d497fbae567250951775090b2dc2ae",
+      "ciphertext_hex": "ad54da226e3e3b528ad7413cda23d69419c4a3796d50b9a5158d1dfa000f607b34db0fe9",
+      "signature_hex": "6a9825adcd015bdfa8b5d12258e5e32ff58fb27bdd48fd8695e2da1f81affb086f83d95f89442c591f51332a3dc47c55400fabee2a735e91e9b5b1574622ef02"
+    },
+    {
+      "name": "cap_fixed_verify_tampered_signature",
+      "operation": "verify_box",
+      "category": "signature_invalid",
+      "description": "VerifyBox on a signature with one bit flipped",
+      "writecap_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b80100000000000000aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "advance_by": 2,
+      "ctx_hex": "706967656f6e686f6c6520636f6e74657874",
+      "box_id_hex": "572a4e1dc5d96eca55133e1c82871864d5d497fbae567250951775090b2dc2ae",
+      "ciphertext_hex": "ad54da226e3e3b528ad7413cda23d69419c4a3796d50b9a5158d1dfa000f607b34db0fe9",
+      "signature_hex": "6a9825adcd005bdfa8b5d12258e5e32ff58fb27bdd48fd8695e2da1f81affb086f83d95f89442c591f51332a3dc47c55400fabee2a735e91e9b5b1574622ef02"
+    },
+    {
+      "name": "cap_fixed_open_tombstone_of_another_box",
+      "operation": "open",
+      "category": "box_mismatch",
+      "description": "a valid tombstone for the box at advance 3, opened at advance 2: its signature verifies and there is nothing to decrypt, so only comparing the box ID with the one the read cap and index derive rejects it",
+      "writecap_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b80100000000000000aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "advance_by": 2,
+      "ctx_hex": "706967656f6e686f6c6520636f6e74657874",
+      "box_id_hex": "a422267ffef8b687e21a29a984fbd2c2eae1798c471af982b53128517895e8f7",
+      "signature_hex": "f23f6cd9e21e5bd46504112a00d7213cdf027b227f4df03a505221c935c181a82666ea495ea14b41d34c9b3fcb49d8bb77101067a87de7e10337f8729e577c0e"
+    },
+    {
+      "name": "cap_random_start_tampered_ciphertext",
+      "operation": "decrypt",
+      "category": "signature_invalid",
+      "description": "one ciphertext bit flipped; the signature over the ciphertext no longer verifies",
+      "writecap_hex": "81e57dfd17959c30d4cba5cb6de8b1d8f1a38e634ef12977e8a67127b2ea41c3f68b22740ef28487f4997e2cdc09aad996e2508ada874a8ba488472b0d65d415768b615b9bd25f4c35a3e765b421a60a843d0e75333ee639219102953d71a465b671c6b8163d8c2406072990458a9054d0e3269639d0ea851417cd2f1e9989f85de3a96dec4905b15407243c19fdc4524c842d0795988b7962b498b3b3c341b012cbf06dbb4a4900",
+      "advance_by": 2,
+      "ctx_hex": "706967656f6e686f6c6520636f6e74657874",
+      "box_id_hex": "6e2aa2fc28882fe3000d29b3fb5a73227d851d06e824d0cb53e785d46188af33",
+      "ciphertext_hex": "174fc6e8c25c159934eee9f09c8c669d7bcd6403b3d332a04e3583722ec382db16ad4861",
+      "signature_hex": "1077e9d06b096b6e9a79d812f18a474022807c5c569bac44d56ef817d3727f4a8c50e1f6ff4d2c481b1ac8b08344a2530c111a6739da7fa9a035ef2fad66e50b"
+    },
+    {
+      "name": "cap_random_start_tampered_signature",
+      "operation": "decrypt",
+      "category": "signature_invalid",
+      "description": "one signature bit flipped",
+      "writecap_hex": "81e57dfd17959c30d4cba5cb6de8b1d8f1a38e634ef12977e8a67127b2ea41c3f68b22740ef28487f4997e2cdc09aad996e2508ada874a8ba488472b0d65d415768b615b9bd25f4c35a3e765b421a60a843d0e75333ee639219102953d71a465b671c6b8163d8c2406072990458a9054d0e3269639d0ea851417cd2f1e9989f85de3a96dec4905b15407243c19fdc4524c842d0795988b7962b498b3b3c341b012cbf06dbb4a4900",
+      "advance_by": 2,
+      "ctx_hex": "706967656f6e686f6c6520636f6e74657874",
+      "box_id_hex": "6e2aa2fc28882fe3000d29b3fb5a73227d851d06e824d0cb53e785d46188af33",
+      "ciphertext_hex": "164fc6e8c25c159934eee9f09c8c669d7bcd6403b3d332a04e3583722ec382db16ad4861",
+      "signature_hex": "1077e9d06b086b6e9a79d812f18a474022807c5c569bac44d56ef817d3727f4a8c50e1f6ff4d2c481b1ac8b08344a2530c111a6739da7fa9a035ef2fad66e50b"
+    },
+    {
+      "name": "cap_random_start_wrong_ctx",
+      "operation": "decrypt",
+      "category": "decrypt_failed",
+      "description": "a valid box decrypted under another context: the signature verifies, the AEAD does not open",
+      "writecap_hex": "81e57dfd17959c30d4cba5cb6de8b1d8f1a38e634ef12977e8a67127b2ea41c3f68b22740ef28487f4997e2cdc09aad996e2508ada874a8ba488472b0d65d415768b615b9bd25f4c35a3e765b421a60a843d0e75333ee639219102953d71a465b671c6b8163d8c2406072990458a9054d0e3269639d0ea851417cd2f1e9989f85de3a96dec4905b15407243c19fdc4524c842d0795988b7962b498b3b3c341b012cbf06dbb4a4900",
+      "advance_by": 2,
+      "ctx_hex": "616e6f7468657220636f6e74657874",
+      "box_id_hex": "6e2aa2fc28882fe3000d29b3fb5a73227d851d06e824d0cb53e785d46188af33",
+      "ciphertext_hex": "164fc6e8c25c159934eee9f09c8c669d7bcd6403b3d332a04e3583722ec382db16ad4861",
+      "signature_hex": "1077e9d06b096b6e9a79d812f18a474022807c5c569bac44d56ef817d3727f4a8c50e1f6ff4d2c481b1ac8b08344a2530c111a6739da7fa9a035ef2fad66e50b"
+    },
+    {
+      "name": "cap_random_start_wrong_index",
+      "operation": "decrypt",
+      "category": "decrypt_failed",
+      "description": "a valid box decrypted with the next index's keys: the signature verifies, the AEAD does not open",
+      "writecap_hex": "81e57dfd17959c30d4cba5cb6de8b1d8f1a38e634ef12977e8a67127b2ea41c3f68b22740ef28487f4997e2cdc09aad996e2508ada874a8ba488472b0d65d415768b615b9bd25f4c35a3e765b421a60a843d0e75333ee639219102953d71a465b671c6b8163d8c2406072990458a9054d0e3269639d0ea851417cd2f1e9989f85de3a96dec4905b15407243c19fdc4524c842d0795988b7962b498b3b3c341b012cbf06dbb4a4900",
+      "advance_by": 3,
+      "ctx_hex": "706967656f6e686f6c6520636f6e74657874",
+      "box_id_hex": "6e2aa2fc28882fe3000d29b3fb5a73227d851d06e824d0cb53e785d46188af33",
+      "ciphertext_hex": "164fc6e8c25c159934eee9f09c8c669d7bcd6403b3d332a04e3583722ec382db16ad4861",
+      "signature_hex": "1077e9d06b096b6e9a79d812f18a474022807c5c569bac44d56ef817d3727f4a8c50e1f6ff4d2c481b1ac8b08344a2530c111a6739da7fa9a035ef2fad66e50b"
+    },
+    {
+      "name": "cap_random_start_verify_tampered_signature",
+      "operation": "verify_box",
+      "category": "signature_invalid",
+      "description": "VerifyBox on a signature with one bit flipped",
+      "writecap_hex": "81e57dfd17959c30d4cba5cb6de8b1d8f1a38e634ef12977e8a67127b2ea41c3f68b22740ef28487f4997e2cdc09aad996e2508ada874a8ba488472b0d65d415768b615b9bd25f4c35a3e765b421a60a843d0e75333ee639219102953d71a465b671c6b8163d8c2406072990458a9054d0e3269639d0ea851417cd2f1e9989f85de3a96dec4905b15407243c19fdc4524c842d0795988b7962b498b3b3c341b012cbf06dbb4a4900",
+      "advance_by": 2,
+      "ctx_hex": "706967656f6e686f6c6520636f6e74657874",
+      "box_id_hex": "6e2aa2fc28882fe3000d29b3fb5a73227d851d06e824d0cb53e785d46188af33",
+      "ciphertext_hex": "164fc6e8c25c159934eee9f09c8c669d7bcd6403b3d332a04e3583722ec382db16ad4861",
+      "signature_hex": "1077e9d06b086b6e9a79d812f18a474022807c5c569bac44d56ef817d3727f4a8c50e1f6ff4d2c481b1ac8b08344a2530c111a6739da7fa9a035ef2fad66e50b"
+    },
+    {
+      "name": "cap_random_start_open_tombstone_of_another_box",
+      "operation": "open",
+      "category": "box_mismatch",
+      "description": "a valid tombstone for the box at advance 3, opened at advance 2: its signature verifies and there is nothing to decrypt, so only comparing the box ID with the one the read cap and index derive rejects it",
+      "writecap_hex": "81e57dfd17959c30d4cba5cb6de8b1d8f1a38e634ef12977e8a67127b2ea41c3f68b22740ef28487f4997e2cdc09aad996e2508ada874a8ba488472b0d65d415768b615b9bd25f4c35a3e765b421a60a843d0e75333ee639219102953d71a465b671c6b8163d8c2406072990458a9054d0e3269639d0ea851417cd2f1e9989f85de3a96dec4905b15407243c19fdc4524c842d0795988b7962b498b3b3c341b012cbf06dbb4a4900",
+      "advance_by": 2,
+      "ctx_hex": "706967656f6e686f6c6520636f6e74657874",
+      "box_id_hex": "a0bfbbe68c159a6a9b38c940355677d06a7057acb946240eedf239db64e984dc",
+      "signature_hex": "b66f93a6a4de143812ab7179f4e68bbb5067b204e965a87b0b997e01db2ca444e2c4cc5bf6c800ca23f46f37f2762a2461e2d7b0122c6872d5eea002c11edd0f"
+    },
+    {
+      "name": "index_empty",
+      "operation": "parse_message_box_index",
+      "category": "malformed",
+      "description": "a MessageBoxIndex of 0 bytes",
+      "advance_by": 0
+    },
+    {
+      "name": "index_short",
+      "operation": "parse_message_box_index",
+      "category": "malformed",
+      "description": "a MessageBoxIndex one byte short",
+      "blob_hex": "768b615b9bd25f4c35a3e765b421a60a843d0e75333ee639219102953d71a465b671c6b8163d8c2406072990458a9054d0e3269639d0ea851417cd2f1e9989f85de3a96dec4905b15407243c19fdc4524c842d0795988b7962b498b3b3c341b012cbf06dbb4a49",
+      "advance_by": 0
+    },
+    {
+      "name": "index_long",
+      "operation": "parse_message_box_index",
+      "category": "malformed",
+      "description": "a MessageBoxIndex one byte long",
+      "blob_hex": "768b615b9bd25f4c35a3e765b421a60a843d0e75333ee639219102953d71a465b671c6b8163d8c2406072990458a9054d0e3269639d0ea851417cd2f1e9989f85de3a96dec4905b15407243c19fdc4524c842d0795988b7962b498b3b3c341b012cbf06dbb4a490000",
+      "advance_by": 0
+    },
+    {
+      "name": "readcap_short",
+      "operation": "parse_read_cap",
+      "category": "malformed",
+      "description": "a ReadCap one byte short",
+      "blob_hex": "f68b22740ef28487f4997e2cdc09aad996e2508ada874a8ba488472b0d65d415768b615b9bd25f4c35a3e765b421a60a843d0e75333ee639219102953d71a465b671c6b8163d8c2406072990458a9054d0e3269639d0ea851417cd2f1e9989f85de3a96dec4905b15407243c19fdc4524c842d0795988b7962b498b3b3c341b012cbf06dbb4a49",
+      "advance_by": 0
+    },
+    {
+      "name": "readcap_long",
+      "operation": "parse_read_cap",
+      "category": "malformed",
+      "description": "a ReadCap one byte long",
+      "blob_hex": "f68b22740ef28487f4997e2cdc09aad996e2508ada874a8ba488472b0d65d415768b615b9bd25f4c35a3e765b421a60a843d0e75333ee639219102953d71a465b671c6b8163d8c2406072990458a9054d0e3269639d0ea851417cd2f1e9989f85de3a96dec4905b15407243c19fdc4524c842d0795988b7962b498b3b3c341b012cbf06dbb4a490000",
+      "advance_by": 0
+    },
+    {
+      "name": "readcap_off_curve_root_key",
+      "operation": "parse_read_cap",
+      "category": "malformed",
+      "description": "a ReadCap whose root public key is not a curve point",
+      "blob_hex": "0200000000000000000000000000000000000000000000000000000000000000768b615b9bd25f4c35a3e765b421a60a843d0e75333ee639219102953d71a465b671c6b8163d8c2406072990458a9054d0e3269639d0ea851417cd2f1e9989f85de3a96dec4905b15407243c19fdc4524c842d0795988b7962b498b3b3c341b012cbf06dbb4a4900",
+      "advance_by": 0
+    },
+    {
+      "name": "writecap_short",
+      "operation": "parse_write_cap",
+      "category": "malformed",
+      "description": "a WriteCap one byte short",
+      "blob_hex": "81e57dfd17959c30d4cba5cb6de8b1d8f1a38e634ef12977e8a67127b2ea41c3f68b22740ef28487f4997e2cdc09aad996e2508ada874a8ba488472b0d65d415768b615b9bd25f4c35a3e765b421a60a843d0e75333ee639219102953d71a465b671c6b8163d8c2406072990458a9054d0e3269639d0ea851417cd2f1e9989f85de3a96dec4905b15407243c19fdc4524c842d0795988b7962b498b3b3c341b012cbf06dbb4a49",
+      "advance_by": 0
+    },
+    {
+      "name": "writecap_off_curve_public_half",
+      "operation": "parse_write_cap",
+      "category": "malformed",
+      "description": "a WriteCap whose stored public key is not a curve point",
+      "blob_hex": "81e57dfd17959c30d4cba5cb6de8b1d8f1a38e634ef12977e8a67127b2ea41c30200000000000000000000000000000000000000000000000000000000000000768b615b9bd25f4c35a3e765b421a60a843d0e75333ee639219102953d71a465b671c6b8163d8c2406072990458a9054d0e3269639d0ea851417cd2f1e9989f85de3a96dec4905b15407243c19fdc4524c842d0795988b7962b498b3b3c341b012cbf06dbb4a4900",
+      "advance_by": 0
+    },
+    {
+      "name": "writecap_public_half_mismatch",
+      "operation": "parse_write_cap",
+      "category": "malformed",
+      "description": "a WriteCap whose stored public key is a valid point but not the one its seed derives",
+      "blob_hex": "81e57dfd17959c30d4cba5cb6de8b1d8f1a38e634ef12977e8a67127b2ea41c32483b1751be5907f855dafeb00823fed5ffb5afba4411bc4e6ce66f881ef8aca768b615b9bd25f4c35a3e765b421a60a843d0e75333ee639219102953d71a465b671c6b8163d8c2406072990458a9054d0e3269639d0ea851417cd2f1e9989f85de3a96dec4905b15407243c19fdc4524c842d0795988b7962b498b3b3c341b012cbf06dbb4a4900",
+      "advance_by": 0
+    }
+  ]
+}

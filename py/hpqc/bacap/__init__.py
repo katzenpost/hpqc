@@ -11,13 +11,13 @@ The package exposes two complementary APIs:
     that already manage the per-conversation state themselves and want
     a thin layer over the BACAP primitives.
 
-  - **Stateful** (``hpqc.bacap.stateful``): ``StatefulReader`` and
-    ``StatefulWriter`` are mutable wrappers built on the stateless
-    layer. They carry the next-index pointer and advance it after each
-    successful read or write, mirroring the Go API.
+  - **Positions** (``hpqc.bacap.positions``): ``ReadPosition`` and
+    ``WritePosition`` bind a capability to one box on its stream, so a
+    capability is never paired with another stream's index. Get one from
+    ``start`` or ``position_at`` on a cap. The recommended API, mirroring
+    Go's.
 
-Both APIs sit on the same primitives and produce byte-identical
-output; pick whichever shape suits your application.
+Both sit on the same primitives and produce byte-identical output.
 """
 from .exceptions import (
     BACAPError,
@@ -25,10 +25,13 @@ from .exceptions import (
     CannotRewind,
     DecryptionFailed,
     EmptyBox,
+    IndexNotInChannel,
+    IndexTooFar,
     InvalidArgument,
     SignatureVerificationFailed,
 )
 from .stateless import (
+    MAX_CONTAINS_WALK,
     BoxIDSize,
     MessageBoxIndex,
     MessageBoxIndexSize,
@@ -38,7 +41,7 @@ from .stateless import (
     WriteCap,
     WriteCapSize,
 )
-from .stateful import StatefulReader, StatefulWriter
+from .positions import ReadPosition, WritePosition
 
 __all__ = [
     # exceptions
@@ -47,9 +50,12 @@ __all__ = [
     "CannotRewind",
     "DecryptionFailed",
     "EmptyBox",
+    "IndexNotInChannel",
+    "IndexTooFar",
     "InvalidArgument",
     "SignatureVerificationFailed",
     # stateless
+    "MAX_CONTAINS_WALK",
     "BoxIDSize",
     "MessageBoxIndex",
     "MessageBoxIndexSize",
@@ -58,7 +64,7 @@ __all__ = [
     "SignatureSize",
     "WriteCap",
     "WriteCapSize",
-    # stateful
-    "StatefulReader",
-    "StatefulWriter",
+    # positions
+    "ReadPosition",
+    "WritePosition",
 ]

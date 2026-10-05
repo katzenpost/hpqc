@@ -16,12 +16,12 @@ distinct subclasses let a caller act on the specific failure mode:
     because rewind is a recurring, recognisable misuse worth catching
     on its own.
 
-  - ``EmptyBox``: a stateful reader was handed a zero-byte box ID,
+  - ``EmptyBox``: ``open_for_context`` was handed an all-zero box ID,
     indicating no message has been deposited at that index yet.
     Typically a transient condition rather than a protocol violation.
 
-  - ``BoxIDMismatch``: the box ID supplied to a stateful reader does
-    not match the box ID it expected next. The caller may have read
+  - ``BoxIDMismatch``: the box ID supplied to ``open_for_context``
+    does not match the one the capability and index derive. The caller may have read
     out of order, or the message may belong to a different
     conversation.
 
@@ -31,6 +31,12 @@ distinct subclasses let a caller act on the specific failure mode:
 
   - ``DecryptionFailed``: AES-256-GCM-SIV authentication failed at
     decryption time. Always a protocol failure or tampering.
+
+  - ``IndexNotInChannel``: an index is not on a capability's stream:
+    stepping the capability's own index forward never reaches it.
+
+  - ``IndexTooFar``: an index lies further ahead of a capability's own
+    index than ``contains`` will walk.
 """
 from __future__ import annotations
 
@@ -61,3 +67,11 @@ class SignatureVerificationFailed(BACAPError):
 
 class DecryptionFailed(BACAPError):
     """AES-256-GCM-SIV authentication failed at decryption time."""
+
+
+class IndexNotInChannel(BACAPError):
+    """The index is not on this capability's stream."""
+
+
+class IndexTooFar(BACAPError):
+    """The index lies further ahead than contains will walk."""

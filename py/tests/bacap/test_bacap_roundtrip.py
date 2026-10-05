@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 """Round-trip self-tests for the Python BACAP port.
 
-These exercise the stateless and stateful APIs end-to-end on
+These exercise the stateless API and positions end-to-end on
 freshly-generated keys: encrypt with one side, decrypt with the
 other, and confirm box IDs / signatures / plaintexts agree. They do
 not yet cross-check against Go-generated test vectors; that comes in
@@ -27,8 +27,6 @@ from hpqc.bacap import (
     ReadCapSize,
     SignatureSize,
     SignatureVerificationFailed,
-    StatefulReader,
-    StatefulWriter,
     WriteCap,
     WriteCapSize,
 )
@@ -142,99 +140,63 @@ def test_tombstone_decrypt_returns_empty() -> None:
     assert plaintext == b""
 
 
-# ----- StatefulWriter / StatefulReader -----
+# ----- positions -----
 
 
-def test_stateful_writer_then_reader_three_messages() -> None:
+def test_write_position_then_read_position_three_messages() -> None:
     wc = WriteCap.generate()
-    rc = wc.read_cap()
-    writer = StatefulWriter(wc, CTX)
-    reader = StatefulReader(rc, CTX)
+    writer = wc.start()
+    reader = wc.read_cap().start()
 
     messages = [b"first", b"second", b"third"]
     sent = []
     for m in messages:
-        box_id, ciphertext, sig = writer.encrypt_next(m)
-        sent.append((box_id, ciphertext, sig))
+        sent.append(writer.encrypt(CTX, m))
+        writer = writer.next()
 
     for (box_id, ciphertext, sig), expected in zip(sent, messages):
-        # The reader's view of the next box ID must match the writer's.
-        assert reader.next_box_id() == box_id
-        plaintext = reader.decrypt_next(CTX, box_id, ciphertext, sig)
-        assert plaintext == expected
+        # The reader's view of the box ID must match the writer's.
+        assert reader.box_id(CTX) == box_id
+        assert reader.open(CTX, box_id, ciphertext, sig) == expected
+        reader = reader.next()
 
 
-def test_stateful_writer_prepare_then_advance() -> None:
+def test_read_position_rejects_wrong_box_id() -> None:
     wc = WriteCap.generate()
-    writer = StatefulWriter(wc, CTX)
-    initial_idx = writer.get_current_message_index()
-
-    box_id, ciphertext, sig = writer.prepare_next(b"deferred")
-    # State has not advanced.
-    assert writer.get_current_message_index() == initial_idx
-
-    writer.advance_state()
-    assert writer.get_current_message_index() != initial_idx
-
-
-def test_stateful_reader_rejects_wrong_box_id() -> None:
-    wc = WriteCap.generate()
-    rc = wc.read_cap()
-    writer = StatefulWriter(wc, CTX)
-    reader = StatefulReader(rc, CTX)
-
-    box_id, ciphertext, sig = writer.encrypt_next(b"hi")
+    box_id, ciphertext, sig = wc.start().encrypt(CTX, b"hi")
     # Tamper with the box ID.
     bad_box = bytes(b ^ 0x01 for b in box_id)
     with pytest.raises(BoxIDMismatch):
-        reader.decrypt_next(CTX, bad_box, ciphertext, sig)
+        wc.read_cap().start().open(CTX, bad_box, ciphertext, sig)
 
 
-def test_stateful_reader_rejects_zero_box() -> None:
+def test_read_position_rejects_zero_box() -> None:
     wc = WriteCap.generate()
-    rc = wc.read_cap()
-    reader = StatefulReader(rc, CTX)
     with pytest.raises(EmptyBox):
-        reader.decrypt_next(CTX, b"\x00" * BoxIDSize, b"x", b"\x00" * SignatureSize)
+        wc.read_cap().start().open(CTX, b"\x00" * BoxIDSize, b"x", b"\x00" * SignatureSize)
 
 
-def test_stateful_reader_with_explicit_index() -> None:
+def test_read_position_at_explicit_index() -> None:
     """Resuming a reader from a known checkpoint mid-conversation."""
     wc = WriteCap.generate()
     rc = wc.read_cap()
-    writer = StatefulWriter(wc, CTX)
+    writer = wc.start().next().next()
+    box_id_c, ct_c, sig_c = writer.encrypt(CTX, b"c")
 
-    # Advance to the third message.
-    writer.encrypt_next(b"a")
-    writer.encrypt_next(b"b")
-    box_id_c, ct_c, sig_c = writer.encrypt_next(b"c")
-
-    # A fresh reader resumed at the third index should accept it.
-    third_idx = rc.message_box_index.advance_index_to(
-        rc.message_box_index.idx_64 + 2
-    )
-    reader = StatefulReader(rc, CTX, next_index=third_idx)
-    plaintext = reader.decrypt_next(CTX, box_id_c, ct_c, sig_c)
-    assert plaintext == b"c"
-    # last_inbox_read is None on resume; advanced after the read.
-    assert reader.last_inbox_read == third_idx
+    # A reader resumed at the third index accepts it.
+    third_idx = rc.message_box_index.advance_index_to(rc.message_box_index.idx_64 + 2)
+    assert rc.position_at(third_idx).open(CTX, box_id_c, ct_c, sig_c) == b"c"
 
 
 # ----- the two APIs agree byte-for-byte -----
 
 
-def test_stateful_and_stateless_agree() -> None:
+def test_positions_and_stateless_agree() -> None:
     wc = WriteCap.generate()
-    writer = StatefulWriter(wc, CTX)
-
     plaintext = b"compatible"
 
-    # Path A: stateless encrypt at the writer's current index.
-    cur = writer.get_current_message_index()
-    box_id_a, ct_a, sig_a = cur.encrypt_for_context(wc, CTX, plaintext)
-
-    # Path B: stateful encrypt_next.
-    box_id_b, ct_b, sig_b = writer.encrypt_next(plaintext)
+    box_id_a, ct_a, sig_a = wc.message_box_index.encrypt_for_context(wc, CTX, plaintext)
+    box_id_b, ct_b, sig_b = wc.start().encrypt(CTX, plaintext)
 
     assert box_id_a == box_id_b
     assert ct_a == ct_b
@@ -294,15 +256,13 @@ def test_all_bacap_errors_inherit_from_BACAPError() -> None:
     with pytest.raises(BACAPError):
         idx.decrypt_for_context(box_id, CTX, ciphertext, bad_sig)
     # EmptyBox
-    reader = StatefulReader(rc, CTX)
     with pytest.raises(BACAPError):
-        reader.decrypt_next(CTX, b"\x00" * BoxIDSize, b"x", b"\x00" * SignatureSize)
+        rc.start().open(CTX, b"\x00" * BoxIDSize, b"x", b"\x00" * SignatureSize)
     # BoxIDMismatch
     box_id2, ct2, sig2 = idx.encrypt_for_context(wc, CTX, b"y")
     bad_box = bytes(b ^ 1 for b in box_id2)
-    reader2 = StatefulReader(rc, CTX)
     with pytest.raises(BACAPError):
-        reader2.decrypt_next(CTX, bad_box, ct2, sig2)
+        rc.start().open(CTX, bad_box, ct2, sig2)
 
 
 def test_cannot_rewind_is_a_subclass_of_invalid_argument() -> None:

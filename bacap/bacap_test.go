@@ -17,46 +17,6 @@ import (
 	"github.com/katzenpost/hpqc/util"
 )
 
-func TestMarshalUnmarshalStatefulReader(t *testing.T) {
-	t.Parallel()
-
-	ctx := []byte("test-session")
-	owner, err := NewWriteCap(rand.Reader)
-	require.NoError(t, err)
-
-	uread := owner.ReadCap()
-
-	reader, err := NewStatefulReader(uread, ctx)
-	require.NoError(t, err)
-
-	blob, err := reader.Marshal()
-	require.NoError(t, err)
-
-	reader2, err := NewStatefulReaderFromBytes(blob)
-	require.NoError(t, err)
-
-	require.Equal(t, reader, reader2)
-}
-
-func TestMarshalUnmarshalStatefulWriter(t *testing.T) {
-	t.Parallel()
-
-	ctx := []byte("test-session")
-	owner, err := NewWriteCap(rand.Reader)
-	require.NoError(t, err)
-
-	writer, err := NewStatefulWriter(owner, ctx)
-	require.NoError(t, err)
-
-	blob, err := writer.Marshal()
-	require.NoError(t, err)
-
-	writer2, err := NewStatefulWriterFromBytes(blob)
-	require.NoError(t, err)
-
-	require.Equal(t, writer, writer2)
-}
-
 // Check that advancing mailbox states:
 // - increment Idx by 1
 // - changes CurBlindingFactor
@@ -239,50 +199,6 @@ func TestEncryptDecrypt(t *testing.T) {
 	}
 }
 
-func TestStatefulReaderWriter(t *testing.T) {
-	t.Parallel()
-
-	ctx := []byte("test-session")
-	owner, err := NewWriteCap(rand.Reader)
-	require.NoError(t, err)
-
-	uread := owner.ReadCap()
-
-	writer, err := NewStatefulWriter(owner, ctx)
-	require.NoError(t, err)
-
-	reader, err := NewStatefulReader(uread, ctx)
-	require.NoError(t, err)
-
-	// Encrypt and decrypt n messages sequentially
-	n := 40
-	for i := 0; i < n; i++ {
-		msg := []byte(fmt.Sprintf("message %d", i))
-
-		// Writer encrypts the next message
-
-		// writer prepares given box ID for writing
-		box, err := writer.NextBoxID()
-		require.NoError(t, err)
-		require.NotNil(t, box)
-
-		boxID, ciphertext, sigraw, err := writer.EncryptNext(msg)
-		require.NoError(t, err)
-
-		// Reader retrieves the next expected box ID
-		expectedBoxID, err := reader.NextBoxID()
-		require.NoError(t, err)
-		require.Equal(t, expectedBoxID[:], boxID[:])
-
-		// Reader decrypts the received message
-		sig := [64]byte{}
-		copy(sig[:], sigraw)
-		plaintext, err := reader.DecryptNext(ctx, boxID, ciphertext, sig)
-		require.NoError(t, err)
-		require.Equal(t, msg, plaintext)
-	}
-}
-
 // badRNG simulates an RNG that fails after a specified number of reads.
 type badRNG struct {
 	failAfter int
@@ -356,31 +272,17 @@ func TestWriteCap2ReadCap(t *testing.T) {
 	// The remaining bytes are the nextMessageIndex:
 	require.Equal(t, ownerSer1[64:], readSer1[32:])
 
-	ctxr := [32]byte{}
-	ctx := ctxr[:]
-
-	sw, err := NewStatefulWriter(owner, ctx)
-	require.NoError(t, err)
-	sr, err := NewStatefulReader(readCap1, ctx)
-	require.NoError(t, err)
-	require.Equal(t, sw.NextIndex, sr.NextIndex)
-
-	readCapDerived := owner.ReadCap()
-	srDerived, err := NewStatefulReader(readCapDerived, ctx)
-	require.NoError(t, err)
-	require.Equal(t, sr, srDerived)
+	// A write cap and its read cap start at the same position, and so do
+	// the caps decoded from their bytes.
+	require.Equal(t, owner.Start().Index(), readCap1.Start().Index())
+	require.Equal(t, readCap1, owner.ReadCap())
 
 	owner2, err := NewWriteCapFromBytes(ownerSer1)
 	require.NoError(t, err)
 	readCap2, err := ReadCapFromBytes(readSer1)
 	require.NoError(t, err)
-	sw2, err := NewStatefulWriter(owner2, ctx)
-	require.NoError(t, err)
-	sr2, err := NewStatefulReader(readCap2, ctx)
-	require.NoError(t, err)
-	require.Equal(t, sw.NextIndex, sw2.NextIndex)
-	require.Equal(t, sr.NextIndex, sr2.NextIndex)
-	require.Equal(t, sw2.NextIndex, sr2.NextIndex)
+	require.Equal(t, owner.Start().Index(), owner2.Start().Index())
+	require.Equal(t, readCap1.Start().Index(), readCap2.Start().Index())
 }
 
 func TestBoxOwnerCapWorks(t *testing.T) {
@@ -477,180 +379,6 @@ func TestMessageBoxIndexSignBoxFailures(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestStatefulReaderFailures(t *testing.T) {
-	t.Parallel()
-
-	ownercap, err := NewWriteCap(rand.Reader)
-	require.NoError(t, err)
-	urcap := ownercap.ReadCap()
-
-	// Missing context
-	_, err = NewStatefulReader(urcap, nil)
-	require.Error(t, err, "expected error when initializing StatefulReader with nil context")
-
-	reader, _ := NewStatefulReader(urcap, []byte("test"))
-
-	reader.Ctx = nil
-	_, err = reader.NextBoxID()
-	require.Error(t, err, "expected error when ctx is nil")
-
-	// Empty box
-	_, err = reader.DecryptNext([]byte("test"), [32]byte{}, []byte("ciphertext"), [64]byte{})
-	require.Error(t, err, "expected error when attempting to decrypt empty box")
-}
-
-func TestStatefulWriterFailures(t *testing.T) {
-	t.Parallel()
-
-	owner := &WriteCap{
-		rootPrivateKey:  new(ed25519.PrivateKey),
-		rootPublicKey:   new(ed25519.PublicKey),
-		messageBoxIndex: &MessageBoxIndex{},
-	}
-
-	// Missing context
-	_, err := NewStatefulWriter(owner, nil)
-	require.Error(t, err, "expected error when initializing StatefulWriter with nil context")
-
-	writer, _ := NewStatefulWriter(owner, []byte("test"))
-
-	// Missing nextIndex
-	writer.NextIndex = nil
-	_, err = writer.NextBoxID()
-	require.Error(t, err, "expected error when nextIndex is nil")
-
-	// Encrypt with nil nextIndex
-	writer.NextIndex = nil
-	_, _, _, err = writer.EncryptNext([]byte("message"))
-	require.Error(t, err, "expected error when nextIndex is nil during EncryptNext")
-}
-
-func TestStatefulWriterNextBoxIDFailures(t *testing.T) {
-	t.Parallel()
-
-	owner, err := NewWriteCap(rand.Reader)
-	require.NoError(t, err)
-
-	// Test case: NextBoxID fails when nextIndex is nil
-	writer, err := NewStatefulWriter(owner, []byte("test"))
-	require.NoError(t, err)
-
-	writer.Ctx = nil
-	_, err = writer.NextBoxID()
-	require.Error(t, err)
-
-	writer.NextIndex = nil
-
-	_, err = writer.NextBoxID()
-	require.Error(t, err)
-	require.Contains(t, err.Error(), errNextIndexIsNil)
-
-	writer.Ctx = nil
-	_, err = writer.NextBoxID()
-	require.Error(t, err)
-
-	// Test case: NextBoxID fails when ctx is nil
-	_, err = NewStatefulWriter(owner, nil)
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "ctx is nil")
-}
-
-func TestStatefulWriterEncryptNextFailures(t *testing.T) {
-	t.Parallel()
-
-	owner, err := NewWriteCap(rand.Reader)
-	require.NoError(t, err)
-
-	// Test case: EncryptNext fails when nextIndex is nil
-	writer, err := NewStatefulWriter(owner, []byte("test"))
-	require.NoError(t, err)
-	writer.NextIndex = nil
-
-	_, _, _, err = writer.EncryptNext([]byte("message"))
-	require.Error(t, err)
-	require.Contains(t, err.Error(), errNextIndexIsNil)
-
-	// Test case: EncryptNext fails when advancing state fails
-	writer, err = NewStatefulWriter(owner, []byte("test"))
-	require.NoError(t, err)
-
-	// Simulate failure in NextIndex
-	writer.NextIndex = &MessageBoxIndex{Idx64: ^uint64(0)} // Max uint64, next would overflow
-	_, _, _, err = writer.EncryptNext([]byte("message"))
-	require.Error(t, err)
-}
-
-func TestStatefulReaderDecryptNextFailures(t *testing.T) {
-	t.Parallel()
-
-	ctx := []byte("test-session")
-	owner, err := NewWriteCap(rand.Reader)
-	require.NoError(t, err)
-
-	uread := owner.ReadCap()
-	reader, err := NewStatefulReader(uread, ctx)
-	require.NoError(t, err)
-
-	// Generate a valid box ID for comparison
-	validBoxID, err := reader.NextIndex.BoxIDForContext(uread, ctx)
-	require.NoError(t, err)
-	require.NotNil(t, validBoxID)
-
-	// Mock encrypted message and signature
-	ciphertext := []byte("ciphertext")
-	sig := [64]byte{}
-
-	// Failure case: Empty box
-	_, err = reader.DecryptNext(ctx, [32]byte{}, ciphertext, sig)
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "empty box, no message received")
-
-	// Failure case: nextIndex is nil
-	reader.NextIndex = nil
-	_, err = reader.DecryptNext(ctx, [32]byte(validBoxID.Bytes()), ciphertext, sig)
-	require.Error(t, err)
-	require.Contains(t, err.Error(), errNextIndexIsNilCannotParseReply)
-
-	// Restore nextIndex for further tests
-	reader, err = NewStatefulReader(uread, ctx)
-	require.NoError(t, err)
-
-	// Failure case: Box ID mismatch
-	wrongBox := [32]byte{}
-	copy(wrongBox[:], bytes.Repeat([]byte{0x01}, 32)) // Simulate a different box ID
-	_, err = reader.DecryptNext(ctx, wrongBox, ciphertext, sig)
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "reply does not match expected box ID")
-
-	// Failure case: DecryptForContext fails (simulated)
-	_, err = reader.DecryptNext([]byte("wrong-context"), [32]byte(validBoxID.Bytes()), ciphertext, sig)
-	require.Error(t, err)
-
-	// Failure case: NextIndex fails (simulate max uint64 overflow)
-	reader.NextIndex.Idx64 = ^uint64(0) // Max uint64, next will overflow
-	_, err = reader.DecryptNext(ctx, [32]byte(validBoxID.Bytes()), ciphertext, sig)
-	require.Error(t, err)
-}
-
-func TestStatefulReaderNextBoxIDFailureNextIndex(t *testing.T) {
-	t.Parallel()
-
-	ctx := []byte("test-session")
-	owner, err := NewWriteCap(rand.Reader)
-	require.NoError(t, err)
-
-	uread := owner.ReadCap()
-	reader, err := NewStatefulReader(uread, ctx)
-	require.NoError(t, err)
-
-	// Simulate failure in NextIndex
-	reader.LastInboxRead.Idx64 = ^uint64(0) // Max uint64, next would overflow
-
-	reader.NextIndex = nil
-	_, err = reader.NextBoxID()
-	require.Error(t, err)
-}
-
 func TestReadCapFromBytesFailures(t *testing.T) {
 	t.Parallel()
 
@@ -695,66 +423,6 @@ func TestNewEmptyMessageBoxIndexFromBytesErrorHandling(t *testing.T) {
 	_, err = NewEmptyMessageBoxIndexFromBytes(nil)
 	require.Error(t, err)
 	require.Contains(t, err.Error(), errInvalidMessageBoxIndexBinarySize)
-}
-
-func TestNewStatefulReaderWithIndexStateConsistency(t *testing.T) {
-	t.Parallel()
-
-	ctx := []byte("test-session")
-	owner, err := NewWriteCap(rand.Reader)
-	require.NoError(t, err)
-
-	uread := owner.ReadCap()
-
-	// Create a specific index to start from (advance from the first index)
-	startIndex, err := uread.messageBoxIndex.NextIndex()
-	require.NoError(t, err)
-	startIndex, err = startIndex.NextIndex()
-	require.NoError(t, err)
-
-	// Create reader with specific index
-	reader, err := NewStatefulReaderWithIndex(uread, ctx, startIndex)
-	require.NoError(t, err)
-
-	// Verify NextBoxID works correctly even with nil LastInboxRead
-	boxID, err := reader.NextBoxID()
-	require.NoError(t, err)
-	require.NotNil(t, boxID)
-
-	// This is the intended behavior: LastInboxRead is nil because this reader instance
-	// has no history of previously read messages. It's starting fresh from the given index.
-	// This is semantically correct for resuming from a checkpoint.
-	require.Nil(t, reader.LastInboxRead)
-	require.NotNil(t, reader.NextIndex)
-	// Verify the index is what we expect (original + 2)
-	require.Equal(t, uread.messageBoxIndex.Idx64+2, reader.NextIndex.Idx64)
-
-	// Verify that after reading a message, LastInboxRead gets properly set
-	// First, let's create a writer to generate a message
-	writer, err := NewStatefulWriter(owner, ctx)
-	require.NoError(t, err)
-
-	// Advance writer to the same index as our reader
-	for writer.NextIndex.Idx64 < reader.NextIndex.Idx64 {
-		err = writer.AdvanceState()
-		require.NoError(t, err)
-	}
-
-	// Generate a message
-	plaintext := []byte("test message")
-	boxID2, ciphertext, sig, err := writer.EncryptNext(plaintext)
-	require.NoError(t, err)
-
-	// Now decrypt with our reader
-	var sigArray [SignatureSize]byte
-	copy(sigArray[:], sig)
-	decrypted, err := reader.DecryptNext(ctx, boxID2, ciphertext, sigArray)
-	require.NoError(t, err)
-	require.Equal(t, plaintext, decrypted)
-
-	// After successful decryption, LastInboxRead should now be set
-	require.NotNil(t, reader.LastInboxRead)
-	require.Equal(t, startIndex.Idx64, reader.LastInboxRead.Idx64)
 }
 
 func TestMesageBoxIndexMarshaling(t *testing.T) {
@@ -834,17 +502,4 @@ func TestInitialIndexMaskingBound(t *testing.T) {
 	require.Equal(t, uint64(0),
 		binary.LittleEndian.Uint64(zero[:8])+binary.LittleEndian.Uint64(zero[8:]),
 		"min i_0 must be 0")
-}
-
-// TestCraftedReaderNextBoxIDNoPanic is a regression test for a fuzzer finding:
-// a StatefulReader built from crafted bytes must return an error from
-// NextBoxID rather than panicking inside ed25519.(*PublicKey).Blind.
-func TestCraftedReaderNextBoxIDNoPanic(t *testing.T) {
-	t.Parallel()
-
-	sr, err := NewStatefulReaderFromBytes([]byte("\xf6"))
-	require.NoError(t, err, "crafted input should deserialize into a reader")
-
-	_, err = sr.NextBoxID()
-	require.Error(t, err, "NextBoxID on a crafted reader must return an error, not panic")
 }

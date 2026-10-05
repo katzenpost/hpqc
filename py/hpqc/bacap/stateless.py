@@ -4,11 +4,9 @@
 
 Direct port of the stateless surface of bacap/bacap.go. The classes
 here are immutable values; every cryptographic operation either
-returns a new object or returns a tuple of bytes. Callers managing
-sequential state across messages can either re-derive each step from
-a known starting point on demand, or use the StatefulReader /
-StatefulWriter wrappers in stateful.py, which simply hold a mutable
-next-index pointer and advance it after each successful operation.
+returns a new object or returns a tuple of bytes. Callers moving
+through a stream hold their own index, or a position from
+positions.py, which binds a capability to one box on its stream.
 """
 from __future__ import annotations
 
@@ -30,8 +28,12 @@ from hpqc.sign.ed25519 import (
 )
 
 from .exceptions import (
+    BoxIDMismatch,
     CannotRewind,
     DecryptionFailed,
+    EmptyBox,
+    IndexNotInChannel,
+    IndexTooFar,
     InvalidArgument,
     SignatureVerificationFailed,
 )
@@ -307,6 +309,47 @@ class MessageBoxIndex:
             raise DecryptionFailed("AES-256-GCM-SIV authentication failed") from e
 
 
+    def open_for_context(
+        self,
+        read_cap: "ReadCap",
+        ctx: bytes,
+        box: bytes,
+        ciphertext: bytes,
+        signature: bytes,
+    ) -> bytes:
+        """Verifies and decrypts the box at this index on read_cap's stream.
+
+        Unlike decrypt_for_context, it first checks that box is the one
+        read_cap and this index derive under ctx. That matters most for
+        tombstones: a tombstone has no ciphertext to authenticate, so
+        decrypt_for_context alone accepts a tombstone signed for any box.
+        """
+        if len(box) != BoxIDSize:
+            raise InvalidArgument("invalid box length")
+        if not any(box):
+            raise EmptyBox("empty box, no message received")
+        if not hmac.compare_digest(box, self.box_id_for_context(read_cap, ctx)):
+            raise BoxIDMismatch("box is not the one the capability and index derive")
+        return self.decrypt_for_context(box, ctx, ciphertext, signature)
+
+
+# contains walks at most this many ratchet steps: a few microseconds each in
+# Go, far more boxes than a stream holds between rewrites, and a cap on what a
+# hostile index can cost. The same bound as Go's.
+MAX_CONTAINS_WALK = 1 << 18
+
+
+def _contains(start: MessageBoxIndex, idx: MessageBoxIndex) -> None:
+    if idx is None:
+        raise InvalidArgument("nil index")
+    if idx.idx_64 < start.idx_64:
+        raise IndexNotInChannel("index is not on this capability's stream")
+    if idx.idx_64 - start.idx_64 > MAX_CONTAINS_WALK:
+        raise IndexTooFar("index is too far ahead to check")
+    if not hmac.compare_digest(start.advance_index_to(idx.idx_64).to_bytes(), idx.to_bytes()):
+        raise IndexNotInChannel("index is not on this capability's stream")
+
+
 def _seed_from_signing_key(sk: BlindableSigningKey) -> bytes:
     """Returns the 32-byte ed25519 seed from a SigningKey."""
     return bytes(sk)
@@ -319,6 +362,23 @@ def _ed25519_64byte_private(sk: BlindableSigningKey) -> bytes:
     is byte-identical to the Go side's WriteCap.MarshalBinary().
     """
     return _seed_from_signing_key(sk) + bytes(sk.verify_key)
+
+
+_P = 2**255 - 19
+_D = (-121665 * pow(121666, _P - 2, _P)) % _P
+
+
+def _is_curve_point(encoding: bytes) -> bool:
+    """Whether a 32-byte encoding decodes to a point on edwards25519.
+
+    Accepts exactly what Go's filippo.io/edwards25519 Point.SetBytes accepts:
+    the sign bit is ignored for the check, and y may be unreduced. A point
+    exists for y when x^2 = (y^2 - 1) / (d*y^2 + 1) has a square root.
+    """
+    y = int.from_bytes(encoding, "little") & ((1 << 255) - 1)
+    y2 = y * y % _P
+    x2 = (y2 - 1) * pow(_D * y2 + 1, _P - 2, _P) % _P
+    return x2 == 0 or pow(x2, (_P - 1) // 2, _P) == 1
 
 
 @dataclasses.dataclass(frozen=True)
@@ -355,9 +415,12 @@ class WriteCap:
     def from_bytes(cls, data: bytes) -> "WriteCap":
         if len(data) != WriteCapSize:
             raise InvalidArgument("invalid WriteCap binary size")
-        # Go stores seed||pubkey; we re-derive pubkey from seed and ignore
-        # the stored pubkey (it is implied by the seed).
+        # Go stores seed||pubkey. The stored public key must be the one the
+        # seed derives, as Go requires: a cap whose halves disagree would
+        # derive box IDs from one key and sign with another.
         sk = BlindableSigningKey(data[:32])
+        if bytes(sk.verify_key) != data[32:_Ed25519PrivateKeySize]:
+            raise InvalidArgument("WriteCap public key does not match its seed")
         idx = MessageBoxIndex.from_bytes(data[_Ed25519PrivateKeySize:])
         return cls(sk, idx)
 
@@ -390,6 +453,21 @@ class WriteCap:
     def derive_box_id(self, message_box_index: MessageBoxIndex) -> bytes:
         return message_box_index.derive_message_box_id(self.root_public_key)
 
+    def contains(self, idx: MessageBoxIndex) -> None:
+        """Raises unless idx lies on this cap's stream. See ReadCap.contains."""
+        _contains(self.message_box_index, idx)
+
+    def start(self) -> "WritePosition":
+        """The position of the cap's own index: the first box it writes."""
+        from .positions import WritePosition
+        return WritePosition._make(self, self.message_box_index)
+
+    def position_at(self, idx: MessageBoxIndex) -> "WritePosition":
+        """The position of idx on this cap's stream, after checking it is on it."""
+        from .positions import WritePosition
+        self.contains(idx)
+        return WritePosition._make(self, idx)
+
 
 @dataclasses.dataclass(frozen=True)
 class ReadCap:
@@ -409,6 +487,8 @@ class ReadCap:
     def from_bytes(cls, data: bytes) -> "ReadCap":
         if len(data) != ReadCapSize:
             raise InvalidArgument("invalid ReadCap binary size")
+        if not _is_curve_point(data[:BoxIDSize]):
+            raise InvalidArgument("ReadCap root public key is not a curve point")
         pk = BlindableVerifyKey(data[:BoxIDSize])
         idx = MessageBoxIndex.from_bytes(data[BoxIDSize:])
         return cls(pk, idx)
@@ -437,3 +517,24 @@ class ReadCap:
         if idx is None:
             raise InvalidArgument("with_message_box_index: nil index")
         return ReadCap(self.root_public_key, idx)
+
+    def contains(self, idx: MessageBoxIndex) -> None:
+        """Raises unless idx lies on this cap's stream.
+
+        Steps the cap's own index forward to idx. Raises IndexNotInChannel if
+        idx is not on the stream (another stream's, one re-seeded by
+        mutate_kdf_state, or one behind the cap's own index), and IndexTooFar
+        if it lies further ahead than MAX_CONTAINS_WALK steps.
+        """
+        _contains(self.message_box_index, idx)
+
+    def start(self) -> "ReadPosition":
+        """The position of the cap's own index: the first box its holder can read."""
+        from .positions import ReadPosition
+        return ReadPosition._make(self, self.message_box_index)
+
+    def position_at(self, idx: MessageBoxIndex) -> "ReadPosition":
+        """The position of idx on this cap's stream, after checking it is on it."""
+        from .positions import ReadPosition
+        self.contains(idx)
+        return ReadPosition._make(self, idx)

@@ -1,88 +1,72 @@
 {
   "format_version": 1,
   "generator": "github.com/katzenpost/hpqc/testvectors/cmd/generate",
-  "primitive": "bacap_box_id",
-  "description": "Box-ID derivation vectors. For each vector, advance the WriteCap's first MessageBoxIndex by N, then derive the box ID. If use_context is true, BoxIDForContext is used (HKDFs the context into the blinding); otherwise DeriveMessageBoxID is used (blinds the root pubkey with the index's CurBlindingFactor directly).",
+  "primitive": "bacap_tombstone",
+  "description": "Tombstone vectors. For each vector, the WriteCap's first MessageBoxIndex is advanced by N and the empty payload signed with SignBox under the context. Records the box ID and the signature. Decrypting the box with an empty ciphertext and that signature must succeed and return an empty plaintext.",
   "vectors": [
     {
-      "name": "derive_at_first_index",
+      "name": "cap_fixed_tombstone_after_advance_0",
       "writecap_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b80100000000000000aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
       "advance_by": 0,
-      "ctx_hex": "",
-      "use_context": false,
-      "expected_box_id_hex": "9259a0005af542f3226f379530b291ce675762430ad5b3323c8b865a0440b7ba"
+      "ctx_hex": "706967656f6e686f6c6520636f6e74657874",
+      "expected_box_id_hex": "aaf072d5fa39c2b97177fe7cc0a7fef93a3991699eaa765db156e885c40760ac",
+      "expected_signature_hex": "9b56a8ff184cc645bfddb96e7c13a3ba01b1b3c238cf53b2b6d382ee5c0e1f6b217680668105404aafb5a858bf21e3a22c8f2491111472cd43e25d815f91e900"
     },
     {
-      "name": "derive_after_advance_5",
+      "name": "cap_fixed_tombstone_after_advance_6",
       "writecap_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b80100000000000000aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
-      "advance_by": 5,
-      "ctx_hex": "",
-      "use_context": false,
-      "expected_box_id_hex": "22ba737b5357cf528207ab5a707a5e7878802ebcb7d0ba3ebda2b46b6dbfe7fd"
+      "advance_by": 6,
+      "ctx_hex": "706967656f6e686f6c6520636f6e74657874",
+      "expected_box_id_hex": "1d8aaf83229e10b7d883c973cee3a1061c1cbdc7e067467c28f56ce101468058",
+      "expected_signature_hex": "b06ce2b49d33adb0bcd9ff6cc65e11dfaa13fa50ab80a872b165bfd39a955577bb81fb1f6e3aa07474766749650043f6501946fd6327dc862a684cc728aaa105"
     },
     {
-      "name": "box_id_for_context_at_first_index",
-      "writecap_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b80100000000000000aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
-      "advance_by": 0,
-      "ctx_hex": "687071632d62616361702d766563746f722d636f6e74657874",
-      "use_context": true,
-      "expected_box_id_hex": "f531e783791705744a462341483abb15052aa49c5687a28d09bc21b6087a17a1"
-    },
-    {
-      "name": "box_id_for_context_after_advance_3",
-      "writecap_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b80100000000000000aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
-      "advance_by": 3,
-      "ctx_hex": "616c7465726e61746520636f6e74657874",
-      "use_context": true,
-      "expected_box_id_hex": "d1584c0c08428edec0663c97803cdb1e4229ddaaad2010ea69fa60c7d0b11e7b"
-    },
-    {
-      "name": "cap_random_start_box_id_after_advance_0",
+      "name": "cap_random_start_tombstone_after_advance_0",
       "writecap_hex": "81e57dfd17959c30d4cba5cb6de8b1d8f1a38e634ef12977e8a67127b2ea41c3f68b22740ef28487f4997e2cdc09aad996e2508ada874a8ba488472b0d65d415768b615b9bd25f4c35a3e765b421a60a843d0e75333ee639219102953d71a465b671c6b8163d8c2406072990458a9054d0e3269639d0ea851417cd2f1e9989f85de3a96dec4905b15407243c19fdc4524c842d0795988b7962b498b3b3c341b012cbf06dbb4a4900",
       "advance_by": 0,
-      "ctx_hex": "",
-      "use_context": false,
-      "expected_box_id_hex": "6c2b576ea86d0f4f050bdc763dbd2b1a91cfe9378ff562f21e4384cf4d932f7b"
+      "ctx_hex": "706967656f6e686f6c6520636f6e74657874",
+      "expected_box_id_hex": "60fba87c8f5e7661112815cfbc193071015cad5e630c3857beb3f16d354005ce",
+      "expected_signature_hex": "4fcf8e960f61f4e8d675f5cf6958ba5d4ab393b3a4668bfdbd2a0d32989ca5e645d5f9a97f0fc8ea34e511ad18cca11779f658ff8d9297fb3764d804230ac904"
     },
     {
-      "name": "cap_random_start_box_id_after_advance_4",
+      "name": "cap_random_start_tombstone_after_advance_6",
       "writecap_hex": "81e57dfd17959c30d4cba5cb6de8b1d8f1a38e634ef12977e8a67127b2ea41c3f68b22740ef28487f4997e2cdc09aad996e2508ada874a8ba488472b0d65d415768b615b9bd25f4c35a3e765b421a60a843d0e75333ee639219102953d71a465b671c6b8163d8c2406072990458a9054d0e3269639d0ea851417cd2f1e9989f85de3a96dec4905b15407243c19fdc4524c842d0795988b7962b498b3b3c341b012cbf06dbb4a4900",
-      "advance_by": 4,
+      "advance_by": 6,
       "ctx_hex": "706967656f6e686f6c6520636f6e74657874",
-      "use_context": true,
-      "expected_box_id_hex": "37b136355616c9127a6d8c43bf05974be06fc15792a053ffe6d8b4010cb6d90d"
+      "expected_box_id_hex": "c2f6584869526bc6859dc4d4a73c1d0dd385aa93ee22cdf4b16b97d58bc9103a",
+      "expected_signature_hex": "55fcd56dda8f08297f873bd6c4bc0f8c4d29379875312bde12856f60d38bc8daf0e5fe7811e6f1dbc36c314c50cae19e0e359cf2588eb08b6c3ca1bbda170d0a"
     },
     {
-      "name": "cap_near_2_63_box_id_after_advance_0",
+      "name": "cap_near_2_63_tombstone_after_advance_0",
       "writecap_hex": "d46d4ec0410cdac719ccb5eb0fd3734a548cbd93ec225ed1f710bd354e01c5602483b1751be5907f855dafeb00823fed5ffb5afba4411bc4e6ce66f881ef8acafdffffffffffff7f7b2708626685e5786dee736d147f2a15716304522c22f13734321c6979421e6a763703c58bef846ab7dc92d998a8fa8ad062877f08cf370087a9244fd895899e2218a4bf004c046bf1ba1f88b4fcb73854f5d487500620199990961deb13b9a4",
       "advance_by": 0,
-      "ctx_hex": "",
-      "use_context": false,
-      "expected_box_id_hex": "5bb47186827a6df9ab08e1680d9cf27228c3d7503b3bde2666d34e7e23d7a862"
-    },
-    {
-      "name": "cap_near_2_63_box_id_after_advance_4",
-      "writecap_hex": "d46d4ec0410cdac719ccb5eb0fd3734a548cbd93ec225ed1f710bd354e01c5602483b1751be5907f855dafeb00823fed5ffb5afba4411bc4e6ce66f881ef8acafdffffffffffff7f7b2708626685e5786dee736d147f2a15716304522c22f13734321c6979421e6a763703c58bef846ab7dc92d998a8fa8ad062877f08cf370087a9244fd895899e2218a4bf004c046bf1ba1f88b4fcb73854f5d487500620199990961deb13b9a4",
-      "advance_by": 4,
       "ctx_hex": "706967656f6e686f6c6520636f6e74657874",
-      "use_context": true,
-      "expected_box_id_hex": "93b1c2bc75f2d1addba64f3e37b9141c95e9dcec814a21f29f4b895465ae1103"
+      "expected_box_id_hex": "c2ea194f5a236c9cd5df08d937f7f1f8f85b83f5c1b212866471e0657882b67c",
+      "expected_signature_hex": "14d66b0856d7eb0d2654e02de899c4284615bf579b5ea2f7d6e7205e215b83ad6102f04160d24bf45bb1425dbb7a5062b07417fcd37739cb7c11e109d2b5ee03"
     },
     {
-      "name": "cap_near_2_64_box_id_after_advance_0",
+      "name": "cap_near_2_63_tombstone_after_advance_6",
+      "writecap_hex": "d46d4ec0410cdac719ccb5eb0fd3734a548cbd93ec225ed1f710bd354e01c5602483b1751be5907f855dafeb00823fed5ffb5afba4411bc4e6ce66f881ef8acafdffffffffffff7f7b2708626685e5786dee736d147f2a15716304522c22f13734321c6979421e6a763703c58bef846ab7dc92d998a8fa8ad062877f08cf370087a9244fd895899e2218a4bf004c046bf1ba1f88b4fcb73854f5d487500620199990961deb13b9a4",
+      "advance_by": 6,
+      "ctx_hex": "706967656f6e686f6c6520636f6e74657874",
+      "expected_box_id_hex": "4a409a6e2536096b3acb27f6804cfcd4d4f7693303712381dccdf9f325b07de4",
+      "expected_signature_hex": "f87cc3dd3c438014aabb913d8c880ee5c9e494c1c2df00986725ad0126bb57178a6798c042a0cb8c400637d583ccd14840ab06acae10e5473ef7bb2e4235300d"
+    },
+    {
+      "name": "cap_near_2_64_tombstone_after_advance_0",
       "writecap_hex": "5029bcc71b89cb89b8db7124e044de9bba32bf56538a25749488cb3f4f829b5b240b7948b940c6d358b579677fc7ae1a51d0297d427673b761131e30d84096dbf7ffffffffffffff1fd105c465f4bbd86fb8673347fda5aeede50fd7a8aac495b4cb1ad24151f3270fb0bc52f18d26f5ec4357d9ed82c864729eac9fe409c0cf6916a6ec331de977c0d088d52ba786870d8353a1f41c584de417848915c8a715e09b4e8693093a85",
       "advance_by": 0,
-      "ctx_hex": "",
-      "use_context": false,
-      "expected_box_id_hex": "5453ca4e443e0d866a7664058bf05a8e6b8c032484c84be664e17a2c632f3794"
+      "ctx_hex": "706967656f6e686f6c6520636f6e74657874",
+      "expected_box_id_hex": "e57c30d8512f28d9fbec1465a5229bd86c696098db57bde410a61566bb9b3e44",
+      "expected_signature_hex": "a86a9b37407aa8ccab26a8007661875d096d7b8fe60d7222fec2c0402224984799ed2daf93bbf3e4c0ecc3a730f5e2d85eebfbb477de7931a165679981ee5a08"
     },
     {
-      "name": "cap_near_2_64_box_id_after_advance_4",
+      "name": "cap_near_2_64_tombstone_after_advance_6",
       "writecap_hex": "5029bcc71b89cb89b8db7124e044de9bba32bf56538a25749488cb3f4f829b5b240b7948b940c6d358b579677fc7ae1a51d0297d427673b761131e30d84096dbf7ffffffffffffff1fd105c465f4bbd86fb8673347fda5aeede50fd7a8aac495b4cb1ad24151f3270fb0bc52f18d26f5ec4357d9ed82c864729eac9fe409c0cf6916a6ec331de977c0d088d52ba786870d8353a1f41c584de417848915c8a715e09b4e8693093a85",
-      "advance_by": 4,
+      "advance_by": 6,
       "ctx_hex": "706967656f6e686f6c6520636f6e74657874",
-      "use_context": true,
-      "expected_box_id_hex": "8ec7f0610e130541ea73101f06416d1f12c0cf398efc12da1e3c523ba87744d4"
+      "expected_box_id_hex": "d8e6525f2b95362ab3da85a95e731006ea2161b1be2402ee22c1dcf7d57d0809",
+      "expected_signature_hex": "e98d156ed4119ca1a958c6fcc0771e45b612fe0456f5bfa9f1eed3ea994f66f3d0615f6901a11563a0278103182049fc60eafb4c963597679f938729b825dd0a"
     }
   ]
 }

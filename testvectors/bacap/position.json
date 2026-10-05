@@ -1,0 +1,197 @@
+{
+  "format_version": 1,
+  "generator": "github.com/katzenpost/hpqc/testvectors/cmd/generate",
+  "primitive": "bacap_position",
+  "description": "Binding of an index to a read cap. An index lies on the cap's stream exactly when advancing the cap's own MessageBoxIndex to the index's Idx64 yields the same 104 bytes. reachable records whether it does; an Idx64 below the cap's is never reachable.",
+  "vectors": [
+    {
+      "name": "cap_fixed_same_index",
+      "readcap_hex": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b80100000000000000aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "index_hex": "0100000000000000aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "reachable": true,
+      "description": "the cap's own index"
+    },
+    {
+      "name": "cap_fixed_next_index",
+      "readcap_hex": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b80100000000000000aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "index_hex": "0200000000000000d6afc0f178b9df3102c2f2054314d06942ee2cd0b54bb510fc03070775efaf154683f8eda97ee58a8fb03e68fd1fa29228e4d907c151021a4e700ee5e54a95ee89890efb132a4d0ffb004aacbb976aea2de9aa98687c912735f1ca02cac75322",
+      "reachable": true,
+      "description": "one step forward"
+    },
+    {
+      "name": "cap_fixed_advance_37",
+      "readcap_hex": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b80100000000000000aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "index_hex": "2600000000000000cb490c32ccf9b461a7a947fa5c193e59c40dcb0c711c5f6391369b429fdb41a80bc1575202da5e4150c3d63dfcce8a53bd19c1a2dc73b3708582795ce464503ebb68e46b232df2f1d0af37c8253859784341e8af76966b68b09e67919d343ddf",
+      "reachable": true,
+      "description": "several steps forward"
+    },
+    {
+      "name": "cap_fixed_foreign_ratchet",
+      "readcap_hex": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b80100000000000000aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "index_hex": "020000000000000035a3e765b421a60a843d0e75333ee639219102953d71a465b671c6b8163d8c2406072990458a9054d0e3269639d0ea851417cd2f1e9989f85de3a96dec4905b15407243c19fdc4524c842d0795988b7962b498b3b3c341b012cbf06dbb4a4900",
+      "reachable": false,
+      "description": "another stream's ratchet state under this cap's next Idx64"
+    },
+    {
+      "name": "cap_fixed_mutated",
+      "readcap_hex": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b80100000000000000aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "index_hex": "020000000000000092dace31d90fc0f336a338bf66392ed50ad3537801eff8b53e2125767f3bff8946444bf60e3346ee2589ccfca7de5c7683491e2a06b23246741af121f2fe9f8f64d3573acf49bfbc6f6868e4bd9ee716a727dbf314589374c251bc8221bfc930",
+      "reachable": false,
+      "description": "the same Idx64 as one step forward, on the sequence MutateKDFState re-seeds"
+    },
+    {
+      "name": "cap_fixed_tampered_hkdf_state",
+      "readcap_hex": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b80100000000000000aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "index_hex": "0200000000000000d6afc0f178b9df3102c2f2054314d06942ee2cd0b54bb510fc03070775efaf154683f8eda97ee58a8fb03e68fd1fa29228e4d907c151021a4e700ee5e54a95ee88890efb132a4d0ffb004aacbb976aea2de9aa98687c912735f1ca02cac75322",
+      "reachable": false,
+      "description": "one step forward with one bit of the HKDF state flipped"
+    },
+    {
+      "name": "cap_fixed_behind_cap",
+      "readcap_hex": "03a107bff3ce10be1d70dd18e74bc09967e4d6309ba50d5f1ddc8664125531b8060000000000000044f18de89182d8d7d8670a7bc005be059fcdad2a7d7eae3e209ad85ac97f55c68ac42c6b95dca574a7c0a50061e00e8eb1bde88f34ed4b6bcdfd60cc5664333325f1ce979d7a8d88b18cd0d6a71826b53c99f02972822457844db1816da7038c",
+      "index_hex": "0100000000000000aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "reachable": false,
+      "description": "an index five steps behind the cap's own index: the ratchet only moves forward"
+    },
+    {
+      "name": "cap_random_start_same_index",
+      "readcap_hex": "f68b22740ef28487f4997e2cdc09aad996e2508ada874a8ba488472b0d65d415768b615b9bd25f4c35a3e765b421a60a843d0e75333ee639219102953d71a465b671c6b8163d8c2406072990458a9054d0e3269639d0ea851417cd2f1e9989f85de3a96dec4905b15407243c19fdc4524c842d0795988b7962b498b3b3c341b012cbf06dbb4a4900",
+      "index_hex": "768b615b9bd25f4c35a3e765b421a60a843d0e75333ee639219102953d71a465b671c6b8163d8c2406072990458a9054d0e3269639d0ea851417cd2f1e9989f85de3a96dec4905b15407243c19fdc4524c842d0795988b7962b498b3b3c341b012cbf06dbb4a4900",
+      "reachable": true,
+      "description": "the cap's own index"
+    },
+    {
+      "name": "cap_random_start_next_index",
+      "readcap_hex": "f68b22740ef28487f4997e2cdc09aad996e2508ada874a8ba488472b0d65d415768b615b9bd25f4c35a3e765b421a60a843d0e75333ee639219102953d71a465b671c6b8163d8c2406072990458a9054d0e3269639d0ea851417cd2f1e9989f85de3a96dec4905b15407243c19fdc4524c842d0795988b7962b498b3b3c341b012cbf06dbb4a4900",
+      "index_hex": "778b615b9bd25f4c8e5675a34376408b227454f55a39185f2031866de2f787ad75c276cc1c862d9713f402f48e22917b5bd712537a150d9f240fdaa3182b80077fd6f42c0768138d5241af3d41ae1ddea72eb6a4fe571e8deac365094824d27a83738518d718ffa3",
+      "reachable": true,
+      "description": "one step forward"
+    },
+    {
+      "name": "cap_random_start_advance_37",
+      "readcap_hex": "f68b22740ef28487f4997e2cdc09aad996e2508ada874a8ba488472b0d65d415768b615b9bd25f4c35a3e765b421a60a843d0e75333ee639219102953d71a465b671c6b8163d8c2406072990458a9054d0e3269639d0ea851417cd2f1e9989f85de3a96dec4905b15407243c19fdc4524c842d0795988b7962b498b3b3c341b012cbf06dbb4a4900",
+      "index_hex": "9b8b615b9bd25f4cc7053c4882d11f70795b948051e257adea82a15dcc1c17e4653287e2a34491f4ff928a2721f36b4ec868d1cd1f19c00bb02d1247e77ca259aff4f0e2bd0ca9a4a8e786d03766e815d16afb6d972f39fcd963d030e91246217fd3ec15018476ff",
+      "reachable": true,
+      "description": "several steps forward"
+    },
+    {
+      "name": "cap_random_start_foreign_ratchet",
+      "readcap_hex": "f68b22740ef28487f4997e2cdc09aad996e2508ada874a8ba488472b0d65d415768b615b9bd25f4c35a3e765b421a60a843d0e75333ee639219102953d71a465b671c6b8163d8c2406072990458a9054d0e3269639d0ea851417cd2f1e9989f85de3a96dec4905b15407243c19fdc4524c842d0795988b7962b498b3b3c341b012cbf06dbb4a4900",
+      "index_hex": "778b615b9bd25f4c7b2708626685e5786dee736d147f2a15716304522c22f13734321c6979421e6a763703c58bef846ab7dc92d998a8fa8ad062877f08cf370087a9244fd895899e2218a4bf004c046bf1ba1f88b4fcb73854f5d487500620199990961deb13b9a4",
+      "reachable": false,
+      "description": "another stream's ratchet state under this cap's next Idx64"
+    },
+    {
+      "name": "cap_random_start_mutated",
+      "readcap_hex": "f68b22740ef28487f4997e2cdc09aad996e2508ada874a8ba488472b0d65d415768b615b9bd25f4c35a3e765b421a60a843d0e75333ee639219102953d71a465b671c6b8163d8c2406072990458a9054d0e3269639d0ea851417cd2f1e9989f85de3a96dec4905b15407243c19fdc4524c842d0795988b7962b498b3b3c341b012cbf06dbb4a4900",
+      "index_hex": "778b615b9bd25f4c4c067786ef86b0b9f9d5ea3caa1f347b6740b5b4553557334ab6e4c062098bd59d4b0ebbf406e99a92fc45441f3b26ea91a0b6b5554eb87c993f15d6e39c08b7a6096d904acf185f6a843bcd7aa880d31cb39fbc12ee01b79e0a8b4555ed1ed2",
+      "reachable": false,
+      "description": "the same Idx64 as one step forward, on the sequence MutateKDFState re-seeds"
+    },
+    {
+      "name": "cap_random_start_tampered_hkdf_state",
+      "readcap_hex": "f68b22740ef28487f4997e2cdc09aad996e2508ada874a8ba488472b0d65d415768b615b9bd25f4c35a3e765b421a60a843d0e75333ee639219102953d71a465b671c6b8163d8c2406072990458a9054d0e3269639d0ea851417cd2f1e9989f85de3a96dec4905b15407243c19fdc4524c842d0795988b7962b498b3b3c341b012cbf06dbb4a4900",
+      "index_hex": "778b615b9bd25f4c8e5675a34376408b227454f55a39185f2031866de2f787ad75c276cc1c862d9713f402f48e22917b5bd712537a150d9f240fdaa3182b80077fd6f42c0768138d5341af3d41ae1ddea72eb6a4fe571e8deac365094824d27a83738518d718ffa3",
+      "reachable": false,
+      "description": "one step forward with one bit of the HKDF state flipped"
+    },
+    {
+      "name": "cap_random_start_behind_cap",
+      "readcap_hex": "f68b22740ef28487f4997e2cdc09aad996e2508ada874a8ba488472b0d65d4157b8b615b9bd25f4c1e54df6c80a235fe7ee4919024aa2ef5bedb664b49b4d06fd9ab51e0f31b0f5d0d7b09930ffde24da1456835a96b80df2d0225e6fe6456f1cf732355005bb89f59494cb065a2d44c06f78bc7a805f3f09b18c56ed8b02befdfeb2caa8fb6db2c",
+      "index_hex": "768b615b9bd25f4c35a3e765b421a60a843d0e75333ee639219102953d71a465b671c6b8163d8c2406072990458a9054d0e3269639d0ea851417cd2f1e9989f85de3a96dec4905b15407243c19fdc4524c842d0795988b7962b498b3b3c341b012cbf06dbb4a4900",
+      "reachable": false,
+      "description": "an index five steps behind the cap's own index: the ratchet only moves forward"
+    },
+    {
+      "name": "cap_near_2_63_same_index",
+      "readcap_hex": "2483b1751be5907f855dafeb00823fed5ffb5afba4411bc4e6ce66f881ef8acafdffffffffffff7f7b2708626685e5786dee736d147f2a15716304522c22f13734321c6979421e6a763703c58bef846ab7dc92d998a8fa8ad062877f08cf370087a9244fd895899e2218a4bf004c046bf1ba1f88b4fcb73854f5d487500620199990961deb13b9a4",
+      "index_hex": "fdffffffffffff7f7b2708626685e5786dee736d147f2a15716304522c22f13734321c6979421e6a763703c58bef846ab7dc92d998a8fa8ad062877f08cf370087a9244fd895899e2218a4bf004c046bf1ba1f88b4fcb73854f5d487500620199990961deb13b9a4",
+      "reachable": true,
+      "description": "the cap's own index"
+    },
+    {
+      "name": "cap_near_2_63_next_index",
+      "readcap_hex": "2483b1751be5907f855dafeb00823fed5ffb5afba4411bc4e6ce66f881ef8acafdffffffffffff7f7b2708626685e5786dee736d147f2a15716304522c22f13734321c6979421e6a763703c58bef846ab7dc92d998a8fa8ad062877f08cf370087a9244fd895899e2218a4bf004c046bf1ba1f88b4fcb73854f5d487500620199990961deb13b9a4",
+      "index_hex": "feffffffffffff7f18e3e85e0a665af6db4289e658857496c2bc2624ca22fa5f5299424f1f096fb1c88b5c547c6877bb58e9afe3d66067556fbdd1f0a4af77ff7f345c3abca9c964a13dd9ac8c0c89913940c486d647561b00e268929334bc6d182ab5250ee2670e",
+      "reachable": true,
+      "description": "one step forward"
+    },
+    {
+      "name": "cap_near_2_63_advance_37",
+      "readcap_hex": "2483b1751be5907f855dafeb00823fed5ffb5afba4411bc4e6ce66f881ef8acafdffffffffffff7f7b2708626685e5786dee736d147f2a15716304522c22f13734321c6979421e6a763703c58bef846ab7dc92d998a8fa8ad062877f08cf370087a9244fd895899e2218a4bf004c046bf1ba1f88b4fcb73854f5d487500620199990961deb13b9a4",
+      "index_hex": "2200000000000080fcad7a15a04716333a268b9a291301390a514c54b69c744804036adcd2b0710f38ef809fbe5e04f45052c76eaf17744356024daf6b3dceaf935c3d9e0b3077c702fd89c8f00beae1fc4d8bb4f508be714e9e8c4fb0b8a98671cbe32f4a440cb2",
+      "reachable": true,
+      "description": "several steps forward"
+    },
+    {
+      "name": "cap_near_2_63_foreign_ratchet",
+      "readcap_hex": "2483b1751be5907f855dafeb00823fed5ffb5afba4411bc4e6ce66f881ef8acafdffffffffffff7f7b2708626685e5786dee736d147f2a15716304522c22f13734321c6979421e6a763703c58bef846ab7dc92d998a8fa8ad062877f08cf370087a9244fd895899e2218a4bf004c046bf1ba1f88b4fcb73854f5d487500620199990961deb13b9a4",
+      "index_hex": "feffffffffffff7f1fd105c465f4bbd86fb8673347fda5aeede50fd7a8aac495b4cb1ad24151f3270fb0bc52f18d26f5ec4357d9ed82c864729eac9fe409c0cf6916a6ec331de977c0d088d52ba786870d8353a1f41c584de417848915c8a715e09b4e8693093a85",
+      "reachable": false,
+      "description": "another stream's ratchet state under this cap's next Idx64"
+    },
+    {
+      "name": "cap_near_2_63_mutated",
+      "readcap_hex": "2483b1751be5907f855dafeb00823fed5ffb5afba4411bc4e6ce66f881ef8acafdffffffffffff7f7b2708626685e5786dee736d147f2a15716304522c22f13734321c6979421e6a763703c58bef846ab7dc92d998a8fa8ad062877f08cf370087a9244fd895899e2218a4bf004c046bf1ba1f88b4fcb73854f5d487500620199990961deb13b9a4",
+      "index_hex": "feffffffffffff7fce22b59333fe95e3e0e0e6f15e24de1ca624fb11e7f9c6ea86fa18a8c7dc58d92cde720442c46008d4244f9e7dad4be2aff54186c3d5341faaa7eba8746be52620c3e3700f280af1b7786322ba785d3f84ae186794fc4f01029976c18972cf68",
+      "reachable": false,
+      "description": "the same Idx64 as one step forward, on the sequence MutateKDFState re-seeds"
+    },
+    {
+      "name": "cap_near_2_63_tampered_hkdf_state",
+      "readcap_hex": "2483b1751be5907f855dafeb00823fed5ffb5afba4411bc4e6ce66f881ef8acafdffffffffffff7f7b2708626685e5786dee736d147f2a15716304522c22f13734321c6979421e6a763703c58bef846ab7dc92d998a8fa8ad062877f08cf370087a9244fd895899e2218a4bf004c046bf1ba1f88b4fcb73854f5d487500620199990961deb13b9a4",
+      "index_hex": "feffffffffffff7f18e3e85e0a665af6db4289e658857496c2bc2624ca22fa5f5299424f1f096fb1c88b5c547c6877bb58e9afe3d66067556fbdd1f0a4af77ff7f345c3abca9c964a03dd9ac8c0c89913940c486d647561b00e268929334bc6d182ab5250ee2670e",
+      "reachable": false,
+      "description": "one step forward with one bit of the HKDF state flipped"
+    },
+    {
+      "name": "cap_near_2_63_behind_cap",
+      "readcap_hex": "2483b1751be5907f855dafeb00823fed5ffb5afba4411bc4e6ce66f881ef8aca02000000000000805b170b7095f00be81ebda89346883e5be6f1a30052d69b7150c66624fb029e4d49c4d5e282f44dcf57a917bb230c76483851b874b0a548cfdb4210fb8aa7b858754d9280593cc71ec60c2386f9b8ef0efd2e5cfe7f655183974e5af13e34ed0b",
+      "index_hex": "fdffffffffffff7f7b2708626685e5786dee736d147f2a15716304522c22f13734321c6979421e6a763703c58bef846ab7dc92d998a8fa8ad062877f08cf370087a9244fd895899e2218a4bf004c046bf1ba1f88b4fcb73854f5d487500620199990961deb13b9a4",
+      "reachable": false,
+      "description": "an index five steps behind the cap's own index: the ratchet only moves forward"
+    },
+    {
+      "name": "cap_near_2_64_same_index",
+      "readcap_hex": "240b7948b940c6d358b579677fc7ae1a51d0297d427673b761131e30d84096dbf7ffffffffffffff1fd105c465f4bbd86fb8673347fda5aeede50fd7a8aac495b4cb1ad24151f3270fb0bc52f18d26f5ec4357d9ed82c864729eac9fe409c0cf6916a6ec331de977c0d088d52ba786870d8353a1f41c584de417848915c8a715e09b4e8693093a85",
+      "index_hex": "f7ffffffffffffff1fd105c465f4bbd86fb8673347fda5aeede50fd7a8aac495b4cb1ad24151f3270fb0bc52f18d26f5ec4357d9ed82c864729eac9fe409c0cf6916a6ec331de977c0d088d52ba786870d8353a1f41c584de417848915c8a715e09b4e8693093a85",
+      "reachable": true,
+      "description": "the cap's own index"
+    },
+    {
+      "name": "cap_near_2_64_next_index",
+      "readcap_hex": "240b7948b940c6d358b579677fc7ae1a51d0297d427673b761131e30d84096dbf7ffffffffffffff1fd105c465f4bbd86fb8673347fda5aeede50fd7a8aac495b4cb1ad24151f3270fb0bc52f18d26f5ec4357d9ed82c864729eac9fe409c0cf6916a6ec331de977c0d088d52ba786870d8353a1f41c584de417848915c8a715e09b4e8693093a85",
+      "index_hex": "f8ffffffffffffffb4f10773defdf2086edfc97827cafc29167e99300f756e902892720cf22ac3008b646036f7cc03e29f43bac74aa6fa337ec890f3d6d8fe8e8bc2ce44c445d38be28a80689dd08817425694964dd63eec0704253daee073d9ab1c1fb7b879c8f7",
+      "reachable": true,
+      "description": "one step forward"
+    },
+    {
+      "name": "cap_near_2_64_advance_8",
+      "readcap_hex": "240b7948b940c6d358b579677fc7ae1a51d0297d427673b761131e30d84096dbf7ffffffffffffff1fd105c465f4bbd86fb8673347fda5aeede50fd7a8aac495b4cb1ad24151f3270fb0bc52f18d26f5ec4357d9ed82c864729eac9fe409c0cf6916a6ec331de977c0d088d52ba786870d8353a1f41c584de417848915c8a715e09b4e8693093a85",
+      "index_hex": "ffffffffffffffffb8becd3b98d721abdd9a6f9e810056d9bc75b9d346f1a92523979457085b73b1925ebacef6d497d4dc30a2091e80615c4987b30d5cddaf990327a1b02a7130e8b47996a398d46ef830dd616c8349aa89423e9dcfc2285e4cb250e94a652b6a50",
+      "reachable": true,
+      "description": "several steps forward"
+    },
+    {
+      "name": "cap_near_2_64_foreign_ratchet",
+      "readcap_hex": "240b7948b940c6d358b579677fc7ae1a51d0297d427673b761131e30d84096dbf7ffffffffffffff1fd105c465f4bbd86fb8673347fda5aeede50fd7a8aac495b4cb1ad24151f3270fb0bc52f18d26f5ec4357d9ed82c864729eac9fe409c0cf6916a6ec331de977c0d088d52ba786870d8353a1f41c584de417848915c8a715e09b4e8693093a85",
+      "index_hex": "f8ffffffffffffffaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+      "reachable": false,
+      "description": "another stream's ratchet state under this cap's next Idx64"
+    },
+    {
+      "name": "cap_near_2_64_mutated",
+      "readcap_hex": "240b7948b940c6d358b579677fc7ae1a51d0297d427673b761131e30d84096dbf7ffffffffffffff1fd105c465f4bbd86fb8673347fda5aeede50fd7a8aac495b4cb1ad24151f3270fb0bc52f18d26f5ec4357d9ed82c864729eac9fe409c0cf6916a6ec331de977c0d088d52ba786870d8353a1f41c584de417848915c8a715e09b4e8693093a85",
+      "index_hex": "f8ffffffffffffff738ad5166ba12d9573a33752798a30f4ceadf8bb30b087f6e7f15207afe9f648743f1a85171aa225a2901ac4f21fa79f18c9a80837a9a53bccd7eb320f7deef4accd9f25e1f011464e6794bd39a492681dbbdfb60d4613d8f5bc80f73d06420b",
+      "reachable": false,
+      "description": "the same Idx64 as one step forward, on the sequence MutateKDFState re-seeds"
+    },
+    {
+      "name": "cap_near_2_64_tampered_hkdf_state",
+      "readcap_hex": "240b7948b940c6d358b579677fc7ae1a51d0297d427673b761131e30d84096dbf7ffffffffffffff1fd105c465f4bbd86fb8673347fda5aeede50fd7a8aac495b4cb1ad24151f3270fb0bc52f18d26f5ec4357d9ed82c864729eac9fe409c0cf6916a6ec331de977c0d088d52ba786870d8353a1f41c584de417848915c8a715e09b4e8693093a85",
+      "index_hex": "f8ffffffffffffffb4f10773defdf2086edfc97827cafc29167e99300f756e902892720cf22ac3008b646036f7cc03e29f43bac74aa6fa337ec890f3d6d8fe8e8bc2ce44c445d38be38a80689dd08817425694964dd63eec0704253daee073d9ab1c1fb7b879c8f7",
+      "reachable": false,
+      "description": "one step forward with one bit of the HKDF state flipped"
+    }
+  ]
+}

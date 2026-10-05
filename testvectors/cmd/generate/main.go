@@ -37,7 +37,6 @@ import (
 
 	"filippo.io/mlkem768"
 
-	"github.com/katzenpost/hpqc/bacap"
 	"github.com/katzenpost/hpqc/kem/adapter"
 	"github.com/katzenpost/hpqc/kem/combiner"
 	"github.com/katzenpost/hpqc/kem/mkem"
@@ -66,6 +65,7 @@ type vectorFile struct {
 
 func main() {
 	out := flag.String("out", "testvectors", "output directory (must contain primitives/ and bacap/)")
+	inputs := flag.String("inputs", "testvectors/bacap/inputs.json", "the BACAP vector inputs")
 	flag.Parse()
 
 	must(os.MkdirAll(filepath.Join(*out, "primitives"), 0o755))
@@ -84,10 +84,7 @@ func main() {
 	writeFile(*out, "primitives/falcon_padded_512_ed25519.json", genFalconPadded512Ed25519())
 	writeFile(*out, "primitives/falcon_padded_1024_ed25519.json", genFalconPadded1024Ed25519())
 
-	writeFile(*out, "bacap/message_box_index.json", genBACAPMessageBoxIndex())
-	writeFile(*out, "bacap/box_id.json", genBACAPBoxID())
-	writeFile(*out, "bacap/encrypt.json", genBACAPEncrypt())
-	writeFile(*out, "bacap/mutate_kdf_state.json", genBACAPMutateKDFState())
+	writeBACAPFiles(*out, loadBACAPInputs(*inputs))
 
 	writeFile(*out, "kem/mkem.json", genKEMMkem())
 	writeFile(*out, "kem/adapter_test_vectors.json", genKEMAdapter())
@@ -948,6 +945,10 @@ func genMLKEMHedged768() vectorFile {
 }
 
 func writeFile(root, rel string, v vectorFile) {
+	writeJSON(root, rel, v)
+}
+
+func writeJSON(root, rel string, v any) {
 	b, err := json.MarshalIndent(v, "", "  ")
 	must(err)
 	b = append(b, '\n')
@@ -969,318 +970,13 @@ func bytesPattern(b byte, n int) []byte {
 	return out
 }
 
+func repeatByte(b byte, n int) []byte {
+	return bytesPattern(b, n)
+}
+
 func must(err error) {
 	if err != nil {
 		panic(err)
-	}
-}
-
-// ===== BACAP vectors =====
-//
-// BACAP-level vectors layered on top of the primitive vectors. They use a
-// fixed root ed25519 keypair and a fixed initial MessageBoxIndex so that
-// every step of the chain (HKDF advancement, blinded box-id derivation,
-// AES-GCM-SIV encryption, blinded ed25519 signature) is deterministic and
-// byte-comparable across implementations.
-
-// fixedBACAPSeed is the 32-byte ed25519 seed used to derive the root
-// keypair for every BACAP vector below. The bytes are 0x00..0x1f so a
-// reader can recognise them immediately.
-var fixedBACAPSeed = func() []byte {
-	b := make([]byte, 32)
-	for i := range b {
-		b[i] = byte(i)
-	}
-	return b
-}()
-
-// fixedBACAPInitialIndex is the initial MessageBoxIndex used by every
-// BACAP vector. The non-zero values make divergent state easy to spot.
-var fixedBACAPInitialIndex = bacap.MessageBoxIndex{
-	Idx64:             1,
-	CurBlindingFactor: bytesPattern32(0xaa),
-	CurEncryptionKey:  bytesPattern32(0xbb),
-	HKDFState:         bytesPattern32(0xcc),
-}
-
-func bytesPattern32(b byte) [32]byte {
-	var out [32]byte
-	for i := range out {
-		out[i] = b
-	}
-	return out
-}
-
-// fixedBACAPWriteCapBytes constructs a deterministic 168-byte WriteCap
-// blob from fixedBACAPSeed and fixedBACAPInitialIndex.
-func fixedBACAPWriteCapBytes() []byte {
-	priv := stded25519.NewKeyFromSeed(fixedBACAPSeed) // 64 bytes seed||pub
-	idxBytes, err := fixedBACAPInitialIndex.MarshalBinary()
-	must(err)
-	out := make([]byte, 0, len(priv)+len(idxBytes))
-	out = append(out, priv...)
-	out = append(out, idxBytes...)
-	return out
-}
-
-// MessageBoxIndex.AdvanceIndexTo vectors. Pin the HKDF chain that derives
-// blinding factors and encryption keys from the HKDF state.
-
-type bacapAdvanceVector struct {
-	Name             string `json:"name"`
-	InitialIndexHex  string `json:"initial_index_hex"`
-	AdvanceTo        uint64 `json:"advance_to"`
-	ExpectedIndexHex string `json:"expected_index_hex"`
-}
-
-func genBACAPMessageBoxIndex() vectorFile {
-	initial := fixedBACAPInitialIndex
-	initialBytes, err := initial.MarshalBinary()
-	must(err)
-
-	steps := []uint64{1, 2, 5, 100, 1000}
-	vs := make([]bacapAdvanceVector, 0, len(steps))
-	for _, n := range steps {
-		target := initial.Idx64 + n
-		advanced, err := initial.AdvanceIndexTo(target)
-		must(err)
-		advancedBytes, err := advanced.MarshalBinary()
-		must(err)
-		vs = append(vs, bacapAdvanceVector{
-			Name:             fmt.Sprintf("advance_by_%d", n),
-			InitialIndexHex:  hex.EncodeToString(initialBytes),
-			AdvanceTo:        target,
-			ExpectedIndexHex: hex.EncodeToString(advancedBytes),
-		})
-	}
-	return vectorFile{
-		FormatVersion: formatVersion,
-		Generator:     generatorName,
-		Primitive:     "bacap_message_box_index",
-		Description:   "MessageBoxIndex.AdvanceIndexTo vectors. The initial 104-byte MessageBoxIndex blob is advanced by N steps via the HKDF-BLAKE2b-512 chain; the expected 104-byte resulting blob is recorded.",
-		Vectors:       vs,
-	}
-}
-
-// Box-ID derivation vectors. Cover both DeriveMessageBoxID (blinding by
-// the index's CurBlindingFactor) and BoxIDForContext (which first runs
-// CurBlindingFactor through HKDF with the context as salt).
-
-type bacapBoxIDVector struct {
-	Name             string `json:"name"`
-	WriteCapHex      string `json:"writecap_hex"`
-	AdvanceBy        uint64 `json:"advance_by"`
-	CtxHex           string `json:"ctx_hex"`
-	UseContext       bool   `json:"use_context"`
-	ExpectedBoxIDHex string `json:"expected_box_id_hex"`
-}
-
-func genBACAPBoxID() vectorFile {
-	wcBytes := fixedBACAPWriteCapBytes()
-	wc, err := bacap.NewWriteCapFromBytes(wcBytes)
-	must(err)
-	rc := wc.ReadCap()
-	rootPub := fixedBACAPRootPubKey()
-
-	cases := []struct {
-		name       string
-		advanceBy  uint64
-		ctx        []byte
-		useContext bool
-	}{
-		{"derive_at_first_index", 0, nil, false},
-		{"derive_after_advance_5", 5, nil, false},
-		{"box_id_for_context_at_first_index", 0, []byte("hpqc-bacap-vector-context"), true},
-		{"box_id_for_context_after_advance_3", 3, []byte("alternate context"), true},
-	}
-
-	vs := make([]bacapBoxIDVector, 0, len(cases))
-	for _, c := range cases {
-		idx := wc.GetMessageBoxIndex()
-		if c.advanceBy > 0 {
-			advanced, err := idx.AdvanceIndexTo(idx.Idx64 + c.advanceBy)
-			must(err)
-			idx = advanced
-		}
-		var boxID []byte
-		if c.useContext {
-			pk, err := idx.BoxIDForContext(rc, c.ctx)
-			must(err)
-			boxID = pk.Bytes()
-		} else {
-			pk, err := idx.DeriveMessageBoxID(rootPub)
-			must(err)
-			boxID = pk.Bytes()
-		}
-		vs = append(vs, bacapBoxIDVector{
-			Name:             c.name,
-			WriteCapHex:      hex.EncodeToString(wcBytes),
-			AdvanceBy:        c.advanceBy,
-			CtxHex:           hex.EncodeToString(c.ctx),
-			UseContext:       c.useContext,
-			ExpectedBoxIDHex: hex.EncodeToString(boxID),
-		})
-	}
-	return vectorFile{
-		FormatVersion: formatVersion,
-		Generator:     generatorName,
-		Primitive:     "bacap_box_id",
-		Description:   "Box-ID derivation vectors. For each vector, advance the WriteCap's first MessageBoxIndex by N, then derive the box ID. If use_context is true, BoxIDForContext is used (HKDFs the context into the blinding); otherwise DeriveMessageBoxID is used (blinds the root pubkey with the index's CurBlindingFactor directly).",
-		Vectors:       vs,
-	}
-}
-
-// fixedBACAPRootPubKey returns the ed25519 public key derived from
-// fixedBACAPSeed. Used for DeriveMessageBoxID vectors which take a
-// root pubkey directly rather than going through the WriteCap.
-func fixedBACAPRootPubKey() *ed25519.PublicKey {
-	priv := stded25519.NewKeyFromSeed(fixedBACAPSeed) // 64 bytes seed||pub
-	pk := new(ed25519.PublicKey)
-	must(pk.FromBytes(priv[32:64]))
-	return pk
-}
-
-// Encrypt-for-context vectors. End-to-end check of the BACAP encrypt
-// path, including HKDF, ed25519 blinding, AES-GCM-SIV, and blinded
-// ed25519 signing.
-
-type bacapEncryptVector struct {
-	Name                 string `json:"name"`
-	WriteCapHex          string `json:"writecap_hex"`
-	AdvanceBy            uint64 `json:"advance_by"`
-	CtxHex               string `json:"ctx_hex"`
-	PlaintextHex         string `json:"plaintext_hex"`
-	ExpectedBoxIDHex     string `json:"expected_box_id_hex"`
-	ExpectedCiphertext   string `json:"expected_ciphertext_hex"`
-	ExpectedSignatureHex string `json:"expected_signature_hex"`
-}
-
-func genBACAPEncrypt() vectorFile {
-	wcBytes := fixedBACAPWriteCapBytes()
-	wc, err := bacap.NewWriteCapFromBytes(wcBytes)
-	must(err)
-
-	cases := []struct {
-		name      string
-		advanceBy uint64
-		ctx       []byte
-		plaintext []byte
-	}{
-		{"encrypt_short_at_first", 0, []byte("ctx-A"), []byte("hello")},
-		{"encrypt_short_after_advance", 7, []byte("ctx-B"), []byte("after advance")},
-		{"encrypt_long_payload", 0, []byte("ctx-C"), repeatByte(0x55, 1024)},
-	}
-
-	vs := make([]bacapEncryptVector, 0, len(cases))
-	for _, c := range cases {
-		idx := wc.GetMessageBoxIndex()
-		if c.advanceBy > 0 {
-			advanced, err := idx.AdvanceIndexTo(idx.Idx64 + c.advanceBy)
-			must(err)
-			idx = advanced
-		}
-		boxID, ct, sig, err := idx.EncryptForContext(wc, c.ctx, c.plaintext)
-		must(err)
-
-		// Sanity: round-trip decrypts to the original plaintext.
-		recovered, err := idx.DecryptForContext(boxID, c.ctx, ct, sig)
-		must(err)
-		if string(recovered) != string(c.plaintext) {
-			panic("vector " + c.name + ": decrypt round-trip mismatch")
-		}
-
-		vs = append(vs, bacapEncryptVector{
-			Name:                 c.name,
-			WriteCapHex:          hex.EncodeToString(wcBytes),
-			AdvanceBy:            c.advanceBy,
-			CtxHex:               hex.EncodeToString(c.ctx),
-			PlaintextHex:         hex.EncodeToString(c.plaintext),
-			ExpectedBoxIDHex:     hex.EncodeToString(boxID[:]),
-			ExpectedCiphertext:   hex.EncodeToString(ct),
-			ExpectedSignatureHex: hex.EncodeToString(sig),
-		})
-	}
-	return vectorFile{
-		FormatVersion: formatVersion,
-		Generator:     generatorName,
-		Primitive:     "bacap_encrypt",
-		Description:   "BACAP MessageBoxIndex.EncryptForContext vectors. For each vector, the WriteCap is deserialized, its first MessageBoxIndex advanced by N, and the plaintext encrypted under the given context. Records the box ID, ciphertext (AES-256-GCM-SIV with 12-byte nonce), and signature (blinded ed25519 over the ciphertext).",
-		Vectors:       vs,
-	}
-}
-
-func repeatByte(b byte, n int) []byte {
-	out := make([]byte, n)
-	for i := range out {
-		out[i] = b
-	}
-	return out
-}
-
-// MutateKDFState vectors. Pin the re-seed operation behind the Contact
-// Voucher's VoucherSalt: a WriteCap's first MessageBoxIndex is advanced by N,
-// re-seeded by the salt, and the resulting 104-byte index recorded along with
-// the box ID derived from it under a read context. The box ID is taken through
-// the read cap, so a consumer that mis-derives either the mutation or the
-// downstream blinding is caught.
-
-type bacapMutateVector struct {
-	Name             string `json:"name"`
-	WriteCapHex      string `json:"writecap_hex"`
-	AdvanceBy        uint64 `json:"advance_by"`
-	SaltHex          string `json:"salt_hex"`
-	ReadCtxHex       string `json:"read_ctx_hex"`
-	ExpectedIndexHex string `json:"expected_mutated_index_hex"`
-	ExpectedBoxIDHex string `json:"expected_mutated_box_id_hex"`
-}
-
-func genBACAPMutateKDFState() vectorFile {
-	wcBytes := fixedBACAPWriteCapBytes()
-	wc, err := bacap.NewWriteCapFromBytes(wcBytes)
-	must(err)
-	rc := wc.ReadCap()
-
-	cases := []struct {
-		name      string
-		advanceBy uint64
-		salt      []byte
-		readCtx   []byte
-	}{
-		{"mutate_at_first_index", 0, bytesPattern(0x11, 32), []byte("pigeonhole context")},
-		{"mutate_after_advance_5", 5, bytesPattern(0x22, 32), []byte("pigeonhole context")},
-		{"mutate_distinct_salt", 0, bytesPattern(0x33, 32), []byte("alternate context")},
-	}
-
-	vs := make([]bacapMutateVector, 0, len(cases))
-	for _, c := range cases {
-		idx := wc.GetMessageBoxIndex()
-		if c.advanceBy > 0 {
-			advanced, err := idx.AdvanceIndexTo(idx.Idx64 + c.advanceBy)
-			must(err)
-			idx = advanced
-		}
-		mutated := idx.MutateKDFState(c.salt)
-		mutatedBytes, err := mutated.MarshalBinary()
-		must(err)
-		mutatedPk, err := mutated.BoxIDForContext(rc, c.readCtx)
-		must(err)
-		boxID := mutatedPk.Bytes()
-		vs = append(vs, bacapMutateVector{
-			Name:             c.name,
-			WriteCapHex:      hex.EncodeToString(wcBytes),
-			AdvanceBy:        c.advanceBy,
-			SaltHex:          hex.EncodeToString(c.salt),
-			ReadCtxHex:       hex.EncodeToString(c.readCtx),
-			ExpectedIndexHex: hex.EncodeToString(mutatedBytes),
-			ExpectedBoxIDHex: hex.EncodeToString(boxID),
-		})
-	}
-	return vectorFile{
-		FormatVersion: formatVersion,
-		Generator:     generatorName,
-		Primitive:     "bacap_mutate_kdf_state",
-		Description:   "MessageBoxIndex.MutateKDFState vectors. For each vector, the WriteCap's first MessageBoxIndex is advanced by N, then re-seeded by the salt via HKDF-BLAKE2b-512 under the domain label \"bacap-mutate-kdf-state-v1\" (salt slot = the salt, read order H,E,K, Idx64 preserved). Records the resulting 104-byte mutated index and the box ID derived from it under the read context. This is the BACAP primitive behind the Contact Voucher VoucherSalt.",
-		Vectors:       vs,
 	}
 }
 

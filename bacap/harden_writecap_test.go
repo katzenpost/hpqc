@@ -55,10 +55,8 @@ func TestWriteCapRoundTripDerivesBoxID(t *testing.T) {
 	rt, err := NewWriteCapFromBytes(blob)
 	require.NoError(t, err)
 
-	w, err := NewStatefulWriter(rt, []byte("harden-test-context"))
-	require.NoError(t, err)
 	require.NotPanics(t, func() {
-		_, err := w.NextBoxID()
+		_, err := rt.Start().BoxID([]byte("harden-test-context"))
 		require.NoError(t, err)
 	})
 }
