@@ -66,7 +66,6 @@ hpqc/
 │   ├── adapter/               #   NIKE-to-KEM adapter (hashed ElGamal)
 │   ├── combiner/              #   Generic security-preserving KEM combiner
 │   ├── mkem/                  #   Multi-recipient KEM
-│   ├── mrhybrid/              #   Multi-recipient hybrid encryption over any KEM
 │   ├── pem/                   #   PEM encoding for KEM keys
 │   ├── util/                  #   Shared helpers
 │   └── schemes/               #   ByName() registry
@@ -415,11 +414,6 @@ func SplitPRF(ss1, ss2, ss3, cct1, cct2, cct3 []byte) []byte {
 ## MKEM
 
 The [MKEM package](https://pkg.go.dev/github.com/katzenpost/hpqc/kem/mkem) is an efficient multiparty encryption scheme. You can pass it any NIKE scheme.
-
-
-## Multi-recipient hybrid
-
-MKEM needs a NIKE. The [mrhybrid package](https://pkg.go.dev/github.com/katzenpost/hpqc/kem/mrhybrid) is the same idea over any KEM, so it works with ML-KEM-768, MLKEM768-X25519 and the other post-quantum KEMs. Each recipient gets its own KEM ciphertext and DEK, the payload is sealed once, and the derived key each side ends up with seals replies. It uses AES-256-GCM-SIV and BLAKE2b-256, and it is byte-compatible with CryptWalker's formally verified `MultiRecipientHybrid` (https://github.com/katzenpost/CryptWalker); cross-check vectors are generated on both sides.
 
 
 
