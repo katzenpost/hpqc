@@ -149,3 +149,22 @@ func BenchmarkContains1000(b *testing.B) {
 		}
 	}
 }
+
+// sameIndex must notice a difference in any one field.
+func TestSameIndexEveryField(t *testing.T) {
+	wc, err := NewWriteCap(rand.Reader)
+	require.NoError(t, err)
+	a := *wc.GetMessageBoxIndex()
+	require.True(t, sameIndex(&a, &a))
+
+	for _, change := range []func(m *MessageBoxIndex){
+		func(m *MessageBoxIndex) { m.Idx64 ^= 1 << 40 },
+		func(m *MessageBoxIndex) { m.HKDFState[31] ^= 1 },
+		func(m *MessageBoxIndex) { m.CurBlindingFactor[0] ^= 1 },
+		func(m *MessageBoxIndex) { m.CurEncryptionKey[16] ^= 1 },
+	} {
+		b := a
+		change(&b)
+		require.False(t, sameIndex(&a, &b))
+	}
+}

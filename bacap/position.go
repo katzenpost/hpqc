@@ -7,6 +7,7 @@ package bacap
 
 import (
 	"crypto/subtle"
+	"encoding/binary"
 	"errors"
 
 	"github.com/katzenpost/hpqc/sign/ed25519"
@@ -37,11 +38,17 @@ var (
 	ErrBoxMismatch = errors.New("bacap: box is not the one the capability and index derive")
 )
 
+// sameIndex compares every field in constant time: the fields are secret,
+// so it must not stop at the first one that differs.
 func sameIndex(a, b *MessageBoxIndex) bool {
-	return a.Idx64 == b.Idx64 &&
-		subtle.ConstantTimeCompare(a.HKDFState[:], b.HKDFState[:]) == 1 &&
-		subtle.ConstantTimeCompare(a.CurBlindingFactor[:], b.CurBlindingFactor[:]) == 1 &&
-		subtle.ConstantTimeCompare(a.CurEncryptionKey[:], b.CurEncryptionKey[:]) == 1
+	var ai, bi [8]byte
+	binary.LittleEndian.PutUint64(ai[:], a.Idx64)
+	binary.LittleEndian.PutUint64(bi[:], b.Idx64)
+	eq := subtle.ConstantTimeCompare(ai[:], bi[:]) &
+		subtle.ConstantTimeCompare(a.HKDFState[:], b.HKDFState[:]) &
+		subtle.ConstantTimeCompare(a.CurBlindingFactor[:], b.CurBlindingFactor[:]) &
+		subtle.ConstantTimeCompare(a.CurEncryptionKey[:], b.CurEncryptionKey[:])
+	return eq == 1
 }
 
 // contains reports whether stepping start forward reaches idx.
