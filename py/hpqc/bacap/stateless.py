@@ -17,6 +17,7 @@ import os
 import struct
 from typing import Callable, Optional, Tuple
 
+import cryptography
 from cryptography.exceptions import InvalidTag
 from cryptography.hazmat.primitives.ciphers.aead import AESGCMSIV
 from nacl.exceptions import BadSignatureError
@@ -50,6 +51,17 @@ ReadCapSize: int = BoxIDSize + MessageBoxIndexSize  # 136
 # HKDF info (domain-separation) label for MutateKDFState. Must match the Go
 # constant bacap.mutateKDFStateLabel so the two ports agree byte-for-byte.
 _MUTATE_KDF_STATE_LABEL: bytes = b"bacap-mutate-kdf-state-v1"
+
+
+_AEAD_TAG_SIZE = 16
+"""An empty plaintext encrypts to the tag alone."""
+
+_EMPTY_AEAD_FROM = (45, 0)
+"""The cryptography whose AESGCMSIV takes zero-length data."""
+
+_CRYPTOGRAPHY = tuple(
+    int(part) for part in cryptography.__version__.split(".")[:2]
+)
 
 
 def _hkdf_blake2b(secret: bytes, salt: bytes, info: bytes, length: int) -> bytes:
@@ -268,7 +280,17 @@ class MessageBoxIndex:
         Returns (box_id, ciphertext, signature). The signature is over the
         ciphertext, made by the blinded private key whose corresponding
         blinded pubkey is box_id.
+
+        An empty plaintext needs an AEAD that takes zero-length data,
+        which AESGCMSIV grew in cryptography 45. Below that this raises
+        InvalidArgument rather than the AEAD's own ValueError, since an
+        empty box is written with sign_box and never through here.
         """
+        if not plaintext and _CRYPTOGRAPHY < _EMPTY_AEAD_FROM:
+            raise InvalidArgument(
+                "an empty plaintext needs cryptography 45 or newer; "
+                "write an empty box with sign_box"
+            )
         k_ctx = self._derive_k_for_context(ctx)
         box_id = bytes(owner.root_public_key.blind(k_ctx))
         e_ctx = self._derive_e_for_context(ctx)
@@ -291,6 +313,12 @@ class MessageBoxIndex:
         An empty ciphertext is treated as a tombstone: the signature is
         verified over the empty payload and an empty plaintext is returned
         without any decryption.
+
+        A tag-only ciphertext is an empty plaintext that some writer did
+        encrypt, and AESGCMSIV cannot open one before cryptography 45: it
+        reports InvalidTag for a box whose signature is good. Below that
+        this raises InvalidArgument, so a caller is told the version is too
+        old rather than that the box was tampered with.
         """
         if len(box) != BoxIDSize:
             raise InvalidArgument("invalid box length")
@@ -302,6 +330,14 @@ class MessageBoxIndex:
             ) from e
         if not ciphertext:
             return b""
+        if (
+            len(ciphertext) == _AEAD_TAG_SIZE
+            and _CRYPTOGRAPHY < _EMPTY_AEAD_FROM
+        ):
+            raise InvalidArgument(
+                "opening an encrypted empty plaintext needs cryptography "
+                "45 or newer"
+            )
         e_ctx = self._derive_e_for_context(ctx)
         try:
             return AESGCMSIV(e_ctx).decrypt(box[:12], ciphertext, box)

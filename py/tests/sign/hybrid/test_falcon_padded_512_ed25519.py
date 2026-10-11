@@ -16,6 +16,8 @@ from pathlib import Path
 
 import pytest
 
+pytest.importorskip("pqcrypto")
+
 from hpqc.sign.hybrid import FalconPadded512Ed25519
 
 VECTORS_PATH = (

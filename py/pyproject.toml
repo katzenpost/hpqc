@@ -2,8 +2,8 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 [build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+requires = ["flit_core >=3.11"]
+build-backend = "flit_core.buildapi"
 
 [project]
 name = "hpqc"
@@ -43,14 +43,16 @@ classifiers = [
     "Topic :: Security :: Cryptography",
 ]
 dependencies = [
-    "pynacl>=1.6",
-    "cryptography>=47.0",
+    "pynacl>=1.5",
+    "cryptography>=43",
     "highctidh>=1.0.2026101300",
-    "cbor2>=6.0",
-    "pqcrypto<1.0.0",
+    "cbor2>=5.6",
 ]
 
 [project.optional-dependencies]
+falcon = [
+    "pqcrypto<1.0.0",
+]
 test = [
     "pytest>=9.0",
 ]
@@ -60,14 +62,13 @@ Homepage = "https://katzenpost.network/"
 Repository = "https://github.com/katzenpost/hpqc"
 Issues = "https://github.com/katzenpost/hpqc/issues"
 
-[tool.hatch.build.targets.wheel]
-packages = ["hpqc"]
+[tool.flit.module]
+name = "hpqc"
 
-[tool.hatch.build.targets.sdist]
+[tool.flit.sdist]
 include = [
     "hpqc/",
     "tests/",
-    "pyproject.toml",
 ]
 
 [tool.pytest.ini_options]
