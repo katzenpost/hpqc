@@ -6,7 +6,8 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update \
 	&& apt-get install -y --no-install-recommends \
 		build-essential ca-certificates debhelper dh-golang \
-		dpkg-dev git golang-any make \
+		dh-python dpkg-dev flit git golang-any make \
+		pybuild-plugin-pyproject python3-all \
 	&& rm -rf /var/lib/apt/lists/*
 
 WORKDIR /build

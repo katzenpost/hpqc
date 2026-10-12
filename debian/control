@@ -4,7 +4,11 @@ Priority: optional
 Maintainer: Katzenpost <packages@katzenpost.network>
 Build-Depends: debhelper-compat (= 13),
                dh-golang,
-               golang-any
+               dh-python,
+               golang-any,
+               flit,
+               pybuild-plugin-pyproject,
+               python3-all
 Standards-Version: 4.7.2
 Homepage: https://katzenpost.network/
 Rules-Requires-Root: no
@@ -21,3 +25,15 @@ Description: hybrid post-quantum cryptography for Katzenpost (Go source)
  This package ships the Go source for use as a build dependency. It
  contains no compiled code, so no Go toolchain newer than the archive's
  own is required to build it.
+
+Package: python3-hpqc
+Section: python
+Architecture: all
+Depends: ${python3:Depends},
+         ${misc:Depends},
+         python3-highctidh
+Description: hpqc for Python
+ A Python implementation of hpqc, which provides the KEM, NIKE,
+ signature, hash and BACAP primitives the Katzenpost mix network is built
+ on, combining traditional and post-quantum constructions. It produces
+ the same bytes as the Go implementation rather than wrapping it.
