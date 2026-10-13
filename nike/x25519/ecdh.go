@@ -75,8 +75,6 @@ func (p *PrivateKey) FromBytes(data []byte) error {
 	}
 
 	copy(p[:], data)
-	expG((*[GroupElementLength]byte)(p.Public().(*PublicKey)), (*[GroupElementLength]byte)(p))
-
 	return nil
 }
 
@@ -291,8 +289,5 @@ func NewKeypair(r io.Reader) (*PrivateKey, error) {
 	if _, err := io.ReadFull(r, k[:]); err != nil {
 		return nil, err
 	}
-
-	expG((*[GroupElementLength]byte)(k.Public().(*PublicKey)), (*[GroupElementLength]byte)(k))
-
 	return k, nil
 }

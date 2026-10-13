@@ -92,3 +92,20 @@ func TestECDHOps(t *testing.T) {
 	curve25519.ScalarMult(&bobS, &bobSk, &tmp)
 	assert.Equal(bobS[:], aliceS, "Exp() mismatch against X25519 scalar mult")
 }
+
+type fillReader struct{}
+
+func (fillReader) Read(p []byte) (int, error) {
+	for i := range p {
+		p[i] = byte(i + 1)
+	}
+	return len(p), nil
+}
+
+func TestKeyGenerationDoesNoDiscardedWork(t *testing.T) {
+	require.Equal(t, 1.0, testing.AllocsPerRun(100, func() { NewKeypair(fillReader{}) }))
+	k, err := NewKeypair(fillReader{})
+	require.NoError(t, err)
+	b := k.Bytes()
+	require.Equal(t, 0.0, testing.AllocsPerRun(100, func() { new(PrivateKey).FromBytes(b) }))
+}
