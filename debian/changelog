@@ -1,3 +1,9 @@
+hpqc (0.0.92) unstable; urgency=medium
+
+  * New version released
+
+ -- Katzenpost <packages@katzenpost.network>  Wed, 14 Oct 2026 10:57:50 +0200
+
 hpqc (0.0.0+git20261003.d7ea2ca) unstable; urgency=medium
 
   * Package the Go source as a build dependency.

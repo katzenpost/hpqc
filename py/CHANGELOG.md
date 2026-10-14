@@ -13,6 +13,17 @@ side, are also recorded in the repository-root
 
 ## [Unreleased]
 
+
+## [0.0.92] - 2026-10-14
+
+### Changed
+
+- The version follows the repository tag; this release is v0.0.92.
+- Requires highctidh 1.0.2026101300, which rejects the all-zero CTIDH
+  public key when decoding; keys from entropy are read little-endian.
+- pqcrypto is optional (the `falcon` extra), and cryptography 43,
+  pynacl 1.5 and cbor2 5.6 are enough, as in Debian 13.
+
 ### Added
 
 - BACAP positions (`ReadPosition`, `WritePosition`), `contains`,
@@ -83,6 +94,7 @@ Initial public release.
   downstream type checkers.
 
 
-[Unreleased]: https://github.com/katzenpost/hpqc/compare/py/v0.0.2...HEAD
+[Unreleased]: https://github.com/katzenpost/hpqc/compare/v0.0.92...HEAD
+[0.0.92]: https://github.com/katzenpost/hpqc/compare/py/v0.0.2...v0.0.92
 [0.0.2]: https://github.com/katzenpost/hpqc/compare/py/v0.0.1...py/v0.0.2
 [0.0.1]: https://github.com/katzenpost/hpqc/releases/tag/py/v0.0.1
