@@ -58,3 +58,40 @@ func TestPrivateKeyPublicMatchesGeneratedPublicKey(t *testing.T) {
 	}
 	require.NotZero(t, hybrids)
 }
+
+func marshalOrPanic(pub sign.PublicKey) (b []byte, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("MarshalBinary panicked: %v", r)
+		}
+	}()
+	return pub.MarshalBinary()
+}
+
+func TestUnmarshaledPrivateKeyPublicMatchesGeneratedPublicKey(t *testing.T) {
+	for _, s := range schemes.All() {
+		t.Run(s.Name(), func(t *testing.T) {
+			pub, priv, err := s.GenerateKey()
+			require.NoError(t, err)
+			blob, err := priv.MarshalBinary()
+			require.NoError(t, err)
+			loaded, err := s.UnmarshalBinaryPrivateKey(blob)
+			require.NoError(t, err)
+
+			got, panicked := publicOrPanic(loaded)
+			require.NoError(t, panicked)
+			if got == nil {
+				t.Skipf("%s cannot derive a public key from a private key", s.Name())
+			}
+			gotPub, ok := got.(sign.PublicKey)
+			require.True(t, ok, "Public() is %T, not a sign.PublicKey", got)
+
+			want, err := pub.MarshalBinary()
+			require.NoError(t, err)
+			have, err := marshalOrPanic(gotPub)
+			require.NoError(t, err)
+			require.Equal(t, want, have)
+			require.True(t, pub.Equal(gotPub))
+		})
+	}
+}
