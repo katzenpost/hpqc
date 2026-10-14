@@ -15,6 +15,7 @@ The same test functions are run against every available scheme via
 from __future__ import annotations
 
 import pytest
+from highctidh import InvalidPublicKey
 
 from hpqc.nike import PrivateKey, PublicKey, Scheme
 from hpqc.nike.ctidh511 import CTIDH511
@@ -167,3 +168,13 @@ def test_hybrid_secret_layout_is_concatenation() -> None:
 
 def test_hybrid_name_is_dash_joined() -> None:
     assert HybridNIKE(X25519(), CTIDH1024()).name == "x25519-ctidh1024"
+
+
+@pytest.mark.parametrize(
+    "ctidh",
+    [CTIDH511(), CTIDH512(), CTIDH1024(), CTIDH2048()],
+    ids=lambda s: s.name,
+)
+def test_ctidh_rejects_e0_public_key(ctidh: Scheme) -> None:
+    with pytest.raises(InvalidPublicKey):
+        ctidh.public_key_from_bytes(bytes(ctidh.public_key_size))

@@ -3,7 +3,7 @@ module github.com/katzenpost/hpqc
 go 1.26.2
 
 require (
-	codeberg.org/vula/highctidh v1.0.2025051200
+	codeberg.org/vula/highctidh v1.0.2026101300
 	filippo.io/edwards25519 v1.2.0
 	filippo.io/mlkem768 v0.0.0-20260214141301-2e7bebc7d88d
 	github.com/agl/gcmsiv v0.0.0-20190418185415-e8dcd2f151dc

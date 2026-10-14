@@ -94,7 +94,7 @@ def make_ctidh_classes(
             def fill(buf, context) -> None:  # noqa: ANN001 - highctidh callback
                 buf[:] = read(len(buf))
 
-            sk = impl.generate_secret_key(rng=fill)
+            sk = impl.generate_secret_key(rng_bytes=fill)
             pk = impl.derive_public_key(sk)
             return CTIDHPublicKey(pk), CTIDHPrivateKey(sk)
 

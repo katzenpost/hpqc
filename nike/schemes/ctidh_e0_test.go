@@ -15,18 +15,16 @@ import (
 
 var ctidhNames = []string{"ctidh511", "ctidh512", "ctidh1024", "ctidh2048"}
 
-// Following the Curve25519 model, parsing accepts every key, including the
-// base curve E0 (the all-zero key), without validation.
-func TestCTIDHAcceptsBaseCurveE0PublicKey(t *testing.T) {
+// Parsing rejects the base curve E0, the all-zero key.
+func TestCTIDHRejectsBaseCurveE0PublicKey(t *testing.T) {
 	for _, name := range ctidhNames {
 		s := ByName(name)
 		require.NotNil(t, s, name)
 		zeros := make([]byte, s.PublicKeySize())
-		pub, err := s.UnmarshalBinaryPublicKey(zeros)
-		require.NoError(t, err, "%s: UnmarshalBinaryPublicKey must accept E0", name)
-		require.True(t, util.CtIsZero(pub.Bytes()), name)
-		require.NoError(t, s.NewEmptyPublicKey().FromBytes(zeros),
-			"%s: FromBytes must accept E0", name)
+		_, err := s.UnmarshalBinaryPublicKey(zeros)
+		require.Error(t, err, "%s: UnmarshalBinaryPublicKey must reject E0", name)
+		require.Error(t, s.NewEmptyPublicKey().FromBytes(zeros),
+			"%s: FromBytes must reject E0", name)
 	}
 }
 
@@ -77,9 +75,8 @@ func TestCTIDHRealKeyOperations(t *testing.T) {
 	}
 }
 
-// The CTIDH-X25519 hybrid must propagate a nil Blind: a group member whose
-// CTIDH half is the base curve E0 blinds to nil, not a key with a nil half.
-func TestCTIDHX25519HybridBlindNil(t *testing.T) {
+// The CTIDH-X25519 hybrid rejects a group member whose CTIDH half is E0.
+func TestCTIDHX25519HybridRejectsE0Half(t *testing.T) {
 	s := ByName("CTIDH1024-X25519")
 	require.NotNil(t, s)
 	pub, priv, err := s.GenerateKeyPair()
@@ -92,7 +89,6 @@ func TestCTIDHX25519HybridBlindNil(t *testing.T) {
 	for i := x25519.PublicKeySize; i < len(blob); i++ {
 		blob[i] = 0
 	}
-	degenerate, err := s.UnmarshalBinaryPublicKey(blob)
-	require.NoError(t, err)
-	require.Nil(t, s.Blind(degenerate, priv))
+	_, err = s.UnmarshalBinaryPublicKey(blob)
+	require.Error(t, err)
 }
