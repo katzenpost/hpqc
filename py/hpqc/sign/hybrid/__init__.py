@@ -7,6 +7,10 @@ into one. The wire format is the simple concatenation used by Go's
 = first_sig || second_sig.
 """
 
-from .hybrid import HybridSignScheme, FalconPadded512Ed25519
+from .hybrid import HybridSignScheme, __all__
 
-__all__ = ["HybridSignScheme", "FalconPadded512Ed25519"]
+
+def __getattr__(name: str) -> "HybridSignScheme":
+    from . import hybrid
+
+    return getattr(hybrid, name)

@@ -1,6 +1,6 @@
 PODMAN ?= podman
 DISTRO ?= debian-13
-DEB_DISTROS ?= debian-13 debian-forky ubuntu-24.04 ubuntu-26.04
+DEB_DISTROS ?= debian-13 debian-forky ubuntu-26.04
 DEB_IMAGE = packaging/container/deb-image.sh
 
 .PHONY: deb deb-build deb-ci deb-test deb-image-ref deb-image \

@@ -8,10 +8,11 @@ into one. Mirrors the on-wire layout of Go's
 
 from __future__ import annotations
 
+import threading
+from importlib.util import find_spec
 from typing import Protocol, runtime_checkable
 
 from hpqc.sign.ed25519 import Ed25519Scheme
-from hpqc.sign.falcon import FalconPadded512Scheme
 
 
 @runtime_checkable
@@ -57,11 +58,36 @@ class HybridSignScheme:
         )
 
 
-FalconPadded512Ed25519 = HybridSignScheme(
-    "Falcon-padded-512-Ed25519",
-    FalconPadded512Scheme(),
-    Ed25519Scheme(),
-)
+def __getattr__(name: str) -> "HybridSignScheme":
+    """Build FalconPadded512Ed25519 on first use.
+
+    Falcon needs pqcrypto, which is an optional extra, so importing this
+    module must not require it. Everything else here works without it.
+    """
+    if name != "FalconPadded512Ed25519":
+        raise AttributeError(name)
+    with _build_lock:
+        if name in globals():
+            return globals()[name]
+        try:
+            from hpqc.sign.falcon import FalconPadded512Scheme
+        except ModuleNotFoundError as e:
+            raise AttributeError(
+                "FalconPadded512Ed25519 needs the falcon extra: "
+                f"{e}"
+            ) from e
+
+        scheme = HybridSignScheme(
+            "Falcon-padded-512-Ed25519",
+            FalconPadded512Scheme(),
+            Ed25519Scheme(),
+        )
+        globals()[name] = scheme
+        return scheme
 
 
-__all__ = ["HybridSignScheme", "FalconPadded512Ed25519"]
+_build_lock = threading.Lock()
+
+__all__ = ["HybridSignScheme"]
+if find_spec("pqcrypto") is not None:
+    __all__.append("FalconPadded512Ed25519")

@@ -16,6 +16,8 @@ from pathlib import Path
 
 import pytest
 
+pytest.importorskip("pqcrypto")
+
 from hpqc.sign.falcon import FalconPadded512Scheme
 
 VECTORS_PATH = Path(__file__).parent / "vectors" / "falcon_padded_512.json"
