@@ -4,6 +4,13 @@ on:
   push:
     branches: [main]
   pull_request:
+    paths:
+      - '**.go'
+      - '**.json'
+      - 'go.mod'
+      - 'go.sum'
+      - '.github/workflows/ubuntu-golang-cross-compile-test.yml'
+      - 'misc/install-debian-go-deps-by-arch.sh'
   merge_group:
 
 permissions:
