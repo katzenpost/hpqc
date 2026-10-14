@@ -77,7 +77,7 @@ jobs:
           eph, ct = mkem.encapsulate([pk], b'smoke')
           assert mkem.decapsulate(sk, ct) == b'smoke'
           wc = WriteCap.generate()
-          mbi = wc.first_message_box_index
+          mbi = wc.message_box_index
           box, c, s = mbi.encrypt_for_context(wc, b'ctx', b'hello')
           assert mbi.decrypt_for_context(box, b'ctx', c, s) == b'hello'
           print('smoke OK, version', hpqc.__version__)
