@@ -10,8 +10,8 @@
 # environment "pypi" (and "testpypi" on test.pypi.org).
 #
 # Release flow:
-#   - bump version in py/pyproject.toml and py/hpqc/__init__.py
-#   - tag the commit "py/v<version>" and push the tag
+#   - bump version in py/pyproject.toml and debian/changelog
+#   - tag the commit "v<version>" and push the tag
 #   - this workflow builds and publishes to PyPI
 #
 # Dry runs to TestPyPI are available via the "Run workflow" button
@@ -22,7 +22,7 @@ name: Publish hpqc Python to PyPI
 on:
   push:
     tags:
-      - 'py/v*'
+      - 'v*'
   workflow_dispatch:
 
 jobs:
@@ -105,7 +105,7 @@ jobs:
 
   publish-pypi:
     name: Publish to PyPI
-    if: startsWith(github.ref, 'refs/tags/py/v')
+    if: startsWith(github.ref, 'refs/tags/v')
     needs: smoke-test
     runs-on: ubuntu-latest
     environment:
