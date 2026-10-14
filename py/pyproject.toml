@@ -7,7 +7,7 @@ build-backend = "flit_core.buildapi"
 
 [project]
 name = "hpqc"
-version = "0.0.92"
+version = "0.0.93"
 description = "Python port of katzenpost/hpqc: hybrid post-quantum cryptography and BACAP."
 readme = "README.md"
 requires-python = ">=3.10"
