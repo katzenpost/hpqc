@@ -189,7 +189,19 @@ func (p *PrivateKey) Equal(key crypto.PrivateKey) bool {
 }
 
 func (p *PrivateKey) Public() crypto.PublicKey {
-	panic("not implemented")
+	first, ok := p.first.Public().(sign.PublicKey)
+	if !ok {
+		return nil
+	}
+	second, ok := p.second.Public().(sign.PublicKey)
+	if !ok {
+		return nil
+	}
+	return &PublicKey{
+		scheme: p.scheme,
+		first:  first,
+		second: second,
+	}
 }
 
 func (p *PrivateKey) Sign(rand io.Reader, digest []byte, opts crypto.SignerOpts) (signature []byte, err error) {
