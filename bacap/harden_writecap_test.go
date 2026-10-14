@@ -60,3 +60,24 @@ func TestWriteCapRoundTripDerivesBoxID(t *testing.T) {
 		require.NoError(t, err)
 	})
 }
+
+func TestWriteCapUnmarshalChecksStoredPublicKey(t *testing.T) {
+	a, err := NewWriteCap(rand.Reader)
+	require.NoError(t, err)
+	blobA, err := a.MarshalBinary()
+	require.NoError(t, err)
+	b, err := NewWriteCap(rand.Reader)
+	require.NoError(t, err)
+	blobB, err := b.MarshalBinary()
+	require.NoError(t, err)
+
+	require.NoError(t, NewEmptyWriteCap().UnmarshalBinary(blobA))
+
+	spliced := append([]byte{}, blobA...)
+	copy(spliced[ed25519.PublicKeySize:ed25519.PrivateKeySize], blobB[ed25519.PublicKeySize:ed25519.PrivateKeySize])
+	require.Error(t, NewEmptyWriteCap().UnmarshalBinary(spliced))
+
+	flipped := append([]byte{}, blobA...)
+	flipped[ed25519.PrivateKeySize-1] ^= 0x80
+	require.Error(t, NewEmptyWriteCap().UnmarshalBinary(flipped))
+}
