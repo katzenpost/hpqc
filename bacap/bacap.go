@@ -72,6 +72,7 @@ package bacap
 import (
 	"bytes"
 	stded25519 "crypto/ed25519"
+	"crypto/subtle"
 	"encoding"
 	"encoding/binary"
 	"errors"
@@ -274,7 +275,7 @@ func (o *WriteCap) UnmarshalBinary(data []byte) error {
 	// box IDs would be derived from one key and boxes signed with another,
 	// and nothing written with the cap could be opened.
 	derived := stded25519.NewKeyFromSeed(data[:stded25519.SeedSize])
-	if !bytes.Equal(derived[stded25519.SeedSize:], data[stded25519.SeedSize:ed25519.PrivateKeySize]) {
+	if subtle.ConstantTimeCompare(derived[stded25519.SeedSize:], data[stded25519.SeedSize:ed25519.PrivateKeySize]) != 1 {
 		return errors.New("WriteCap public key does not match its seed")
 	}
 	o.rootPrivateKey = new(ed25519.PrivateKey)
