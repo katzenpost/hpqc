@@ -178,7 +178,18 @@ func (p *privateKey) Bytes() []byte {
 }
 
 func (p *privateKey) FromBytes(data []byte) error {
-	return p.privateKey.FromBytes(data)
+	if err := p.privateKey.FromBytes(data); err != nil {
+		return err
+	}
+	pub := &publicKey{
+		scheme:    Scheme(),
+		publicKey: new(sphincs.PublicKey),
+	}
+	if err := pub.FromBytes(data[len(data)-sphincs.PublicKeySize:]); err != nil {
+		return err
+	}
+	p.publicKey = pub
+	return nil
 }
 
 type publicKey struct {
