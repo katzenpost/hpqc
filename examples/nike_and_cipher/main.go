@@ -7,7 +7,7 @@
 package main
 
 import (
-	"bytes"
+	"crypto/subtle"
 	"fmt"
 
 	"github.com/agl/gcmsiv"
@@ -58,7 +58,7 @@ func main() {
 	bobSharedSecret := scheme.DeriveSecret(bobPriv, alicePub)
 
 	// sanity check
-	if !bytes.Equal(aliceSharedSecret, bobSharedSecret) {
+	if subtle.ConstantTimeCompare(aliceSharedSecret, bobSharedSecret) != 1 {
 		panic("shared secrets must be equal")
 	}
 
@@ -71,7 +71,7 @@ func main() {
 	bobPlaintext, err := bobCipher.Open([]byte{}, nonce, aliceCiphertext, []byte{})
 
 	// sanity check
-	if !bytes.Equal(alicePlaintext, bobPlaintext) {
+	if subtle.ConstantTimeCompare(alicePlaintext, bobPlaintext) != 1 {
 		panic("plaintexts must be equal")
 	}
 
