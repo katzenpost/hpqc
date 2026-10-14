@@ -14,11 +14,12 @@ side, are also recorded in the repository-root
 ## [Unreleased]
 
 
-## [0.0.92] - 2026-10-14
+## [0.0.93] - 2026-10-14
 
 ### Changed
 
-- The version follows the repository tag; this release is v0.0.92.
+- The version follows the repository tag; this release is v0.0.93,
+  since v0.0.92 was not published.
 - Requires highctidh 1.0.2026101300, which rejects the all-zero CTIDH
   public key when decoding; keys from entropy are read little-endian.
 - pqcrypto is optional (the `falcon` extra), and cryptography 43,
@@ -94,7 +95,7 @@ Initial public release.
   downstream type checkers.
 
 
-[Unreleased]: https://github.com/katzenpost/hpqc/compare/v0.0.92...HEAD
-[0.0.92]: https://github.com/katzenpost/hpqc/compare/py/v0.0.2...v0.0.92
+[Unreleased]: https://github.com/katzenpost/hpqc/compare/v0.0.93...HEAD
+[0.0.93]: https://github.com/katzenpost/hpqc/compare/py/v0.0.2...v0.0.93
 [0.0.2]: https://github.com/katzenpost/hpqc/compare/py/v0.0.1...py/v0.0.2
 [0.0.1]: https://github.com/katzenpost/hpqc/releases/tag/py/v0.0.1
