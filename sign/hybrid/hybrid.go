@@ -188,10 +188,6 @@ func (p *PrivateKey) Equal(key crypto.PrivateKey) bool {
 	return hmac.Equal(blob1, blob2)
 }
 
-func (p *PrivateKey) Public() crypto.PublicKey {
-	panic("not implemented")
-}
-
 func (p *PrivateKey) Sign(rand io.Reader, digest []byte, opts crypto.SignerOpts) (signature []byte, err error) {
 	sig1, err := p.first.Sign(rand, digest, opts)
 	if err != nil {
