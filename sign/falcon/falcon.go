@@ -131,7 +131,7 @@ func (s *scheme) GenerateKey() (sign.PublicKey, sign.PrivateKey, error) {
 		return nil, nil, err
 	}
 	pk := &publicKey{scheme: s, bytes: pubBytes}
-	sk := &privateKey{scheme: s, bytes: privBytes, publicKey: pk}
+	sk := &privateKey{scheme: s, bytes: privBytes}
 	return pk, sk, nil
 }
 
@@ -183,9 +183,8 @@ func (s *scheme) SeedSize() int         { return KeySeedSize }
 func (s *scheme) SupportsContext() bool { return false }
 
 type privateKey struct {
-	scheme    *scheme
-	bytes     []byte
-	publicKey *publicKey
+	scheme *scheme
+	bytes  []byte
 }
 
 func (p *privateKey) Scheme() sign.Scheme { return p.scheme }
@@ -196,13 +195,6 @@ func (p *privateKey) Equal(key crypto.PrivateKey) bool {
 		return false
 	}
 	return hmac.Equal(p.bytes, other.bytes)
-}
-
-func (p *privateKey) Public() crypto.PublicKey {
-	if p.publicKey == nil {
-		return nil
-	}
-	return p.publicKey
 }
 
 func (p *privateKey) Sign(_ io.Reader, digest []byte, _ crypto.SignerOpts) (signature []byte, err error) {
@@ -221,7 +213,6 @@ func (p *privateKey) UnmarshalBinary(b []byte) error {
 	}
 	p.bytes = make([]byte, len(b))
 	copy(p.bytes, b)
-	p.publicKey = nil
 	return nil
 }
 

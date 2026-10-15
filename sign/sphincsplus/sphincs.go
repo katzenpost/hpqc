@@ -47,7 +47,6 @@ func (s *scheme) GenerateKey() (sign.PublicKey, sign.PrivateKey, error) {
 	}
 	privkey := &privateKey{
 		scheme:     Scheme(),
-		publicKey:  pubkey,
 		privateKey: priv,
 	}
 	return pubkey, privkey, nil
@@ -134,7 +133,6 @@ func (s *scheme) SupportsContext() bool {
 type privateKey struct {
 	scheme     *scheme
 	privateKey *sphincs.PrivateKey
-	publicKey  *publicKey
 }
 
 // sign.PublicKey interface
@@ -149,10 +147,6 @@ func (p *privateKey) Equal(key crypto.PrivateKey) bool {
 		return false
 	}
 	return hmac.Equal(o.Bytes(), p.Bytes())
-}
-
-func (p *privateKey) Public() crypto.PublicKey {
-	return p.publicKey
 }
 
 func (p *privateKey) Sign(rand io.Reader, digest []byte, opts crypto.SignerOpts) (signature []byte, err error) {
@@ -178,18 +172,7 @@ func (p *privateKey) Bytes() []byte {
 }
 
 func (p *privateKey) FromBytes(data []byte) error {
-	if err := p.privateKey.FromBytes(data); err != nil {
-		return err
-	}
-	pub := &publicKey{
-		scheme:    Scheme(),
-		publicKey: new(sphincs.PublicKey),
-	}
-	if err := pub.FromBytes(data[len(data)-sphincs.PublicKeySize:]); err != nil {
-		return err
-	}
-	p.publicKey = pub
-	return nil
+	return p.privateKey.FromBytes(data)
 }
 
 type publicKey struct {

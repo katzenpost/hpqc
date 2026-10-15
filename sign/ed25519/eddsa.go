@@ -154,10 +154,6 @@ func (p *PrivateKey) UnmarshalBinary(b []byte) error {
 
 // signer interface methods
 
-func (p *PrivateKey) Public() crypto.PublicKey {
-	return p.PublicKey()
-}
-
 func (p *PrivateKey) Sign(rand io.Reader, digest []byte, opts crypto.SignerOpts) (signature []byte, err error) {
 	sig := p.SignMessage(digest)
 	return sig, nil

@@ -82,7 +82,6 @@ func (s *scheme) wrap(sk *mldsa.PrivateKey) (sign.PublicKey, sign.PrivateKey, er
 	}
 	privkey := &privateKey{
 		scheme:     s,
-		publicKey:  pubkey,
 		privateKey: sk,
 	}
 	return pubkey, privkey, nil
@@ -143,7 +142,6 @@ func (s *scheme) UnmarshalBinaryPrivateKey(b []byte) (sign.PrivateKey, error) {
 	}
 	return &privateKey{
 		scheme:     s,
-		publicKey:  &publicKey{scheme: s, publicKey: sk.PublicKey()},
 		privateKey: sk,
 	}, nil
 }
@@ -164,7 +162,6 @@ func (s *scheme) SupportsContext() bool {
 type privateKey struct {
 	scheme     *scheme
 	privateKey *mldsa.PrivateKey
-	publicKey  *publicKey
 }
 
 func (p *privateKey) Scheme() sign.Scheme { return p.scheme }
@@ -175,10 +172,6 @@ func (p *privateKey) Equal(key crypto.PrivateKey) bool {
 		return false
 	}
 	return hmac.Equal(p.Bytes(), other.Bytes())
-}
-
-func (p *privateKey) Public() crypto.PublicKey {
-	return p.publicKey
 }
 
 func (p *privateKey) Sign(rand io.Reader, digest []byte, opts crypto.SignerOpts) (signature []byte, err error) {
@@ -198,7 +191,6 @@ func (p *privateKey) UnmarshalBinary(b []byte) error {
 		return err
 	}
 	p.privateKey = sk
-	p.publicKey = &publicKey{scheme: p.scheme, publicKey: sk.PublicKey()}
 	return nil
 }
 

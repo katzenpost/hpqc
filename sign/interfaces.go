@@ -65,6 +65,7 @@ import (
 	"crypto"
 	"encoding"
 	"errors"
+	"io"
 )
 
 type SignatureOpts struct {
@@ -85,9 +86,15 @@ type PublicKey interface {
 }
 
 // A private key allows one to create signatures.
+//
+// PrivateKey deliberately does not embed crypto.Signer and has no Public
+// method: a signature scheme need not be able to derive the public key from
+// the private key, so callers keep the public key alongside it.
 type PrivateKey interface {
-	crypto.Signer
 	crypto.PrivateKey
+
+	Sign(rand io.Reader, digest []byte, opts crypto.SignerOpts) ([]byte, error)
+
 	encoding.BinaryMarshaler
 
 	// Returns the signature scheme for this private key.

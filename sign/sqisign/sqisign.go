@@ -80,7 +80,7 @@ func (s *scheme) GenerateKey() (sign.PublicKey, sign.PrivateKey, error) {
 		return nil, nil, err
 	}
 	pk := &publicKey{bytes: pubBytes}
-	sk := &privateKey{bytes: privBytes, publicKey: pk}
+	sk := &privateKey{bytes: privBytes}
 	return pk, sk, nil
 }
 
@@ -145,8 +145,7 @@ func (s *scheme) SeedSize() int         { return KeySeedSize }
 func (s *scheme) SupportsContext() bool { return false }
 
 type privateKey struct {
-	bytes     []byte
-	publicKey *publicKey
+	bytes []byte
 }
 
 func (p *privateKey) Scheme() sign.Scheme { return theScheme }
@@ -159,15 +158,8 @@ func (p *privateKey) Equal(key crypto.PrivateKey) bool {
 	return hmac.Equal(p.bytes, other.bytes)
 }
 
-func (p *privateKey) Public() crypto.PublicKey {
-	if p.publicKey == nil {
-		return nil
-	}
-	return p.publicKey
-}
-
 func (p *privateKey) Sign(rng io.Reader, digest []byte, _ crypto.SignerOpts) ([]byte, error) {
-	// crypto.Signer hands us a randomness source. We honour it: if
+	// Sign is handed a randomness source. We honour it: if
 	// callers pass nil (the common case for hpqc's higher-level
 	// Scheme.Sign) we fall back on hpqc/rand so production callers
 	// never end up reading from crypto/rand's default Reader.
@@ -189,7 +181,6 @@ func (p *privateKey) UnmarshalBinary(b []byte) error {
 	}
 	p.bytes = make([]byte, len(b))
 	copy(p.bytes, b)
-	p.publicKey = nil
 	return nil
 }
 

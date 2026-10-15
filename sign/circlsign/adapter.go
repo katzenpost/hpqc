@@ -66,13 +66,6 @@ func (sk *PrivateKey) Equal(other crypto.PrivateKey) bool {
 	return sk.key.Equal(otherSk.key)
 }
 
-func (sk *PrivateKey) Public() crypto.PublicKey {
-	return &PublicKey{
-		key:    sk.key.Public().(circlSign.PublicKey),
-		scheme: sk.scheme,
-	}
-}
-
 func (sk *PrivateKey) Sign(rand io.Reader, digest []byte, opts crypto.SignerOpts) ([]byte, error) {
 	return sk.key.Sign(rand, digest, opts)
 }
