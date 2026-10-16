@@ -1,0 +1,74 @@
+{
+  "format_version": 1,
+  "generator": "github.com/katzenpost/hpqc/testvectors/cmd/generate",
+  "primitive": "nike_schemes",
+  "description": "Key pairs, shared secrets and blinding for the registered elliptic-curve NIKEs. Private keys are the raw scalars read from a deterministic HKDF stream, unclamped; clamping happens at use. The blinded key is Scheme.Blind(alice public key, blinding factor). Vectors are deterministic.",
+  "vectors": [
+    {
+      "name": "x25519/case_1",
+      "scheme": "x25519",
+      "alice_private_key_hex": "8033b88fbd4cff6ac4bb0b4b55a79f755e7ee696743748fcc5aafb3570728da1",
+      "alice_public_key_hex": "14cd596d6f38b0744fa22c2ebbd4fd2e8f95115555d324ae4b475ba3823c1846",
+      "bob_private_key_hex": "f41ea6f3f15ccae35a3af0ee82224a0ed1cfd9d5395b0700fd5b2f7074891090",
+      "bob_public_key_hex": "24eb9bb0649a091f1153e044a530fb0854fae7042255831771c9809ec911f077",
+      "shared_secret_hex": "09da56123dfa3e752a5d7e5f05d99d1159940037e48204b0c76faa53ef71094f",
+      "blinding_factor_hex": "a458035eb470218ec82373777798b67b1a6e406550aab59ddbca9836f2019ced",
+      "blinded_alice_public_key_hex": "ee0d36cd0f2034996409feac65b1b2a8a12d20bde34a4d86113c73dae13e3e18"
+    },
+    {
+      "name": "x25519/case_2",
+      "scheme": "x25519",
+      "alice_private_key_hex": "ef13f072253e4a4952c82252184d1115ffebb17056a930814de73e4fe14c8144",
+      "alice_public_key_hex": "be929bb1f57be114c0ec4bae7948f62ae99974018724032e44350058b2301566",
+      "bob_private_key_hex": "488faeb6ce3c8a81781bcd35a3a0061884e5e33a13e3e355af52f52796dee24c",
+      "bob_public_key_hex": "fddb9640c551a0280a2442950fb5f77cdd931b96bba9cea178c2ea8ce40a9c32",
+      "shared_secret_hex": "4a55516b7fc2806a78044299efc44b4d50050398b276b04014febd0e88dec56c",
+      "blinding_factor_hex": "7cd5b1bd0cf0d5863a0c6e8ad3f96ae252c4b6f574cebdd1d6aab24163b669e4",
+      "blinded_alice_public_key_hex": "2403ef2fe1c5e345c7620865eb7cebeb17be52b5ba72b6422edeaa8b83355039"
+    },
+    {
+      "name": "x25519/case_3",
+      "scheme": "x25519",
+      "alice_private_key_hex": "eeab9651afc2ef490497d361c80c2ca598f7ecf338703febcd95f65d262a837d",
+      "alice_public_key_hex": "84438f119512a2d1e3264b82e990c20f8d381f9ac26f265ab8a3701b1a3b1441",
+      "bob_private_key_hex": "0173b7632264527d2ac8587d0990d18c5485713f32a5af1f0b321cce36cabe63",
+      "bob_public_key_hex": "6a539f4f9aadb341f0a03d3f8c712ac8699a674e9cd1427f99df01b9a65eac4d",
+      "shared_secret_hex": "ca1c7fdcf033088e5848c63619231a48dd8603144d34dcf3076c496d9999570a",
+      "blinding_factor_hex": "748ebe2b6c19cc9c47d62df00e8ddf694788f8eb6fbfeca54479e252bef34f55",
+      "blinded_alice_public_key_hex": "e6544ca74c30d2952b4497db2d959c0869b53009223ceda39a80dac3f240f700"
+    },
+    {
+      "name": "x448/case_1",
+      "scheme": "x448",
+      "alice_private_key_hex": "4fdb5b2ddc899fddb19484ef9a6e775c575c86827b01ca0c7dcc69c1ae0fd3ce18599ad59e961c6ed8e283ecc2645e9277ac6201691d391c",
+      "alice_public_key_hex": "0a58cea9bcad86459f50d63a85e4eb825d80bcf4ea5c8629f27c49ae24932c054e21f3e15a956a44e7ab8e465e6d714e389b795cc9ddf5b0",
+      "bob_private_key_hex": "5becb88a34f3509859cf3f174936a385c9bdde117b4af874abf96569887f8728861ceda6e456062cb13830ed924d50f982b0be3b5441fdb0",
+      "bob_public_key_hex": "2af52e71c74cbcde7d480989ff4d35ab6f2bf38e93c14919ba696bf8d167d9049bab93e02d8f623bedf133ae854d9ebac0dd1d297d9de128",
+      "shared_secret_hex": "d0b7f74faf32f283db8a2a2d763e6555aa4cc755beaa363095e6bcb180c4c9bba4b62ca743de4fff6dbb682b96879fc4719cdae7da8ff1f9",
+      "blinding_factor_hex": "1cf612818030b89d874aee9fea596c26655814d4a5a1ca16296abac2749c86d0c98f98e3e4cba255896fbd0f1aed43a190ba0fa4840ea98e",
+      "blinded_alice_public_key_hex": "fde7a1e77e933928186b957a571148a4ea6dff5ded6fcb06d497ece39a3d03be6a2da976e9219059be816155623de4ca4eedc236cfaad32e"
+    },
+    {
+      "name": "x448/case_2",
+      "scheme": "x448",
+      "alice_private_key_hex": "733c764ad9d6af42ed2a0c35e47aef4250856960d07fbf0bd409db7ffa8949af6bbd7b3aa1650fdae8357361706ae8d646ad5aeeda2d31f1",
+      "alice_public_key_hex": "97d6151dac7e0595244997fe2590e2db00277923eda59572fca2701acaa05a03f8795289e66da58ec5700b5110e4834042947710a2370080",
+      "bob_private_key_hex": "c638fcea57e0550206ad874e7ad5c19bc4e7727346eea1831ab95bfb9239a79f79d59b15f5399c17b183558f0ed235a853824dd0b18a12da",
+      "bob_public_key_hex": "0cf587c89fb942b9715b72ae43e712b6f1d7405a1fb8ee97d9ba96872c82669fcf8df1d51660d42e8bac3dd1bd01b98f6b41498a38413ffa",
+      "shared_secret_hex": "323620d3a2666f907e5ec065db48132eea0237270ac429f622bcad934a78a24e94ce4364b3de403b77710846ba6ca54a5e1fc08ab1a71b82",
+      "blinding_factor_hex": "765c3db55e71e06fdae6f9c095a1a17eae3f999bfacec69dd6d16da2bfc8bac49e674cd41f1df41395f5567dd8653598826dd064ebc7d277",
+      "blinded_alice_public_key_hex": "f0743a5146e37cb1171acddad543f52b72c28f2d73123f148f0fd969524544d843d7505114cef2c12ef786919d73e905400f823cf3a519e9"
+    },
+    {
+      "name": "x448/case_3",
+      "scheme": "x448",
+      "alice_private_key_hex": "232486f2b5b3619df422ace556f994d0bf07fe47d861d3b275f8c417c81691354dfb28d318d4261f8823bb90837a805277d81a7dde396e84",
+      "alice_public_key_hex": "777463fc52c506f156d310924f10756408f95085716b51d585e2861c6916bbb2c3a31b4524151e3532b5de1e7131ca106ffa38e9c2a7d61d",
+      "bob_private_key_hex": "772ea67d81bea27a2d37f6054e4d768968c406a565f14a3515a4cc79023a426d60f9ffee8a8aaf9354e2c0a4f86d84f174d6db7bdbefa3ea",
+      "bob_public_key_hex": "575fea838d9fb5ac0b0f2c0ed932be0e3a22c3e2c37bf81e884caafe0ede31d4ba5ff6fe27165b5f1af802773a6becb583576267dfc6cfed",
+      "shared_secret_hex": "65921fb110cef42c51d778eed8ac81c41d646f4572bd310060662ca37203effbe8092b31db2f8a4f5531067ab24d6c96ac6e9a16940060c8",
+      "blinding_factor_hex": "24f0d43ec10e93384549ad6fe0be83c796b54c3df9e058661691bbbb4b5e95710eb6ac939f230e3ff84bf05c4eef566ff483e198396acac0",
+      "blinded_alice_public_key_hex": "ae560d6a17f89be16d3c655f5c405a16f001fd83359ffdd03a2dff38865cdc72c2c9f3adbfac719e2e41d381caa0d72e0f0d29aafdbb4609"
+    }
+  ]
+}
