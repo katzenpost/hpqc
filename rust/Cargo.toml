@@ -1,0 +1,28 @@
+[package]
+name = "hpqc"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-only"
+description = "Hybrid post-quantum cryptography: composable KEM, NIKE and signature schemes"
+repository = "https://github.com/katzenpost/hpqc"
+readme = "README.md"
+keywords = ["cryptography", "post-quantum", "kem", "hybrid", "signature"]
+categories = ["cryptography"]
+
+[dependencies]
+blake2b_simd = "1.0.5"
+ed25519-dalek = "3.0.0"
+ml-dsa = { version = "0.1.1", features = ["zeroize"] }
+ml-kem = { version = "0.3.2", features = ["zeroize"] }
+rand_core = "0.10"
+sha2 = "0.11.1"
+subtle = "2.6.1"
+x25519-dalek = { version = "3.0.0", features = ["static_secrets"] }
+x448 = { version = "0.14.0-pre.12", features = ["static_secrets"] }
+zeroize = "1.9.1"
+
+[dev-dependencies]
+getrandom = { version = "0.4", features = ["sys_rng"] }
+hex = "0.4.3"
+ml-dsa = "0.1.1"
+serde_json = "1.0.154"
