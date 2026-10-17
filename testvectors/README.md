@@ -36,8 +36,9 @@ testvectors/
 │   ├── mlkem{512,1024}_{keygen,encapdecap,keycheck}.json
 │   │                           #   NIST ACVP, copied from CryptWalker; 768 is in kem/mlkem768/testdata
 │   ├── mlkem768_hedged.json    #   hedged ML-KEM-768, from Go
-│   └── lean_mlkem{512,1024}_hedged_vectors.json
-│                               #   hedged ML-KEM-512/1024, from CryptWalker
+│   ├── lean_mlkem{512,1024}_hedged_vectors.json
+│   │                           #   hedged ML-KEM-512/1024, from CryptWalker
+│   └── mceliece.json           #   Classic McEliece key derivation and decapsulation
 ├── nike/schemes.json           # X25519 and X448 keys, secrets and blinding
 ├── sign/schemes.json           # key derivation and signatures of the registered signature schemes
 └── cmd/

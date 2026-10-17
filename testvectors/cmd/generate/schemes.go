@@ -1,10 +1,13 @@
 package main
 
 import (
+	"crypto/sha256"
 	"encoding/hex"
 
 	"filippo.io/mldsa"
+	circlschemes "github.com/katzenpost/circl/kem/schemes"
 
+	kemschemes "github.com/katzenpost/hpqc/kem/schemes"
 	"github.com/katzenpost/hpqc/nike"
 	nikeschemes "github.com/katzenpost/hpqc/nike/schemes"
 	"github.com/katzenpost/hpqc/sign/ed25519"
@@ -145,6 +148,71 @@ func genNIKESchemes() vectorFile {
 			"Private keys are the raw scalars read from a deterministic HKDF stream, unclamped; " +
 			"clamping happens at use. The blinded key is Scheme.Blind(alice public key, blinding " +
 			"factor). Vectors are deterministic.",
+		Vectors: vs,
+	}
+}
+
+type mcelieceVector struct {
+	Name             string `json:"name"`
+	Scheme           string `json:"scheme"`
+	SeedHex          string `json:"seed_hex"`
+	PublicKeySHA256  string `json:"public_key_sha256_hex"`
+	PrivateKeySHA256 string `json:"private_key_sha256_hex"`
+	CiphertextHex    string `json:"ciphertext_hex"`
+	SharedSecretHex  string `json:"shared_secret_hex"`
+}
+
+func sha256Hex(b []byte) string {
+	h := sha256.Sum256(b)
+	return hex.EncodeToString(h[:])
+}
+
+func genMcEliece() vectorFile {
+	names := []string{
+		"mceliece348864", "mceliece348864f", "mceliece460896", "mceliece460896f",
+		"mceliece6688128", "mceliece6688128f", "mceliece6960119", "mceliece6960119f",
+		"mceliece8192128", "mceliece8192128f",
+	}
+	var vs []mcelieceVector
+	for _, name := range names {
+		scheme := kemschemes.ByName(name)
+		seed := deterministicBytes("mceliece_seed", name, scheme.SeedSize())
+		pk, sk := scheme.DeriveKeyPair(seed)
+		pkb, err := pk.MarshalBinary()
+		must(err)
+		skb, err := sk.MarshalBinary()
+		must(err)
+
+		circl := circlschemes.ByName(name)
+		cpk, err := circl.UnmarshalBinaryPublicKey(pkb)
+		must(err)
+		eseed := deterministicBytes("mceliece_encapsulation_seed", name, circl.EncapsulationSeedSize())
+		ct, ss, err := circl.EncapsulateDeterministically(cpk, eseed)
+		must(err)
+		ss2, err := scheme.Decapsulate(sk, ct)
+		must(err)
+		if hex.EncodeToString(ss) != hex.EncodeToString(ss2) {
+			panic("mceliece vector " + name + ": decapsulation mismatch")
+		}
+		vs = append(vs, mcelieceVector{
+			Name:             name,
+			Scheme:           name,
+			SeedHex:          hex.EncodeToString(seed),
+			PublicKeySHA256:  sha256Hex(pkb),
+			PrivateKeySHA256: sha256Hex(skb),
+			CiphertextHex:    hex.EncodeToString(ct),
+			SharedSecretHex:  hex.EncodeToString(ss),
+		})
+	}
+	return vectorFile{
+		FormatVersion: formatVersion,
+		Generator:     generatorName,
+		Primitive:     "mceliece",
+		Description: "Classic McEliece key derivation, encodings and decapsulation. The keys are " +
+			"kem.Scheme.DeriveKeyPair(seed) of the named scheme, encoded with MarshalBinary; the " +
+			"public and private keys are recorded as SHA-256 digests of those encodings because " +
+			"they are large. The ciphertext and shared secret come from circl's " +
+			"EncapsulateDeterministically with a fixed encapsulation seed. Vectors are deterministic.",
 		Vectors: vs,
 	}
 }

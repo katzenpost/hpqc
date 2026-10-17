@@ -92,6 +92,7 @@ func main() {
 	writeFile(*out, "kem/adapter_test_vectors.json", genKEMAdapter())
 	writeFile(*out, "kem/mlkem768_x25519_combiner.json", genKEMHybridCombiner())
 	writeFile(*out, "kem/mlkem768_hedged.json", genMLKEMHedged768())
+	writeFile(*out, "kem/mceliece.json", genMcEliece())
 
 	writeFile(*out, "nike/schemes.json", genNIKESchemes())
 	writeFile(*out, "sign/schemes.json", genSignSchemes())
