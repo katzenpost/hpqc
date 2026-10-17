@@ -2,6 +2,7 @@
 
 pub mod adapter;
 pub mod combiner;
+pub mod mceliece;
 pub mod mlkem;
 pub mod schemes;
 

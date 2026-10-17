@@ -38,3 +38,7 @@ pub fn str<'a>(v: &'a Value, field: &str) -> &'a str {
         .as_str()
         .unwrap_or_else(|| panic!("missing {field}"))
 }
+
+pub fn rng() -> impl hpqc::rand_core::CryptoRng {
+    hpqc::rand_core::UnwrapErr(getrandom::SysRng)
+}

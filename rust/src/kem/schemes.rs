@@ -5,6 +5,7 @@ use std::sync::{Arc, LazyLock};
 use super::Scheme;
 use super::adapter::NikeKem;
 use super::combiner::Combiner;
+use super::mceliece::{Algorithm, McEliece};
 use super::mlkem::{MlKem512, MlKem768, MlKem1024};
 use crate::nike::{x448::X448, x25519::X25519};
 
@@ -13,7 +14,24 @@ static SCHEMES: LazyLock<Vec<Arc<dyn Scheme>>> = LazyLock::new(|| {
     let x448: Arc<dyn Scheme> = Arc::new(NikeKem::new(Arc::new(X448)));
     let mlkem768: Arc<dyn Scheme> = Arc::new(MlKem768::new());
     let mlkem768_hedged: Arc<dyn Scheme> = Arc::new(MlKem768::hedged());
-    vec![
+    let mceliece = [
+        Algorithm::McEliece348864,
+        Algorithm::McEliece348864f,
+        Algorithm::McEliece460896,
+        Algorithm::McEliece460896f,
+        Algorithm::McEliece6688128,
+        Algorithm::McEliece6688128f,
+        Algorithm::McEliece6960119,
+        Algorithm::McEliece6960119f,
+        Algorithm::McEliece8192128,
+        Algorithm::McEliece8192128f,
+    ]
+    .map(|a| -> Arc<dyn Scheme> { Arc::new(McEliece::new(a)) });
+    let mceliece_x25519 = mceliece.clone().map(|m| {
+        let name = format!("{}-X25519", m.name());
+        combiner(&name, vec![x25519.clone(), m])
+    });
+    let mut schemes = vec![
         x25519.clone(),
         x448.clone(),
         Arc::new(MlKem512::new()),
@@ -25,7 +43,10 @@ static SCHEMES: LazyLock<Vec<Arc<dyn Scheme>>> = LazyLock::new(|| {
         combiner("MLKEM768-X25519", vec![x25519.clone(), mlkem768.clone()]),
         combiner("MLKEMHedged768-X25519", vec![x25519, mlkem768_hedged]),
         combiner("MLKEM768-X448", vec![x448, mlkem768]),
-    ]
+    ];
+    schemes.extend(mceliece);
+    schemes.extend(mceliece_x25519);
+    schemes
 });
 
 fn combiner(name: &str, schemes: Vec<Arc<dyn Scheme>>) -> Arc<dyn Scheme> {
