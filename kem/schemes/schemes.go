@@ -139,10 +139,10 @@ var allSchemes = []kem.Scheme{
 		},
 	),
 	mustCombine(
-		"MLKEM768-X448",
+		"MLKEM1024-X448",
 		[]kem.Scheme{
 			adapter.FromNIKE(x448.Scheme(rand.Reader)),
-			mlkem768.Scheme(),
+			mlkem.Scheme1024(),
 		},
 	),
 
