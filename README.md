@@ -511,8 +511,11 @@ __________
 
 | Primitive | HPQC name | security |
 |  --------  |  -------  | -------  | 
+| ML-KEM-512| "MLKEM512" | post-quantum |
 | ML-KEM-768| "MLKEM768" | post-quantum |
+| ML-KEM-1024| "MLKEM1024" | post-quantum |
 | ML-KEM-768 with round-3 Kyber's m ← H(m) pre-hash restored, hedging against a weak RNG; matches [CryptWalker](https://github.com/katzenpost/CryptWalker)'s verified `MLKEMHedged768`. Not FIPS 203. | "MLKEMHedged768" | post-quantum |
+| Hedged ML-KEM-512 and ML-KEM-1024, as above | "MLKEMHedged512", "MLKEMHedged1024" | post-quantum |
 | XWING is a hybrid primitive that pre-combines ML-KEM-768 and X25519. Due to [security properties](https://eprint.iacr.org/2018/024) of our combiner, we also implement our own combination of the two below.| "XWING" | hybrid |
 | The sntrup4591761 version of the NTRU cryptosystem. | "sntrup4591761" | post-quantum |
 | FrodoKEM-640-SHAKE |"FrodoKEM-640-SHAKE"| post-quantum|
@@ -520,7 +523,8 @@ __________
 | The HQC code-based cryptosystem, in its three NIST parameter sets | "HQC-128", "HQC-192", "HQC-256" | post-quantum |
 |A hybrid of ML-KEM-768 and X25519. The [KEM Combiners paper](https://eprint.iacr.org/2018/024.pdf) is the reason we implemented our own combination in addition to including XWING. |"MLKEM768-X25519"| hybrid |
 |A hybrid of hedged ML-KEM-768 and X25519|"MLKEMHedged768-X25519"| hybrid |
-|A hybrid of ML-KEM-768 and X448|"MLKEM768-X448"| hybrid |
+|Hybrids of ML-KEM-512 and ML-KEM-1024, standard and hedged, with X25519|"MLKEM512-X25519", "MLKEMHedged512-X25519", "MLKEM1024-X25519", "MLKEMHedged1024-X25519"| hybrid |
+|A hybrid of ML-KEM-1024 and X448|"MLKEM1024-X448"| hybrid |
 |A hybrid of FrodoKEM-640-SHAKE and X448|"FrodoKEM-640-SHAKE-X448"| hybrid |
 |A hybrid of NTRU and X448| "sntrup4591761-X448"| hybrid |
 |Hybrids of the McEliece primitives and X25519| "mceliece348864-X25519", "mceliece348864f-X25519", "mceliece460896-X25519", "mceliece460896f-X25519", "mceliece6688128-X25519", "mceliece6688128f-X25519", "mceliece6960119-X25519", "mceliece6960119f-X25519", "mceliece8192128-X25519", "mceliece8192128f-X25519" | hybrid|

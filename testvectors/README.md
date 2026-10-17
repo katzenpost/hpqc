@@ -5,9 +5,9 @@ SPDX-License-Identifier: AGPL-3.0-only
 
 # Shared cryptographic test vectors
 
-This directory holds test vectors that are read by **both** the Go and the
-Python implementations of `hpqc`. The intention is to ensure byte-for-byte
-agreement between the two ports without copy-pasting hex literals into source
+This directory holds test vectors that are read by the Go, Python and Rust
+implementations of `hpqc`. The intention is to ensure byte-for-byte
+agreement between the ports without copy-pasting hex literals into source
 files.
 
 ## Layout
@@ -33,6 +33,14 @@ testvectors/
 │   ├── negative.json           #   inputs every implementation must reject
 │   └── bundle.json             #   all of the above plus the primitives, in one file
 ├── kem/                        # KEM vectors
+│   ├── mlkem{512,1024}_{keygen,encapdecap,keycheck}.json
+│   │                           #   NIST ACVP, copied from CryptWalker; 768 is in kem/mlkem768/testdata
+│   ├── mlkem768_hedged.json    #   hedged ML-KEM-768, from Go
+│   ├── lean_mlkem{512,1024}_hedged_vectors.json
+│   │                           #   hedged ML-KEM-512/1024, from CryptWalker
+│   └── mceliece.json           #   Classic McEliece key derivation and decapsulation
+├── nike/schemes.json           # X25519 and X448 keys, secrets and blinding
+├── sign/schemes.json           # key derivation and signatures of the registered signature schemes
 └── cmd/
     └── generate/               # Go program that emits the JSON files
 ```

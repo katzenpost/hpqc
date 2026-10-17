@@ -71,6 +71,8 @@ func main() {
 	must(os.MkdirAll(filepath.Join(*out, "primitives"), 0o755))
 	must(os.MkdirAll(filepath.Join(*out, "bacap"), 0o755))
 	must(os.MkdirAll(filepath.Join(*out, "kem"), 0o755))
+	must(os.MkdirAll(filepath.Join(*out, "nike"), 0o755))
+	must(os.MkdirAll(filepath.Join(*out, "sign"), 0o755))
 
 	writeFile(*out, "primitives/sha512_256.json", genSHA512_256())
 	writeFile(*out, "primitives/blake2b_512.json", genBLAKE2b512())
@@ -90,6 +92,10 @@ func main() {
 	writeFile(*out, "kem/adapter_test_vectors.json", genKEMAdapter())
 	writeFile(*out, "kem/mlkem768_x25519_combiner.json", genKEMHybridCombiner())
 	writeFile(*out, "kem/mlkem768_hedged.json", genMLKEMHedged768())
+	writeFile(*out, "kem/mceliece.json", genMcEliece())
+
+	writeFile(*out, "nike/schemes.json", genNIKESchemes())
+	writeFile(*out, "sign/schemes.json", genSignSchemes())
 
 	fmt.Println("ok")
 }

@@ -23,6 +23,7 @@ import (
 	"github.com/katzenpost/hpqc/kem/circlkem"
 	"github.com/katzenpost/hpqc/kem/combiner"
 	"github.com/katzenpost/hpqc/kem/hqc"
+	"github.com/katzenpost/hpqc/kem/mlkem"
 	"github.com/katzenpost/hpqc/kem/mlkem768"
 	"github.com/katzenpost/hpqc/kem/sntrup"
 	"github.com/katzenpost/hpqc/kem/xwing"
@@ -86,8 +87,12 @@ var allSchemes = []kem.Scheme{
 
 	// post quantum KEM schemes
 
+	mlkem.Scheme512(),
+	mlkem.SchemeHedged512(),
 	mlkem768.Scheme(),
 	mlkem768.SchemeHedged(),
+	mlkem.Scheme1024(),
+	mlkem.SchemeHedged1024(),
 	sntrup.Scheme(),
 	hqc.Scheme128(),
 	hqc.Scheme192(),
@@ -120,6 +125,20 @@ var allSchemes = []kem.Scheme{
 	// If Xwing is not the PQ Hybrid KEM you are looking for then we recommend
 	// using our secure generic KEM combiner:
 	mustCombine(
+		"MLKEM512-X25519",
+		[]kem.Scheme{
+			adapter.FromNIKE(x25519.Scheme(rand.Reader)),
+			mlkem.Scheme512(),
+		},
+	),
+	mustCombine(
+		"MLKEMHedged512-X25519",
+		[]kem.Scheme{
+			adapter.FromNIKE(x25519.Scheme(rand.Reader)),
+			mlkem.SchemeHedged512(),
+		},
+	),
+	mustCombine(
 		"MLKEM768-X25519",
 		[]kem.Scheme{
 			adapter.FromNIKE(x25519.Scheme(rand.Reader)),
@@ -134,10 +153,24 @@ var allSchemes = []kem.Scheme{
 		},
 	),
 	mustCombine(
-		"MLKEM768-X448",
+		"MLKEM1024-X25519",
+		[]kem.Scheme{
+			adapter.FromNIKE(x25519.Scheme(rand.Reader)),
+			mlkem.Scheme1024(),
+		},
+	),
+	mustCombine(
+		"MLKEMHedged1024-X25519",
+		[]kem.Scheme{
+			adapter.FromNIKE(x25519.Scheme(rand.Reader)),
+			mlkem.SchemeHedged1024(),
+		},
+	),
+	mustCombine(
+		"MLKEM1024-X448",
 		[]kem.Scheme{
 			adapter.FromNIKE(x448.Scheme(rand.Reader)),
-			mlkem768.Scheme(),
+			mlkem.Scheme1024(),
 		},
 	),
 
