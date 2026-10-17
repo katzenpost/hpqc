@@ -14,6 +14,7 @@ static SCHEMES: LazyLock<Vec<Arc<dyn Scheme>>> = LazyLock::new(|| {
     let x448: Arc<dyn Scheme> = Arc::new(NikeKem::new(Arc::new(X448)));
     let mlkem768: Arc<dyn Scheme> = Arc::new(MlKem768::new());
     let mlkem768_hedged: Arc<dyn Scheme> = Arc::new(MlKem768::hedged());
+    let mlkem1024: Arc<dyn Scheme> = Arc::new(MlKem1024::new());
     let mceliece = [
         Algorithm::McEliece348864,
         Algorithm::McEliece348864f,
@@ -36,13 +37,13 @@ static SCHEMES: LazyLock<Vec<Arc<dyn Scheme>>> = LazyLock::new(|| {
         x448.clone(),
         Arc::new(MlKem512::new()),
         mlkem768.clone(),
-        Arc::new(MlKem1024::new()),
+        mlkem1024.clone(),
         Arc::new(MlKem512::hedged()),
         mlkem768_hedged.clone(),
         Arc::new(MlKem1024::hedged()),
         combiner("MLKEM768-X25519", vec![x25519.clone(), mlkem768.clone()]),
         combiner("MLKEMHedged768-X25519", vec![x25519, mlkem768_hedged]),
-        combiner("MLKEM768-X448", vec![x448, mlkem768]),
+        combiner("MLKEM1024-X448", vec![x448, mlkem1024]),
     ];
     schemes.extend(mceliece);
     schemes.extend(mceliece_x25519);
