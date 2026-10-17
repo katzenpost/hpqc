@@ -62,7 +62,9 @@ impl super::Scheme for Ed25519 {
     fn derive_key(&self, seed: &[u8]) -> Result<Box<dyn super::PrivateKey>> {
         check_len(seed, 32)?;
         let mut secret = Zeroizing::new([0; 32]);
-        Blake2Xb::new(None, seed)?.finalize_xof().read(&mut *secret);
+        Blake2Xb::new(None, seed)?
+            .finalize_xof()
+            .read(&mut *secret)?;
         Ok(Box::new(PrivateKey(SigningKey::from_bytes(&secret))))
     }
 

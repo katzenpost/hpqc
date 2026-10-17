@@ -35,8 +35,9 @@ pub trait Scheme: Send + Sync {
 
     fn private_key_from_bytes(&self, bytes: &[u8]) -> Result<Box<dyn PrivateKey>>;
 
-    /// Computes the shared secret. A low-order public key yields the
-    /// all-zero secret rather than an error, as in RFC 7748.
+    /// Computes the shared secret, failing with
+    /// [`LowOrderPoint`](crate::Error::LowOrderPoint) when a low-order
+    /// public key would make it all zeros.
     fn shared_secret(
         &self,
         private_key: &dyn PrivateKey,

@@ -1,5 +1,3 @@
-use std::convert::Infallible;
-
 use blake2b_simd::{Params, State};
 use rand_core::{TryCryptoRng, TryRng};
 use zeroize::Zeroize;
@@ -67,7 +65,7 @@ impl Blake2Xb {
 }
 
 /// The output stream of a [`Blake2Xb`]. It doubles as a deterministic
-/// [`rand_core::CryptoRng`], for deriving keys from a seed.
+/// [`rand_core::TryCryptoRng`], for deriving keys from a seed.
 pub struct Blake2XbReader {
     root: [u8; BLOCK],
     block: [u8; BLOCK],
@@ -79,15 +77,12 @@ pub struct Blake2XbReader {
 }
 
 impl Blake2XbReader {
-    /// Fills `out` with the next bytes of output.
-    ///
-    /// # Panics
-    /// If `out` reaches past the declared output length.
-    pub fn read(&mut self, mut out: &mut [u8]) {
-        assert!(
-            out.len() as u64 <= self.remaining,
-            "read past end of BLAKE2Xb output"
-        );
+    /// Fills `out` with the next bytes of output, failing without reading
+    /// if `out` reaches past the declared output length.
+    pub fn read(&mut self, mut out: &mut [u8]) -> Result<()> {
+        if out.len() as u64 > self.remaining {
+            return Err(Error::InvalidInput("read past end of BLAKE2Xb output"));
+        }
         self.remaining -= out.len() as u64;
         while !out.is_empty() {
             if self.offset == 0 {
@@ -99,6 +94,7 @@ impl Blake2XbReader {
             self.offset = (self.offset + n) % BLOCK;
             out = tail;
         }
+        Ok(())
     }
 
     fn next_block(&mut self) {
@@ -112,7 +108,7 @@ impl Blake2XbReader {
             .inner_hash_length(BLOCK)
             .hash(&self.root);
         self.block[..len].copy_from_slice(hash.as_bytes());
-        self.node += 1;
+        self.node = self.node.wrapping_add(1);
     }
 }
 
@@ -124,23 +120,22 @@ impl Drop for Blake2XbReader {
 }
 
 impl TryRng for Blake2XbReader {
-    type Error = Infallible;
+    type Error = Error;
 
-    fn try_next_u32(&mut self) -> std::result::Result<u32, Infallible> {
+    fn try_next_u32(&mut self) -> Result<u32> {
         let mut b = [0; 4];
-        self.read(&mut b);
+        self.read(&mut b)?;
         Ok(u32::from_le_bytes(b))
     }
 
-    fn try_next_u64(&mut self) -> std::result::Result<u64, Infallible> {
+    fn try_next_u64(&mut self) -> Result<u64> {
         let mut b = [0; 8];
-        self.read(&mut b);
+        self.read(&mut b)?;
         Ok(u64::from_le_bytes(b))
     }
 
-    fn try_fill_bytes(&mut self, dst: &mut [u8]) -> std::result::Result<(), Infallible> {
-        self.read(dst);
-        Ok(())
+    fn try_fill_bytes(&mut self, dst: &mut [u8]) -> Result<()> {
+        self.read(dst)
     }
 }
 
@@ -158,22 +153,32 @@ mod tests {
             x.finalize_xof()
         };
         let mut whole = [0; 200];
-        xof().read(&mut whole);
+        xof().read(&mut whole).unwrap();
 
         let mut chunked = [0; 200];
         let mut reader = xof();
         let mut start = 0;
         for len in [1, 63, 64, 5, 67] {
-            reader.read(&mut chunked[start..start + len]);
+            reader.read(&mut chunked[start..start + len]).unwrap();
             start += len;
         }
         assert_eq!(whole, chunked);
     }
 
     #[test]
-    #[should_panic(expected = "read past end")]
-    fn reading_past_the_end_panics() {
+    fn reading_past_the_end_fails() {
         let mut reader = Blake2Xb::new(Some(10), &[]).unwrap().finalize_xof();
-        reader.read(&mut [0; 11]);
+        assert!(matches!(
+            reader.read(&mut [0; 11]),
+            Err(Error::InvalidInput(_))
+        ));
+        let mut out = [0; 10];
+        reader.read(&mut out).unwrap();
+        assert!(reader.read(&mut [0; 1]).is_err());
+    }
+
+    #[test]
+    fn rejects_long_key() {
+        assert!(Blake2Xb::new(None, &[0; 65]).is_err());
     }
 }

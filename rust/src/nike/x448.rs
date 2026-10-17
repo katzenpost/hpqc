@@ -74,7 +74,7 @@ impl super::Scheme for X448 {
     ) -> Result<SecretBytes> {
         let sk: &PrivateKey = downcast(private_key)?;
         let pk: &PublicKey = downcast(public_key)?;
-        Ok(Zeroizing::new(x448_unchecked(sk.0, pk.0).to_vec()))
+        Ok(Zeroizing::new(dh(sk, pk)?.to_vec()))
     }
 
     fn blind(
@@ -84,11 +84,18 @@ impl super::Scheme for X448 {
     ) -> Result<Box<dyn super::PublicKey>> {
         let pk: &PublicKey = downcast(public_key)?;
         let factor: &PrivateKey = downcast(factor)?;
-        let point = x448_unchecked(factor.0, pk.0);
-        if ct_is_zero(&point) {
-            return Err(Error::LowOrderPoint);
-        }
-        Ok(Box::new(PublicKey(point)))
+        Ok(Box::new(PublicKey(*dh(factor, pk)?)))
+    }
+}
+
+/// Checks the output rather than using `x448::x448`, whose low-order check
+/// misses non-canonical encodings such as `p`.
+fn dh(sk: &PrivateKey, pk: &PublicKey) -> Result<Zeroizing<[u8; 56]>> {
+    let out = Zeroizing::new(x448_unchecked(sk.0, pk.0));
+    if ct_is_zero(&*out) {
+        Err(Error::LowOrderPoint)
+    } else {
+        Ok(out)
     }
 }
 
@@ -122,10 +129,24 @@ mod tests {
     }
 
     #[test]
-    fn low_order_point() {
+    fn low_order_points() {
         let sk = X448.generate_key(&mut crate::util::rng());
-        let zero = X448.public_key_from_bytes(&[0; 56]).unwrap();
-        assert!(ct_is_zero(&X448.shared_secret(&*sk, &*zero).unwrap()));
-        assert_eq!(X448.blind(&*zero, &*sk).unwrap_err(), Error::LowOrderPoint);
+        let mut p = [0xff; 56];
+        p[28] = 0xfe;
+        let mut p_minus_one = p;
+        p_minus_one[0] = 0xfe;
+        let mut one = [0; 56];
+        one[0] = 1;
+        let mut p_plus_one = [0xff; 56];
+        p_plus_one[..28].fill(0);
+        assert!(x448::x448([1; 56], p).is_some(), "x448 crate misses p");
+        for point in [[0; 56], one, p_minus_one, p, p_plus_one] {
+            let pk = X448.public_key_from_bytes(&point).unwrap();
+            assert_eq!(
+                X448.shared_secret(&*sk, &*pk).unwrap_err(),
+                Error::LowOrderPoint
+            );
+            assert_eq!(X448.blind(&*pk, &*sk).unwrap_err(), Error::LowOrderPoint);
+        }
     }
 }

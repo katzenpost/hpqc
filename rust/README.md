@@ -34,7 +34,8 @@ use hpqc::nike::x448::X448;
 let kem = Combiner::new(
     "MLKEM768-X448",
     vec![Arc::new(NikeKem::new(Arc::new(X448))), Arc::new(MlKem768)],
-);
+)?;
+# Ok::<(), hpqc::Error>(())
 ```
 
 Encodings are byte compatible with the Go reference implementation,

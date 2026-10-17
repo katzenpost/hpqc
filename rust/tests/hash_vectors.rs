@@ -8,7 +8,7 @@ fn blake2b_256_matches_go() {
         return;
     };
     for c in common::cases(&v) {
-        let digest = blake2b_256(&common::hex(c, "key_hex"), &common::hex(c, "msg_hex"));
+        let digest = blake2b_256(&common::hex(c, "key_hex"), &common::hex(c, "msg_hex")).unwrap();
         assert_eq!(
             digest.to_vec(),
             common::hex(c, "digest_hex"),
@@ -31,7 +31,7 @@ fn blake2xb_matches_go() {
         let mut xof = Blake2Xb::new(size, &common::hex(c, "key_hex")).unwrap();
         xof.update(&common::hex(c, "msg_hex"));
         let mut out = vec![0; c["length"].as_u64().unwrap() as usize];
-        xof.finalize_xof().read(&mut out);
+        xof.finalize_xof().read(&mut out).unwrap();
         assert_eq!(out, common::hex(c, "out_hex"), "{}", common::str(c, "name"));
     }
 }

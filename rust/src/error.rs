@@ -13,6 +13,7 @@ pub enum Error {
     /// A Diffie-Hellman operation produced the all-zero output.
     LowOrderPoint,
     InvalidSignature,
+    InvalidInput(&'static str),
     Unsupported(&'static str),
 }
 
@@ -26,6 +27,7 @@ impl fmt::Display for Error {
             Error::InvalidKey => f.write_str("invalid key"),
             Error::LowOrderPoint => f.write_str("low order point"),
             Error::InvalidSignature => f.write_str("invalid signature"),
+            Error::InvalidInput(what) => write!(f, "invalid input: {what}"),
             Error::Unsupported(what) => write!(f, "unsupported: {what}"),
         }
     }

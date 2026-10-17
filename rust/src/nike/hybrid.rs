@@ -1,6 +1,6 @@
 //! Runs two NIKEs side by side. Keys and shared secrets are the
-//! concatenation of their halves; the secret is all zeros if either half
-//! is.
+//! concatenation of their halves, and a low-order point in either half is
+//! an error.
 
 use std::sync::Arc;
 
@@ -8,7 +8,7 @@ use rand_core::CryptoRng;
 use zeroize::Zeroizing;
 
 use super::Scheme;
-use crate::util::{ct_is_zero, downcast, split};
+use crate::util::{downcast, split};
 use crate::{Result, SecretBytes};
 
 pub struct Hybrid {
@@ -37,14 +37,34 @@ impl Hybrid {
 
 #[derive(Debug)]
 pub struct PublicKey {
-    pub first: Box<dyn super::PublicKey>,
-    pub second: Box<dyn super::PublicKey>,
+    first: Box<dyn super::PublicKey>,
+    second: Box<dyn super::PublicKey>,
+}
+
+impl PublicKey {
+    pub fn first(&self) -> &dyn super::PublicKey {
+        &*self.first
+    }
+
+    pub fn second(&self) -> &dyn super::PublicKey {
+        &*self.second
+    }
 }
 
 #[derive(Debug)]
 pub struct PrivateKey {
-    pub first: Box<dyn super::PrivateKey>,
-    pub second: Box<dyn super::PrivateKey>,
+    first: Box<dyn super::PrivateKey>,
+    second: Box<dyn super::PrivateKey>,
+}
+
+impl PrivateKey {
+    pub fn first(&self) -> &dyn super::PrivateKey {
+        &*self.first
+    }
+
+    pub fn second(&self) -> &dyn super::PrivateKey {
+        &*self.second
+    }
 }
 
 impl super::PublicKey for PublicKey {
@@ -120,11 +140,7 @@ impl Scheme for Hybrid {
         let pk: &PublicKey = downcast(public_key)?;
         let first = self.first.shared_secret(&*sk.first, &*pk.first)?;
         let second = self.second.shared_secret(&*sk.second, &*pk.second)?;
-        let mut secret = Zeroizing::new([first.as_slice(), &second].concat());
-        if ct_is_zero(&first) | ct_is_zero(&second) {
-            secret.fill(0);
-        }
-        Ok(secret)
+        Ok(Zeroizing::new([first.as_slice(), &second].concat()))
     }
 
     fn blind(
@@ -183,17 +199,19 @@ mod tests {
     }
 
     #[test]
-    fn degenerate_half_zeroes_secret() {
+    fn low_order_half_is_rejected() {
         let rng = &mut crate::util::rng();
         let hybrid = x25519_x448();
-        let mut bytes = hybrid.generate_key(rng).public_key().to_bytes();
-        bytes[..32].fill(0);
-        let pk = hybrid.public_key_from_bytes(&bytes).unwrap();
-        let secret = hybrid
-            .shared_secret(&*hybrid.generate_key(rng), &*pk)
-            .unwrap();
-        assert_eq!(secret.len(), 32 + 56);
-        assert!(ct_is_zero(&secret));
+        let sk = hybrid.generate_key(rng);
+        for range in [0..32, 32..88] {
+            let mut bytes = hybrid.generate_key(rng).public_key().to_bytes();
+            bytes[range].fill(0);
+            let pk = hybrid.public_key_from_bytes(&bytes).unwrap();
+            assert_eq!(
+                hybrid.shared_secret(&*sk, &*pk).unwrap_err(),
+                Error::LowOrderPoint
+            );
+        }
     }
 
     #[test]

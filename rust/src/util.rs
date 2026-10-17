@@ -40,6 +40,11 @@ pub(crate) fn split(bytes: &[u8], sizes: impl IntoIterator<Item = usize>) -> Res
         .collect())
 }
 
+/// The length of `bytes` as a `u32` length prefix.
+pub(crate) fn len_u32(bytes: &[u8]) -> Result<u32> {
+    u32::try_from(bytes.len()).map_err(|_| Error::InvalidInput("input longer than 4 GiB"))
+}
+
 pub(crate) fn ct_is_zero(bytes: &[u8]) -> bool {
     bytes.iter().fold(0, |acc, b| acc | b).ct_eq(&0).into()
 }

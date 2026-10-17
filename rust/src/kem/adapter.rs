@@ -5,14 +5,14 @@
 
 use std::sync::Arc;
 
-use rand_core::CryptoRng;
+use rand_core::{CryptoRng, UnwrapErr};
 use sha2::{Digest, Sha256};
 use zeroize::Zeroizing;
 
 use super::Scheme as _;
 use crate::hash::{Blake2Xb, blake2b_256};
 use crate::nike;
-use crate::util::{check_len, ct_is_zero, downcast};
+use crate::util::{check_len, ct_is_zero, downcast, len_u32};
 use crate::{Error, Result, SecretBytes};
 
 /// How the shared secret is derived from the Diffie-Hellman output.
@@ -44,14 +44,14 @@ impl Prf {
                 let key = if dh.len() == 32 {
                     dh
                 } else {
-                    hashed = Zeroizing::new(blake2b_256(&[], dh));
+                    hashed = Zeroizing::new(blake2b_256(&[], dh)?);
                     &hashed[..]
                 };
                 let size = u32::try_from(size).map_err(|_| Error::Unsupported("XOF length"))?;
                 let mut xof = Blake2Xb::new(Some(size), key)?;
                 xof.update(static_pk).update(ephemeral_pk);
                 let mut out = Zeroizing::new(vec![0; dh.len()]);
-                xof.finalize_xof().read(&mut out);
+                xof.finalize_xof().read(&mut out)?;
                 Ok(out)
             }
             Prf::Sha256V1 => {
@@ -63,7 +63,7 @@ impl Prf {
                 let mut h = Sha256::new();
                 h.update(b"kemadapter-sha256-v1");
                 for part in [dh, static_pk, ephemeral_pk] {
-                    h.update((part.len() as u32).to_be_bytes());
+                    h.update(len_u32(part)?.to_be_bytes());
                     h.update(part);
                 }
                 Ok(Zeroizing::new(h.finalize().to_vec()))
@@ -102,6 +102,8 @@ impl NikeKem {
         Ok((ct, ss))
     }
 
+    /// Rejects an all-zero output even from a NIKE that returns one rather
+    /// than failing.
     fn derive(
         &self,
         sk: &dyn nike::PrivateKey,
@@ -119,10 +121,22 @@ impl NikeKem {
 }
 
 #[derive(Debug)]
-pub struct PublicKey(pub Box<dyn nike::PublicKey>);
+pub struct PublicKey(Box<dyn nike::PublicKey>);
+
+impl PublicKey {
+    pub fn nike_key(&self) -> &dyn nike::PublicKey {
+        &*self.0
+    }
+}
 
 #[derive(Debug)]
-pub struct PrivateKey(pub Box<dyn nike::PrivateKey>);
+pub struct PrivateKey(Box<dyn nike::PrivateKey>);
+
+impl PrivateKey {
+    pub fn nike_key(&self) -> &dyn nike::PrivateKey {
+        &*self.0
+    }
+}
 
 impl super::PublicKey for PublicKey {
     fn to_bytes(&self) -> Vec<u8> {
@@ -171,10 +185,10 @@ impl super::Scheme for NikeKem {
     fn derive_key(&self, seed: &[u8]) -> Result<Box<dyn super::PrivateKey>> {
         check_len(seed, 32)?;
         let mut xof = Blake2Xb::new(None, &[])?;
-        xof.update(&Zeroizing::new(blake2b_256(&[], seed))[..]);
-        Ok(Box::new(PrivateKey(
-            self.nike.generate_key(&mut xof.finalize_xof()),
-        )))
+        xof.update(&Zeroizing::new(blake2b_256(&[], seed)?)[..]);
+        // An unbounded stream: 2^38 bytes, far more than any key needs.
+        let mut rng = UnwrapErr(xof.finalize_xof());
+        Ok(Box::new(PrivateKey(self.nike.generate_key(&mut rng))))
     }
 
     fn encapsulate(

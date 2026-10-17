@@ -5,7 +5,7 @@ pub use x25519_dalek;
 use x25519_dalek::StaticSecret;
 use zeroize::Zeroizing;
 
-use crate::util::{ct_is_zero, downcast, to_array};
+use crate::util::{downcast, to_array};
 use crate::{Error, Result, SecretBytes};
 
 #[derive(Clone, Copy, Debug, Default)]
@@ -73,9 +73,7 @@ impl super::Scheme for X25519 {
     ) -> Result<SecretBytes> {
         let sk: &PrivateKey = downcast(private_key)?;
         let pk: &PublicKey = downcast(public_key)?;
-        Ok(Zeroizing::new(
-            sk.0.diffie_hellman(&pk.0).as_bytes().to_vec(),
-        ))
+        Ok(Zeroizing::new(dh(sk, pk)?.as_bytes().to_vec()))
     }
 
     fn blind(
@@ -85,11 +83,16 @@ impl super::Scheme for X25519 {
     ) -> Result<Box<dyn super::PublicKey>> {
         let pk: &PublicKey = downcast(public_key)?;
         let factor: &PrivateKey = downcast(factor)?;
-        let point = factor.0.diffie_hellman(&pk.0).to_bytes();
-        if ct_is_zero(&point) {
-            return Err(Error::LowOrderPoint);
-        }
-        Ok(Box::new(PublicKey(point.into())))
+        Ok(Box::new(PublicKey(dh(factor, pk)?.to_bytes().into())))
+    }
+}
+
+fn dh(sk: &PrivateKey, pk: &PublicKey) -> Result<x25519_dalek::SharedSecret> {
+    let secret = sk.0.diffie_hellman(&pk.0);
+    if secret.was_contributory() {
+        Ok(secret)
+    } else {
+        Err(Error::LowOrderPoint)
     }
 }
 
@@ -116,14 +119,21 @@ mod tests {
     }
 
     #[test]
-    fn low_order_point() {
+    fn low_order_points() {
         let sk = X25519.generate_key(&mut crate::util::rng());
-        let zero = X25519.public_key_from_bytes(&[0; 32]).unwrap();
-        assert!(ct_is_zero(&X25519.shared_secret(&*sk, &*zero).unwrap()));
-        assert_eq!(
-            X25519.blind(&*zero, &*sk).unwrap_err(),
-            Error::LowOrderPoint
-        );
+        let mut p = [0xff; 32];
+        p[0] = 0xed;
+        p[31] = 0x7f;
+        let mut p_plus_one = p;
+        p_plus_one[0] = 0xee;
+        for point in [[0; 32], p, p_plus_one] {
+            let pk = X25519.public_key_from_bytes(&point).unwrap();
+            assert_eq!(
+                X25519.shared_secret(&*sk, &*pk).unwrap_err(),
+                Error::LowOrderPoint
+            );
+            assert_eq!(X25519.blind(&*pk, &*sk).unwrap_err(), Error::LowOrderPoint);
+        }
     }
 
     #[test]

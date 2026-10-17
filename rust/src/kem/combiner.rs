@@ -11,7 +11,7 @@ use zeroize::Zeroizing;
 
 use super::Scheme;
 use crate::hash::blake2b_256;
-use crate::util::{downcast, split};
+use crate::util::{downcast, len_u32, split};
 use crate::{Error, Result, SecretBytes};
 
 /// The split PRF over `(shared_secret, ciphertext)` pairs.
@@ -19,28 +19,29 @@ use crate::{Error, Result, SecretBytes};
 /// With `msg = "splitprf-v1" || u32be(n) || for each ciphertext:
 /// u32be(len) || ciphertext`, the output is the XOR over all components of
 /// `BLAKE2b-256` keyed by `BLAKE2b-256(shared_secret)` applied to `msg`.
-///
-/// # Panics
-/// If `parts` is empty or contains an empty secret or ciphertext.
-pub fn split_prf(parts: &[(&[u8], &[u8])]) -> [u8; 32] {
-    assert!(!parts.is_empty(), "split prf needs at least one input");
+/// `parts` must be non-empty, with no empty secret or ciphertext.
+pub fn split_prf(parts: &[(&[u8], &[u8])]) -> Result<[u8; 32]> {
+    if parts.is_empty() {
+        return Err(Error::InvalidInput("split PRF needs at least one input"));
+    }
+    let count =
+        u32::try_from(parts.len()).map_err(|_| Error::InvalidInput("too many split PRF inputs"))?;
     let mut msg = b"splitprf-v1".to_vec();
-    msg.extend_from_slice(&(parts.len() as u32).to_be_bytes());
+    msg.extend_from_slice(&count.to_be_bytes());
     for (ss, ct) in parts {
-        assert!(
-            !ss.is_empty() && !ct.is_empty(),
-            "split prf inputs cannot be empty"
-        );
-        msg.extend_from_slice(&(ct.len() as u32).to_be_bytes());
+        if ss.is_empty() || ct.is_empty() {
+            return Err(Error::InvalidInput("empty split PRF input"));
+        }
+        msg.extend_from_slice(&len_u32(ct)?.to_be_bytes());
         msg.extend_from_slice(ct);
     }
     let mut out = [0; 32];
     for (ss, _) in parts {
-        let key = Zeroizing::new(blake2b_256(&[], ss));
-        let h = Zeroizing::new(blake2b_256(&*key, &msg));
+        let key = Zeroizing::new(blake2b_256(&[], ss)?);
+        let h = Zeroizing::new(blake2b_256(&*key, &msg)?);
         out.iter_mut().zip(h.iter()).for_each(|(o, h)| *o ^= h);
     }
-    out
+    Ok(out)
 }
 
 pub struct Combiner {
@@ -49,14 +50,15 @@ pub struct Combiner {
 }
 
 impl Combiner {
-    /// # Panics
-    /// If `schemes` is empty.
-    pub fn new(name: impl Into<String>, schemes: Vec<Arc<dyn Scheme>>) -> Self {
-        assert!(!schemes.is_empty(), "combiner needs at least one KEM");
-        Self {
+    /// Fails if `schemes` is empty.
+    pub fn new(name: impl Into<String>, schemes: Vec<Arc<dyn Scheme>>) -> Result<Self> {
+        if schemes.is_empty() {
+            return Err(Error::InvalidInput("combiner needs at least one KEM"));
+        }
+        Ok(Self {
             name: name.into(),
             schemes,
-        }
+        })
     }
 
     pub fn schemes(&self) -> &[Arc<dyn Scheme>] {
@@ -81,10 +83,22 @@ impl Combiner {
 }
 
 #[derive(Debug)]
-pub struct PublicKey(pub Vec<Box<dyn super::PublicKey>>);
+pub struct PublicKey(Vec<Box<dyn super::PublicKey>>);
+
+impl PublicKey {
+    pub fn parts(&self) -> &[Box<dyn super::PublicKey>] {
+        &self.0
+    }
+}
 
 #[derive(Debug)]
-pub struct PrivateKey(pub Vec<Box<dyn super::PrivateKey>>);
+pub struct PrivateKey(Vec<Box<dyn super::PrivateKey>>);
+
+impl PrivateKey {
+    pub fn parts(&self) -> &[Box<dyn super::PrivateKey>] {
+        &self.0
+    }
+}
 
 impl super::PublicKey for PublicKey {
     fn to_bytes(&self) -> Vec<u8> {
@@ -158,7 +172,7 @@ impl Scheme for Combiner {
             .iter()
             .map(|(ct, ss)| (ss.as_slice(), ct.as_slice()))
             .collect();
-        let ss = Zeroizing::new(split_prf(&parts).to_vec());
+        let ss = Zeroizing::new(split_prf(&parts)?.to_vec());
         Ok((
             outputs
                 .iter()
@@ -188,7 +202,7 @@ impl Scheme for Combiner {
             .zip(&cts)
             .map(|(ss, ct)| (ss.as_slice(), *ct))
             .collect();
-        Ok(Zeroizing::new(split_prf(&parts).to_vec()))
+        Ok(Zeroizing::new(split_prf(&parts)?.to_vec()))
     }
 
     fn public_key_from_bytes(&self, bytes: &[u8]) -> Result<Box<dyn super::PublicKey>> {
@@ -224,16 +238,15 @@ mod tests {
 
     #[test]
     fn two_kems() {
-        super::super::check_scheme(&Combiner::new(
-            "MLKEM768-X25519",
-            vec![x25519(), Arc::new(MlKem768)],
-        ));
+        super::super::check_scheme(
+            &Combiner::new("MLKEM768-X25519", vec![x25519(), Arc::new(MlKem768)]).unwrap(),
+        );
     }
 
     #[test]
     fn three_kems() {
         let x448 = Arc::new(NikeKem::new(Arc::new(X448)));
-        let combiner = Combiner::new("three", vec![x25519(), Arc::new(MlKem768), x448]);
+        let combiner = Combiner::new("three", vec![x25519(), Arc::new(MlKem768), x448]).unwrap();
         assert_eq!(combiner.ciphertext_size(), 32 + 1088 + 56);
         super::super::check_scheme(&combiner);
     }
@@ -241,29 +254,51 @@ mod tests {
     #[test]
     fn nested() {
         let inner: Arc<dyn Scheme> =
-            Arc::new(Combiner::new("inner", vec![x25519(), Arc::new(MlKem768)]));
-        super::super::check_scheme(&Combiner::new("outer", vec![inner, x25519()]));
+            Arc::new(Combiner::new("inner", vec![x25519(), Arc::new(MlKem768)]).unwrap());
+        super::super::check_scheme(&Combiner::new("outer", vec![inner, x25519()]).unwrap());
     }
 
     #[test]
     fn single_kem() {
-        super::super::check_scheme(&Combiner::new("one", vec![x25519()]));
+        super::super::check_scheme(&Combiner::new("one", vec![x25519()]).unwrap());
     }
 
     #[test]
     fn rejects_keys_of_other_arity() {
         let rng = &mut crate::util::rng();
-        let two = Combiner::new("two", vec![x25519(), x25519()]);
-        let one = Combiner::new("one", vec![x25519()]);
+        let two = Combiner::new("two", vec![x25519(), x25519()]).unwrap();
+        let one = Combiner::new("one", vec![x25519()]).unwrap();
         let pk = one.generate_key(rng).public_key();
         assert_eq!(two.encapsulate(&*pk, rng).unwrap_err(), Error::WrongKeyType);
     }
 
     #[test]
     fn split_prf_depends_on_every_input() {
-        let base = split_prf(&[(b"ss1", b"ct1"), (b"ss2", b"ct2")]);
-        assert_ne!(base, split_prf(&[(b"ss1", b"ct1"), (b"ss2", b"ct3")]));
-        assert_ne!(base, split_prf(&[(b"ss0", b"ct1"), (b"ss2", b"ct2")]));
-        assert_ne!(base, split_prf(&[(b"ss2", b"ct2"), (b"ss1", b"ct1")]));
+        let base = split_prf(&[(b"ss1", b"ct1"), (b"ss2", b"ct2")]).unwrap();
+        assert_ne!(
+            base,
+            split_prf(&[(b"ss1", b"ct1"), (b"ss2", b"ct3")]).unwrap()
+        );
+        assert_ne!(
+            base,
+            split_prf(&[(b"ss0", b"ct1"), (b"ss2", b"ct2")]).unwrap()
+        );
+        assert_ne!(
+            base,
+            split_prf(&[(b"ss2", b"ct2"), (b"ss1", b"ct1")]).unwrap()
+        );
+    }
+
+    #[test]
+    fn rejects_empty_input() {
+        assert!(matches!(
+            Combiner::new("none", vec![]),
+            Err(Error::InvalidInput(_))
+        ));
+        assert!(matches!(split_prf(&[]), Err(Error::InvalidInput(_))));
+        assert!(matches!(
+            split_prf(&[(b"", b"ct")]),
+            Err(Error::InvalidInput(_))
+        ));
     }
 }

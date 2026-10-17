@@ -36,14 +36,34 @@ impl Hybrid {
 
 #[derive(Debug)]
 pub struct PublicKey {
-    pub first: Box<dyn super::PublicKey>,
-    pub second: Box<dyn super::PublicKey>,
+    first: Box<dyn super::PublicKey>,
+    second: Box<dyn super::PublicKey>,
+}
+
+impl PublicKey {
+    pub fn first(&self) -> &dyn super::PublicKey {
+        &*self.first
+    }
+
+    pub fn second(&self) -> &dyn super::PublicKey {
+        &*self.second
+    }
 }
 
 #[derive(Debug)]
 pub struct PrivateKey {
-    pub first: Box<dyn super::PrivateKey>,
-    pub second: Box<dyn super::PrivateKey>,
+    first: Box<dyn super::PrivateKey>,
+    second: Box<dyn super::PrivateKey>,
+}
+
+impl PrivateKey {
+    pub fn first(&self) -> &dyn super::PrivateKey {
+        &*self.first
+    }
+
+    pub fn second(&self) -> &dyn super::PrivateKey {
+        &*self.second
+    }
 }
 
 impl super::PublicKey for PublicKey {

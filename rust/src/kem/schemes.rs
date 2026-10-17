@@ -16,13 +16,14 @@ static SCHEMES: LazyLock<Vec<Arc<dyn Scheme>>> = LazyLock::new(|| {
         x25519.clone(),
         x448.clone(),
         mlkem768.clone(),
-        Arc::new(Combiner::new(
-            "MLKEM768-X25519",
-            vec![x25519, mlkem768.clone()],
-        )),
-        Arc::new(Combiner::new("MLKEM768-X448", vec![x448, mlkem768])),
+        combiner("MLKEM768-X25519", vec![x25519, mlkem768.clone()]),
+        combiner("MLKEM768-X448", vec![x448, mlkem768]),
     ]
 });
+
+fn combiner(name: &str, schemes: Vec<Arc<dyn Scheme>>) -> Arc<dyn Scheme> {
+    Arc::new(Combiner::new(name, schemes).expect("non-empty"))
+}
 
 /// Looks up a scheme by name, ignoring ASCII case.
 pub fn by_name(name: &str) -> Option<Arc<dyn Scheme>> {

@@ -121,11 +121,11 @@ impl<P: Params> super::Scheme for MlDsa<P> {
         rng: &mut dyn CryptoRng,
     ) -> Result<Vec<u8>> {
         let sk: &PrivateKey<P> = downcast(private_key)?;
-        let sig = sk.0.expanded_key().sign_randomized(message, &[], rng);
-        Ok(sig
-            .expect("empty context and infallible rng")
-            .encode()
-            .to_vec())
+        let sig =
+            sk.0.expanded_key()
+                .sign_randomized(message, &[], rng)
+                .map_err(|_| Error::Unsupported("ML-DSA signing"))?;
+        Ok(sig.encode().to_vec())
     }
 
     fn verify(

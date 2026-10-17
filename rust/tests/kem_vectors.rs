@@ -90,7 +90,7 @@ fn check_combiner(c: &Value) {
         common::hex(c, "combined_ciphertext_hex"),
         "{name}"
     );
-    let combined_ss = split_prf(&[(&x_ss, &x_ct), (&m_ss, &m_ct)]);
+    let combined_ss = split_prf(&[(&x_ss, &x_ct), (&m_ss, &m_ct)]).unwrap();
     assert_eq!(
         combined_ss.to_vec(),
         common::hex(c, "combined_shared_secret_hex"),
@@ -100,7 +100,8 @@ fn check_combiner(c: &Value) {
     let combiner = Combiner::new(
         "MLKEM768-X25519",
         vec![Arc::new(x25519), Arc::new(MlKem768)],
-    );
+    )
+    .unwrap();
     let sk_bytes = [x_sk.to_bytes().as_slice(), &m_sk.to_bytes()].concat();
     let sk = combiner.private_key_from_bytes(&sk_bytes).unwrap();
     assert_eq!(

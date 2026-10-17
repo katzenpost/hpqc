@@ -43,8 +43,8 @@ fn sign_deterministic(key: &dyn sign::PrivateKey, msg: &[u8]) -> Vec<u8> {
     }
     let k = key.downcast_ref::<hybrid::PrivateKey>().unwrap();
     [
-        sign_deterministic(&*k.first, msg),
-        sign_deterministic(&*k.second, msg),
+        sign_deterministic(k.first(), msg),
+        sign_deterministic(k.second(), msg),
     ]
     .concat()
 }
