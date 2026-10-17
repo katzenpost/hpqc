@@ -23,6 +23,7 @@ import (
 	"github.com/katzenpost/hpqc/kem/circlkem"
 	"github.com/katzenpost/hpqc/kem/combiner"
 	"github.com/katzenpost/hpqc/kem/hqc"
+	"github.com/katzenpost/hpqc/kem/mlkem"
 	"github.com/katzenpost/hpqc/kem/mlkem768"
 	"github.com/katzenpost/hpqc/kem/sntrup"
 	"github.com/katzenpost/hpqc/kem/xwing"
@@ -86,8 +87,12 @@ var allSchemes = []kem.Scheme{
 
 	// post quantum KEM schemes
 
+	mlkem.Scheme512(),
+	mlkem.SchemeHedged512(),
 	mlkem768.Scheme(),
 	mlkem768.SchemeHedged(),
+	mlkem.Scheme1024(),
+	mlkem.SchemeHedged1024(),
 	sntrup.Scheme(),
 	hqc.Scheme128(),
 	hqc.Scheme192(),
