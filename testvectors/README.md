@@ -41,7 +41,7 @@ The BACAP vectors cover several write caps, including indexes starting at a
 random value, just below 2^63 and just below 2^64. Their expected values come
 from the Go implementation, so passing them shows agreement with Go; the
 Python port here and the Lean implementation in
-[CryptWalker](https://github.com/katzenpost/CryptWalker) both check every
+[Cryptlib](https://github.com/katzenpost/cryptlib) both check every
 file, including every rejection in `negative.json`.
 
 The vectors form a hierarchy. If a Python (or Go) implementation fails the
@@ -103,7 +103,7 @@ The BACAP vector files are generated from `bacap/inputs.json`, which describes
 every case by its inputs only, never by an expected value. Three
 implementations generate the files from it: the Go program above, the Python
 port (`py/hpqc/bacap/gen_vectors.py`) and the Lean implementation in
-CryptWalker. They must agree on every value, and each repository's tests
+Cryptlib. They must agree on every value, and each repository's tests
 check that its generator reproduces the committed files. Add a case by
 adding it to `inputs.json` and regenerating.
 
