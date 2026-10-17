@@ -523,6 +523,7 @@ __________
 | The HQC code-based cryptosystem, in its three NIST parameter sets | "HQC-128", "HQC-192", "HQC-256" | post-quantum |
 |A hybrid of ML-KEM-768 and X25519. The [KEM Combiners paper](https://eprint.iacr.org/2018/024.pdf) is the reason we implemented our own combination in addition to including XWING. |"MLKEM768-X25519"| hybrid |
 |A hybrid of hedged ML-KEM-768 and X25519|"MLKEMHedged768-X25519"| hybrid |
+|Hybrids of ML-KEM-512 and ML-KEM-1024, standard and hedged, with X25519|"MLKEM512-X25519", "MLKEMHedged512-X25519", "MLKEM1024-X25519", "MLKEMHedged1024-X25519"| hybrid |
 |A hybrid of ML-KEM-1024 and X448|"MLKEM1024-X448"| hybrid |
 |A hybrid of FrodoKEM-640-SHAKE and X448|"FrodoKEM-640-SHAKE-X448"| hybrid |
 |A hybrid of NTRU and X448| "sntrup4591761-X448"| hybrid |

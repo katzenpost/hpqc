@@ -125,6 +125,20 @@ var allSchemes = []kem.Scheme{
 	// If Xwing is not the PQ Hybrid KEM you are looking for then we recommend
 	// using our secure generic KEM combiner:
 	mustCombine(
+		"MLKEM512-X25519",
+		[]kem.Scheme{
+			adapter.FromNIKE(x25519.Scheme(rand.Reader)),
+			mlkem.Scheme512(),
+		},
+	),
+	mustCombine(
+		"MLKEMHedged512-X25519",
+		[]kem.Scheme{
+			adapter.FromNIKE(x25519.Scheme(rand.Reader)),
+			mlkem.SchemeHedged512(),
+		},
+	),
+	mustCombine(
 		"MLKEM768-X25519",
 		[]kem.Scheme{
 			adapter.FromNIKE(x25519.Scheme(rand.Reader)),
@@ -136,6 +150,20 @@ var allSchemes = []kem.Scheme{
 		[]kem.Scheme{
 			adapter.FromNIKE(x25519.Scheme(rand.Reader)),
 			mlkem768.SchemeHedged(),
+		},
+	),
+	mustCombine(
+		"MLKEM1024-X25519",
+		[]kem.Scheme{
+			adapter.FromNIKE(x25519.Scheme(rand.Reader)),
+			mlkem.Scheme1024(),
+		},
+	),
+	mustCombine(
+		"MLKEMHedged1024-X25519",
+		[]kem.Scheme{
+			adapter.FromNIKE(x25519.Scheme(rand.Reader)),
+			mlkem.SchemeHedged1024(),
 		},
 	),
 	mustCombine(
