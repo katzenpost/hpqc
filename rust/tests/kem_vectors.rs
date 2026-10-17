@@ -136,7 +136,12 @@ fn registry_names_match_go() {
         "x25519",
         "x448",
         "MLKEM768",
+        "MLKEM512-X25519",
         "MLKEM768-X25519",
+        "MLKEM1024-X25519",
+        "MLKEMHedged512-X25519",
+        "MLKEMHedged768-X25519",
+        "MLKEMHedged1024-X25519",
         "MLKEM1024-X448",
     ] {
         assert_eq!(kem::schemes::by_name(name).unwrap().name(), name);

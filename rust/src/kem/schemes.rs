@@ -12,9 +12,19 @@ use crate::nike::{x448::X448, x25519::X25519};
 static SCHEMES: LazyLock<Vec<Arc<dyn Scheme>>> = LazyLock::new(|| {
     let x25519: Arc<dyn Scheme> = Arc::new(NikeKem::new(Arc::new(X25519)));
     let x448: Arc<dyn Scheme> = Arc::new(NikeKem::new(Arc::new(X448)));
-    let mlkem768: Arc<dyn Scheme> = Arc::new(MlKem768::new());
-    let mlkem768_hedged: Arc<dyn Scheme> = Arc::new(MlKem768::hedged());
-    let mlkem1024: Arc<dyn Scheme> = Arc::new(MlKem1024::new());
+    let mlkem: [Arc<dyn Scheme>; 6] = [
+        Arc::new(MlKem512::new()),
+        Arc::new(MlKem768::new()),
+        Arc::new(MlKem1024::new()),
+        Arc::new(MlKem512::hedged()),
+        Arc::new(MlKem768::hedged()),
+        Arc::new(MlKem1024::hedged()),
+    ];
+    let mlkem_x25519 = mlkem.clone().map(|m| {
+        let name = format!("{}-X25519", m.name());
+        combiner(&name, vec![x25519.clone(), m])
+    });
+    let mlkem1024_x448 = combiner("MLKEM1024-X448", vec![x448.clone(), mlkem[2].clone()]);
     let mceliece = [
         Algorithm::McEliece348864,
         Algorithm::McEliece348864f,
@@ -32,19 +42,10 @@ static SCHEMES: LazyLock<Vec<Arc<dyn Scheme>>> = LazyLock::new(|| {
         let name = format!("{}-X25519", m.name());
         combiner(&name, vec![x25519.clone(), m])
     });
-    let mut schemes = vec![
-        x25519.clone(),
-        x448.clone(),
-        Arc::new(MlKem512::new()),
-        mlkem768.clone(),
-        mlkem1024.clone(),
-        Arc::new(MlKem512::hedged()),
-        mlkem768_hedged.clone(),
-        Arc::new(MlKem1024::hedged()),
-        combiner("MLKEM768-X25519", vec![x25519.clone(), mlkem768.clone()]),
-        combiner("MLKEMHedged768-X25519", vec![x25519, mlkem768_hedged]),
-        combiner("MLKEM1024-X448", vec![x448, mlkem1024]),
-    ];
+    let mut schemes = vec![x25519, x448];
+    schemes.extend(mlkem);
+    schemes.extend(mlkem_x25519);
+    schemes.push(mlkem1024_x448);
     schemes.extend(mceliece);
     schemes.extend(mceliece_x25519);
     schemes
