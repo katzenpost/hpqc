@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 use hpqc::kem::adapter::{NikeKem, Prf};
 use hpqc::kem::combiner::{Combiner, split_prf};
-use hpqc::kem::mlkem768::MlKem768;
+use hpqc::kem::mlkem::MlKem768;
 use hpqc::kem::{self, Scheme};
 use hpqc::nike::{self, Scheme as _};
 use serde_json::Value;
@@ -72,7 +72,7 @@ fn check_combiner(c: &Value) {
     assert_eq!(*x_ss, common::hex(c, "x25519_shared_secret_hex"), "{name}");
 
     let seed = [common::hex(c, "mlkem_d_hex"), common::hex(c, "mlkem_z_hex")].concat();
-    let m_sk = MlKem768.derive_key(&seed).unwrap();
+    let m_sk = MlKem768::new().derive_key(&seed).unwrap();
     let m_pk = m_sk.public_key();
     assert_eq!(
         m_pk.to_bytes(),
@@ -80,7 +80,9 @@ fn check_combiner(c: &Value) {
         "{name}"
     );
     let m: [u8; 32] = common::hex(c, "mlkem_m_hex").try_into().unwrap();
-    let (m_ct, m_ss) = MlKem768.encapsulate_deterministic(&*m_pk, &m).unwrap();
+    let (m_ct, m_ss) = MlKem768::new()
+        .encapsulate_deterministic(&*m_pk, &m)
+        .unwrap();
     assert_eq!(m_ct, common::hex(c, "mlkem_ciphertext_hex"), "{name}");
     assert_eq!(*m_ss, common::hex(c, "mlkem_shared_secret_hex"), "{name}");
 
@@ -99,7 +101,7 @@ fn check_combiner(c: &Value) {
 
     let combiner = Combiner::new(
         "MLKEM768-X25519",
-        vec![Arc::new(x25519), Arc::new(MlKem768)],
+        vec![Arc::new(x25519), Arc::new(MlKem768::new())],
     )
     .unwrap();
     let sk_bytes = [x_sk.to_bytes().as_slice(), &m_sk.to_bytes()].concat();

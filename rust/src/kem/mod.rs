@@ -2,7 +2,7 @@
 
 pub mod adapter;
 pub mod combiner;
-pub mod mlkem768;
+pub mod mlkem;
 pub mod schemes;
 
 use std::any::Any;

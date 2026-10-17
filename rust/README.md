@@ -28,12 +28,12 @@ Composition works the same way with schemes of your own:
 ```rust
 use std::sync::Arc;
 
-use hpqc::kem::{adapter::NikeKem, combiner::Combiner, mlkem768::MlKem768};
+use hpqc::kem::{adapter::NikeKem, combiner::Combiner, mlkem::MlKem768};
 use hpqc::nike::x448::X448;
 
 let kem = Combiner::new(
     "MLKEM768-X448",
-    vec![Arc::new(NikeKem::new(Arc::new(X448))), Arc::new(MlKem768)],
+    vec![Arc::new(NikeKem::new(Arc::new(X448))), Arc::new(MlKem768::new())],
 )?;
 # Ok::<(), hpqc::Error>(())
 ```

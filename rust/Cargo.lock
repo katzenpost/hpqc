@@ -291,6 +291,7 @@ dependencies = [
  "rand_core",
  "serde_json",
  "sha2",
+ "sha3",
  "subtle",
  "x25519-dalek",
  "x448",

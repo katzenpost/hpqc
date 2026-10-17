@@ -16,6 +16,7 @@ ml-dsa = { version = "0.1.1", features = ["zeroize"] }
 ml-kem = { version = "0.3.2", features = ["zeroize"] }
 rand_core = "0.10"
 sha2 = "0.11.1"
+sha3 = "0.11.0"
 subtle = "2.6.1"
 x25519-dalek = { version = "3.0.0", features = ["static_secrets"] }
 x448 = { version = "0.14.0-pre.12", features = ["static_secrets"] }

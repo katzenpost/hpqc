@@ -228,7 +228,7 @@ impl Scheme for Combiner {
 
 #[cfg(test)]
 mod tests {
-    use super::super::{adapter::NikeKem, mlkem768::MlKem768};
+    use super::super::{adapter::NikeKem, mlkem::MlKem768};
     use super::*;
     use crate::nike::{x448::X448, x25519::X25519};
 
@@ -239,14 +239,15 @@ mod tests {
     #[test]
     fn two_kems() {
         super::super::check_scheme(
-            &Combiner::new("MLKEM768-X25519", vec![x25519(), Arc::new(MlKem768)]).unwrap(),
+            &Combiner::new("MLKEM768-X25519", vec![x25519(), Arc::new(MlKem768::new())]).unwrap(),
         );
     }
 
     #[test]
     fn three_kems() {
         let x448 = Arc::new(NikeKem::new(Arc::new(X448)));
-        let combiner = Combiner::new("three", vec![x25519(), Arc::new(MlKem768), x448]).unwrap();
+        let combiner =
+            Combiner::new("three", vec![x25519(), Arc::new(MlKem768::new()), x448]).unwrap();
         assert_eq!(combiner.ciphertext_size(), 32 + 1088 + 56);
         super::super::check_scheme(&combiner);
     }
@@ -254,7 +255,7 @@ mod tests {
     #[test]
     fn nested() {
         let inner: Arc<dyn Scheme> =
-            Arc::new(Combiner::new("inner", vec![x25519(), Arc::new(MlKem768)]).unwrap());
+            Arc::new(Combiner::new("inner", vec![x25519(), Arc::new(MlKem768::new())]).unwrap());
         super::super::check_scheme(&Combiner::new("outer", vec![inner, x25519()]).unwrap());
     }
 

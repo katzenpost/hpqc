@@ -5,18 +5,25 @@ use std::sync::{Arc, LazyLock};
 use super::Scheme;
 use super::adapter::NikeKem;
 use super::combiner::Combiner;
-use super::mlkem768::MlKem768;
+use super::mlkem::{MlKem512, MlKem768, MlKem1024};
 use crate::nike::{x448::X448, x25519::X25519};
 
 static SCHEMES: LazyLock<Vec<Arc<dyn Scheme>>> = LazyLock::new(|| {
     let x25519: Arc<dyn Scheme> = Arc::new(NikeKem::new(Arc::new(X25519)));
     let x448: Arc<dyn Scheme> = Arc::new(NikeKem::new(Arc::new(X448)));
-    let mlkem768: Arc<dyn Scheme> = Arc::new(MlKem768);
+    let mlkem768: Arc<dyn Scheme> = Arc::new(MlKem768::new());
+    let mlkem768_hedged: Arc<dyn Scheme> = Arc::new(MlKem768::hedged());
     vec![
         x25519.clone(),
         x448.clone(),
+        Arc::new(MlKem512::new()),
         mlkem768.clone(),
-        combiner("MLKEM768-X25519", vec![x25519, mlkem768.clone()]),
+        Arc::new(MlKem1024::new()),
+        Arc::new(MlKem512::hedged()),
+        mlkem768_hedged.clone(),
+        Arc::new(MlKem1024::hedged()),
+        combiner("MLKEM768-X25519", vec![x25519.clone(), mlkem768.clone()]),
+        combiner("MLKEMHedged768-X25519", vec![x25519, mlkem768_hedged]),
         combiner("MLKEM768-X448", vec![x448, mlkem768]),
     ]
 });
