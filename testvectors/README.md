@@ -33,6 +33,11 @@ testvectors/
 │   ├── negative.json           #   inputs every implementation must reject
 │   └── bundle.json             #   all of the above plus the primitives, in one file
 ├── kem/                        # KEM vectors
+│   ├── mlkem{512,1024}_{keygen,encapdecap,keycheck}.json
+│   │                           #   NIST ACVP, copied from CryptWalker; 768 is in kem/mlkem768/testdata
+│   ├── mlkem768_hedged.json    #   hedged ML-KEM-768, from Go
+│   └── lean_mlkem{512,1024}_hedged_vectors.json
+│                               #   hedged ML-KEM-512/1024, from CryptWalker
 ├── nike/schemes.json           # X25519 and X448 keys, secrets and blinding
 ├── sign/schemes.json           # key derivation and signatures of the registered signature schemes
 └── cmd/
