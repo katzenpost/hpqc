@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 """Generate the BACAP vector files from testvectors/bacap/inputs.json.
 
-The Go generator (testvectors/cmd/generate) and CryptWalker's Lean
+The Go generator (testvectors/cmd/generate) and Cryptlib's Lean
 implementation generate the same files from the same inputs; the three must
 agree on every value. See testvectors/README.md for the inputs format.
 
