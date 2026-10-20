@@ -514,7 +514,7 @@ __________
 | ML-KEM-512| "MLKEM512" | post-quantum |
 | ML-KEM-768| "MLKEM768" | post-quantum |
 | ML-KEM-1024| "MLKEM1024" | post-quantum |
-| ML-KEM-768 with round-3 Kyber's m ← H(m) pre-hash restored, hedging against a weak RNG; matches [CryptWalker](https://github.com/katzenpost/CryptWalker)'s verified `MLKEMHedged768`. Not FIPS 203. | "MLKEMHedged768" | post-quantum |
+| ML-KEM-768 with round-3 Kyber's m ← H(m) pre-hash restored, hedging against a weak RNG; matches [Cryptlib](https://github.com/katzenpost/cryptlib)'s verified `MLKEMHedged768`. Not FIPS 203. | "MLKEMHedged768" | post-quantum |
 | Hedged ML-KEM-512 and ML-KEM-1024, as above | "MLKEMHedged512", "MLKEMHedged1024" | post-quantum |
 | XWING is a hybrid primitive that pre-combines ML-KEM-768 and X25519. Due to [security properties](https://eprint.iacr.org/2018/024) of our combiner, we also implement our own combination of the two below.| "XWING" | hybrid |
 | The sntrup4591761 version of the NTRU cryptosystem. | "sntrup4591761" | post-quantum |

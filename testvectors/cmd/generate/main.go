@@ -181,7 +181,7 @@ func genBLAKE2b512() vectorFile {
 
 // BLAKE2b-256, unkeyed and keyed. Used by kem/combiner's split-PRF construction: an unkeyed
 // BLAKE2b-256 hash derives the per-component PRF key, and a keyed BLAKE2b-256 hash is the PRF
-// itself. CryptWalker's Lean port generalized its BLAKE2b-512-only implementation to support
+// itself. Cryptlib's Lean port generalized its BLAKE2b-512-only implementation to support
 // this (arbitrary digest length, RFC 7693 keyed mode); these vectors are what that generalization
 // was checked against.
 
@@ -763,7 +763,7 @@ func genFalconHybrid(primitive, description string, scheme sign.Scheme, falconHa
 // deployed BLAKE2bXOF adapter PRF -- not ported to the Lean side (see
 // genKEMAdapter's comment; only sha256-v1 is). These vectors instead use
 // adapter.FromNIKEWithPRF(x25519, SHA256v1) for the X25519 half, exactly the
-// KEM CryptWalker registers as "x25519-kem", so the combined vectors are
+// KEM Cryptlib registers as "x25519-kem", so the combined vectors are
 // fully cross-checkable there -- same accepted scope boundary as the plain
 // adapter vectors above, just carried through the combiner.
 //
@@ -891,7 +891,7 @@ func genKEMHybridCombiner() vectorFile {
 //
 // ML-KEM-768 with round-3 Kyber's m <- H(m) pre-hash restored. There is no
 // standard to check it against, so these vectors exist for cross-checking
-// against CryptWalker's MLKEMHedged768. The outputs are computed from the
+// against Cryptlib's MLKEMHedged768. The outputs are computed from the
 // definition, FIPS 203 Encaps_internal on SHA3-256(m), and each is then
 // decapsulated with hpqc's MLKEMHedged768 scheme.
 

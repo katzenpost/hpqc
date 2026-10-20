@@ -21,7 +21,7 @@ func (s *scheme) encapsulate(ek []byte) (ct, ss []byte, err error) {
 // encapsulateDerand is Encaps_internal(ek, m), or for the hedged schemes
 // Encaps_internal(ek, SHA3-256(m)): round-3 Kyber's pre-hash, which FIPS 203
 // dropped, hedging against a weak or structured RNG. This matches
-// CryptWalker's verified encapsHedged (CryptWalker/KEM/MLKEMHedged).
+// Cryptlib's verified encapsHedged (Cryptlib/Primitives/KEM/MLKEMHedged).
 func (s *scheme) encapsulateDerand(ek, m []byte) (ct, ss []byte, err error) {
 	if s.hedged {
 		mh := sha3.Sum256(m)

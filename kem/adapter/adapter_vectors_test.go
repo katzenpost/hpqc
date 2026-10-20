@@ -17,7 +17,7 @@ import (
 )
 
 // adapterVectorFile mirrors testvectors/kem/adapter_test_vectors.json. The same
-// file is checked by the Lean port at CryptWalker/KEM/vectors.lean.
+// file is checked by the Lean port at Cryptlib/Primitives/KEM/vectors.lean.
 type adapterVectorFile struct {
 	FormatVersion int `json:"format_version"`
 	Primitive     string

@@ -180,7 +180,7 @@ func TestNISTCheckEncapsulationKey(t *testing.T) {
 	}
 }
 
-// Hedged vectors from CryptWalker's verified Lean implementation, which
+// Hedged vectors from Cryptlib's verified Lean implementation, which
 // hpqc's Rust implementation also checks.
 func TestHedgedLeanVectors(t *testing.T) {
 	for _, c := range sizes {

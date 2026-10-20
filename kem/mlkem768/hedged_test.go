@@ -100,7 +100,7 @@ func unhex(t *testing.T, s string) []byte {
 // The NIST ACVP ML-KEM-768 vectors, run against the hedged scheme. The
 // decapsulation (VAL) and checkDK vectors use FIPS 203's expanded
 // decapsulation key, which the seed-only mlkem768 API cannot load, so
-// they are not exercised here; CryptWalker runs them against its hedged
+// they are not exercised here; Cryptlib runs them against its hedged
 // instance (KEM/MLKEMHedged/mlkemhedged768_test.lean).
 
 func TestHedgedNISTKeyGen(t *testing.T) {
@@ -148,7 +148,7 @@ func TestHedgedNISTCheckEK(t *testing.T) {
 }
 
 // Cross-check vectors: hpqc's own (testvectors/cmd/generate) and
-// CryptWalker's (gen_mlkem768_hedged_vectors.lean). Unlike the NIST
+// Cryptlib's (gen_mlkem768_hedged_vectors.lean). Unlike the NIST
 // vectors these start from the unhashed m, so they cover the pre-hash.
 func TestHedgedCrossCheckVectors(t *testing.T) {
 	for _, file := range []string{"mlkem768_hedged.json", "lean_mlkem768_hedged_vectors.json"} {

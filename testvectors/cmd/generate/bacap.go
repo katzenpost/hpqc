@@ -19,7 +19,7 @@ import (
 //
 // Every BACAP vector file is generated from testvectors/bacap/inputs.json,
 // which describes each case by its inputs only. The Python port
-// (py/hpqc/bacap/gen_vectors.py) and CryptWalker's Lean implementation
+// (py/hpqc/bacap/gen_vectors.py) and Cryptlib's Lean implementation
 // generate the same files from the same inputs; see testvectors/README.md.
 
 // bacapInputs is inputs.json.

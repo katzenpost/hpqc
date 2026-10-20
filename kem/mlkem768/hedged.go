@@ -20,8 +20,8 @@ import (
 // given m its encapsulation output differs, though key generation and the
 // post-hash encapsulation core still match the NIST ACVP vectors.
 //
-// This matches CryptWalker's formally verified encaps768Hedged
-// (CryptWalker/KEM/MLKEMHedged/MLKEMHedged768.lean).
+// This matches Cryptlib's formally verified encaps768Hedged
+// (Cryptlib/Primitives/KEM/MLKEMHedged/MLKEMHedged768.lean).
 var schHedged kem.Scheme = &scheme{name: "MLKEMHedged768", hedged: true}
 
 // SchemeHedged returns the hedged ML-KEM-768 KEM interface.
