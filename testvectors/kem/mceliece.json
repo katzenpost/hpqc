@@ -1,0 +1,98 @@
+{
+  "format_version": 1,
+  "generator": "github.com/katzenpost/hpqc/testvectors/cmd/generate",
+  "primitive": "mceliece",
+  "description": "Classic McEliece key derivation, encodings and decapsulation. The keys are kem.Scheme.DeriveKeyPair(seed) of the named scheme, encoded with MarshalBinary; the public and private keys are recorded as SHA-256 digests of those encodings because they are large. The ciphertext and shared secret come from circl's EncapsulateDeterministically with a fixed encapsulation seed. Vectors are deterministic.",
+  "vectors": [
+    {
+      "name": "mceliece348864",
+      "scheme": "mceliece348864",
+      "seed_hex": "f9be95b03aeef5303935b84af0bdf4a48e82ecf3bc99c714ea47753d5693fe1e",
+      "public_key_sha256_hex": "e0357dc83d18aa91029c5477d313103baa1162007f1c14fb362d51e2e0be6c46",
+      "private_key_sha256_hex": "4c5da7234aa8b7dcc06b0deaada1e7007cc4b28cce681605292f93b9266d5395",
+      "ciphertext_hex": "9658a4cb08396fd99da7ffe5e762c285e2001b327d9f4577847de683254489ee9c5b81ec7f7f912f17c1829d8b36557f78fcf26cb8b9e3fe83fe314ed81d79ff93f4fc3f324b834beafcade8ccd6301452742495b03c3c9c7293191c74e6e8bb",
+      "shared_secret_hex": "bd0070350968d9eca601ec0f807e35a9bbc4c7dc32b4985314fb92b8ec15de27"
+    },
+    {
+      "name": "mceliece348864f",
+      "scheme": "mceliece348864f",
+      "seed_hex": "39f4f1d5bb4dc8ad435e4c1d20b088fec1b82e41283337f9f7fdf672eceecd76",
+      "public_key_sha256_hex": "2467feab1b0f194bdab22f24a2657eda857f1d303ae844cb4dd2f8a2e0d974e9",
+      "private_key_sha256_hex": "5defaac3ed92d6c7973f7f909f507f310668ae0ac679c91c98ff1c7faa113653",
+      "ciphertext_hex": "fc6abc4e3db09c7b4ae06ffc85e316228d2414450ce4747c30b4e8562e06792f6f7e2109f132dbf477d430066855f3d27f8d53b6aa1b8e27ecc2a394d158b6501abcbf01e17a677b446c79beb21960ffe2fdbae834e559dcf653220c3e6f20b4",
+      "shared_secret_hex": "2eb748319371952560e8eafba88eed684d4e79413b1b9740778980e5d5a64fc0"
+    },
+    {
+      "name": "mceliece460896",
+      "scheme": "mceliece460896",
+      "seed_hex": "77fbe47bb531fe6d5f4f9ce5316a2355dc371c6c7fa72f3a31e2267d019bf0c9",
+      "public_key_sha256_hex": "3abd1d421ff909fbe00d263e6d06f469ea8053ca4bf65ad42f2345e41503d08b",
+      "private_key_sha256_hex": "d6c15b880b8dca5e0bff87a0e83e2862711e7d478c0cb98c91cf4a50956fc967",
+      "ciphertext_hex": "2c027b8c393b0e7c4062a2ebeacf5d83efa399fe4e3ab91c79e28f0f265200ffdbd218120b9e6b66b00805d205bbbb00de8e44a134ca9f72efc11fa1960926899dd6285cca6b682e08cd9f527ce9792e26582b0cf23bc48cf7b31fa6d4b24ef1c5264063933a5f7cab50b21ec2650c21ef18ac7b126aa6e3ed7dc5deb0c6b0cc5a4e099459f75130e5ae4997d1d2efc552ffb847217b0331a35a6e07",
+      "shared_secret_hex": "a1863e6c84060781dd0573579f544abcbe64a99039f5cad2ef857542be10102e"
+    },
+    {
+      "name": "mceliece460896f",
+      "scheme": "mceliece460896f",
+      "seed_hex": "e8d93fe30a00fd46f556317ab7760ebc067107734b4a71701cbdc248120ca7cb",
+      "public_key_sha256_hex": "d209ad7c5be7d4ae869db44e8eea57ee2ac99d37e81eac7034c26dd7dd567f90",
+      "private_key_sha256_hex": "8cffa6f18977c78a558e474b85bf7f1f8e102f5f3fbcdb87eb400ac3a4fd28f7",
+      "ciphertext_hex": "82ac47f384d3a3c8d2109ec6d71d1192b777eb0652273fe6b631f37fb9e9fd088405c504228bbbf8831e34949d65a0c2bda9708c8bc168d0d4c9688a6de43f74b4f8673557e32ec54a0029352d7c9472fa9c33818a3ec024d56c13686d0ae04e3b640d9de7e77f7945abb5d18dd3eee88a2841f584ab7824fd7f706af56d8dac4865ecafb6662a8cee84f3d5686ad2bede2d39bece55de4e65b1da11",
+      "shared_secret_hex": "5de124ef047533ba494cb5413fab97f9c8795a98069b1536349c981aabfba604"
+    },
+    {
+      "name": "mceliece6688128",
+      "scheme": "mceliece6688128",
+      "seed_hex": "32f10eb2710a2395cff5ba5e3c8252d2bb4541becedf0ec98d35b3a08de84590",
+      "public_key_sha256_hex": "20c2d80244810b4107b304071b708bb6774a22e3d7114e6eb736bb0269d75460",
+      "private_key_sha256_hex": "e0ad70a693c8e10b539e5f32d1b4855d4a52d8c88cb4ee689773ec70ab000fd5",
+      "ciphertext_hex": "6ec792eb42e7f5dcda656a98013984aba19711727bbc96edd77a1ccfd3e513035feadef02c932c9f48217e0b209864ecebb3cd3865ca87321ddf94d5452cf8f55af95cd93e9c06824be3f421c36bb9340795978c8a83c420bbf7d152f424c6fae68e1c0954ef9fa946dba6bbfaef7f81cfd605f6780ed7862db2cec1aabb7cb3f13b1f9dbf2d267c9637b42e326c090465717a606dd4973e2685f4af9b570e70bc5ddd8d4eedaf04d3788b6ce4748f30dbc669f46567d68ed8b3250eb0ce83b97b75079ac4e702f9bffa20725c191759",
+      "shared_secret_hex": "02b267f5e652bdc192e44f8abb6537184a8f9c6f7366a79b9dd89fef0e92c806"
+    },
+    {
+      "name": "mceliece6688128f",
+      "scheme": "mceliece6688128f",
+      "seed_hex": "e44f6dc1c02aff06e800365189309d93dcee183b8da209f67c83072a5d3c2539",
+      "public_key_sha256_hex": "d44cfa8880c2ae89b74e14f0fd7a33e59b6183d9f6cf415605d9adcc2b596a20",
+      "private_key_sha256_hex": "70760ce93bfb963c28416c814fe57e0936468b9a1962406a5d2ae93691e5f63a",
+      "ciphertext_hex": "c375326cf5f34589c990c0d6ddad351e4881dac8771fdd9cf7b31348d334186db1d570d32d28385450af926aaf02715249cdb5353c66601619d53719b7767bf8f574c582c59dcd8e2a63a59b65487257ac86dd9db7ba0e59661efc12d58786f02d0c68f905216515af288cfdd14df3918ddf0e82c4b8254bf186c22321ee961326b8df6dba547824acc4ccedcfe78e878abbe2cd61e504c483c6e10d394e0008a098c19bff5c60e9b848acd09d805f329e7730c6c1427b240b2a3b4ab67950050b22d82e8e266901f1eb03b48393c23f",
+      "shared_secret_hex": "230a42f4a0121999cc17c8bd41020ee9443cc48a6e657b0613b68c5037a9034c"
+    },
+    {
+      "name": "mceliece6960119",
+      "scheme": "mceliece6960119",
+      "seed_hex": "9678f9bea032f9e2783ee253d01daebaa18f48f098e365b7b48825cb0ca04aed",
+      "public_key_sha256_hex": "e8da68abb0eea72d94c3850ef92082fb42517eb9cd3326a2f7e876efecdfc6c9",
+      "private_key_sha256_hex": "da8abc2b853a010b4d36dca97361c228e5013470e6888cbd0895a9cedc096479",
+      "ciphertext_hex": "e0acf16c0a29de8262d4fedac8431251a1b7eaad086a5bf0d6f65db8e369fa3d29fae2c44a98c0b06f761b21102f92b04da59654c02b142d27f099fd11c8e8d05e7a6ca7e77fcf00fa46f54e5f329f17e79c3a114995692fb66cc34fdb8c082c40190cf43ff701ffeae42a1baa26a1e62b84089bf31bc29915458df44e300faff62e3b618b3027d403de97f74c86d3477d3fd6e1cbccc300b113c67de12edcba39293916f364c05c38960b021285f5b9a0ff59d7895e4165b2fff4be7a89197f7804",
+      "shared_secret_hex": "0bc638ed331ee8e81b37912ac637032abd6b3252b185a87087e1279599bb520e"
+    },
+    {
+      "name": "mceliece6960119f",
+      "scheme": "mceliece6960119f",
+      "seed_hex": "78763cc1cf621312c8134c8195c3a5518022b4ead7c208558e2a3d1cb311b7ec",
+      "public_key_sha256_hex": "1d1fa14f33777aef1a023b782a203acc3350c80f3cf67cf9fdfe79bb4719c85f",
+      "private_key_sha256_hex": "3f61ce9537c580f15a03dc81ba371fcb03d22c6da1519844baad17c274d02e52",
+      "ciphertext_hex": "ec6f553f4ce4b84e2cf2f5ed82a3086b4dab5248ea29f7e4d7ef4e9af563c108bd1bf0de8a665c65507976104661b67f83fbee3c8d4775142d538ce44fd52492ed66961cb0b22049bcb2958bbcc4efc4fe8bec3f8934d2b514fcb961f73cff44411992efefd83a2ccdea4d6bc432efc6b3736bd242c95ed7c2fd577148ddd1a1b31174d6a26e70d75d058e7be56d50a93230c0768cb4dcd2fdda6e704019ae8b22e0170ca25b2391e14bb806c140ce181cc949cc178ba83a8bebc2d82a3713373105",
+      "shared_secret_hex": "2916e72bec06b98587609b5ccd0c61b9d37cfe94fbc379e226b1e60a2da54c11"
+    },
+    {
+      "name": "mceliece8192128",
+      "scheme": "mceliece8192128",
+      "seed_hex": "d06d52d79860f816afd3f9e21ad45ba9cd43bbdc8a8ce47e8d1069a8464a98b1",
+      "public_key_sha256_hex": "73256479d9729c25a6611691c661fe3ed04715cad9917fdb1b81721a8fd74e5b",
+      "private_key_sha256_hex": "483b08e69363d561088632566cf365e4e80e1b6e052b1c165ca05a03065cbce9",
+      "ciphertext_hex": "87dde03811584eee6ce0643a518d03a9957b3f34b6a88ec89fcf81cef2cdc0ffe57eab60e7ad8f0d05448034dea77927c7b3d5b8586d9168e618e65ebac4ccabf7af168859925746fcc20f47022e8d884d8f235c6ed07b6f33eab56028fb447630315b625d325dffa6738d12e6728dbcdb375bdf740af02c748983e660075a76062fef7d445d8302723920927e60619ebe9769ecc3b43047789defcce6e41416c24721aa1c2f5fc3820f784ead205c7ebf0711ed9e80484ae64852183d1b37ade79c9ae51f5f455a33cb559ebff40faf",
+      "shared_secret_hex": "421548b45cbadbac5f404a5dd90cd3945106347dc74f167b05c6f26d8be4b7ff"
+    },
+    {
+      "name": "mceliece8192128f",
+      "scheme": "mceliece8192128f",
+      "seed_hex": "83b44dd811645d074f694fe6e1bd7b980bda4f1f94e52cde27cdedd79d50c523",
+      "public_key_sha256_hex": "4f691ad2a0007c3435a962547bdd3bbe811529970f0d1fdbb53225cbe26be1c5",
+      "private_key_sha256_hex": "7f217e2d46f89a421b3f76e33044fe6663448178d5b14ca3bcc648dbb7e38875",
+      "ciphertext_hex": "0d6b6dbba6ab1d810e36e64ae863b04fbb4870aff1e22322a4dd536b0e640f6865ded5feb7d1bce439f00b84d905f5c38ff4f54f45a137c41bacfa7dadccda1fc92a10c4e4b4e0fc6c7954fdaf66b865d015f9e14c4314cc4d5f3d5d38f35b5549546f0c40c1b74d04b6df414b42de53aa1b44b73e0bf6169d2758aa608d2b5c72d9af2d247c84630901430236baf28e9f752b1760bcee0eb6628dbdf193ef80b147a97c88c7ad65fb829ab4eae78b7d2c9e0e76a005765a8e0036ff24b564cad6540df2946687ccca0a79ebd06ee8c1",
+      "shared_secret_hex": "83656b4e6c6091e80098d564e8b73ca7834681edf734ff8752995a6f0185ae90"
+    }
+  ]
+}
