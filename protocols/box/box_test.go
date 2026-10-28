@@ -38,7 +38,7 @@ func TestRoundTrip(t *testing.T) {
 				require.NoError(t, err)
 				require.Equal(t, size+s.Overhead(), len(ct))
 
-				got, err := s.Open(priv, ct)
+				got, err := s.Open(priv, pub, ct)
 				require.NoError(t, err)
 				require.Equal(t, plaintext, got)
 			}
@@ -71,12 +71,12 @@ func TestWrongRecipient(t *testing.T) {
 			s := NewScheme(n)
 			pub, _, err := n.GenerateKeyPair()
 			require.NoError(t, err)
-			_, other, err := n.GenerateKeyPair()
+			otherPub, other, err := n.GenerateKeyPair()
 			require.NoError(t, err)
 
 			ct, err := s.Seal(pub, []byte("for someone else"))
 			require.NoError(t, err)
-			_, err = s.Open(other, ct)
+			_, err = s.Open(other, otherPub, ct)
 			require.ErrorIs(t, err, ErrOpen)
 		})
 	}
@@ -95,7 +95,7 @@ func TestTamper(t *testing.T) {
 		for _, bit := range []byte{0x01, 0x80} {
 			bad := append([]byte(nil), ct...)
 			bad[i] ^= bit
-			_, err := s.Open(priv, bad)
+			_, err := s.Open(priv, pub, bad)
 			require.ErrorIs(t, err, ErrOpen, "flip at byte %d", i)
 		}
 	}
@@ -114,7 +114,7 @@ func TestTamperHybrid(t *testing.T) {
 	for _, i := range []int{0, 31, 32, pkSize - 1, pkSize, len(ct) - 1} {
 		bad := append([]byte(nil), ct...)
 		bad[i] ^= 0x01
-		_, err := s.Open(priv, bad)
+		_, err := s.Open(priv, pub, bad)
 		require.ErrorIs(t, err, ErrOpen, "flip at byte %d", i)
 	}
 }
@@ -130,7 +130,7 @@ func TestTruncated(t *testing.T) {
 			require.NoError(t, err)
 
 			for _, l := range []int{0, 1, n.PublicKeySize(), s.Overhead() - 1, s.Overhead(), len(ct) - 1} {
-				_, err := s.Open(priv, ct[:l])
+				_, err := s.Open(priv, pub, ct[:l])
 				require.ErrorIs(t, err, ErrOpen, "length %d", l)
 			}
 		})
@@ -150,7 +150,7 @@ func TestDegenerateEphemeral(t *testing.T) {
 	for i := range n.PublicKeySize() {
 		ct[i] = 0
 	}
-	_, err = s.Open(priv, ct)
+	_, err = s.Open(priv, pub, ct)
 	require.ErrorIs(t, err, ErrOpen)
 }
 
@@ -168,7 +168,7 @@ func TestDegenerateEphemeralHybrid(t *testing.T) {
 	for i := range 32 {
 		ct[i] = 0
 	}
-	_, err = s.Open(priv, ct)
+	_, err = s.Open(priv, pub, ct)
 	require.ErrorIs(t, err, ErrOpen)
 }
 
@@ -180,4 +180,57 @@ func TestDegenerateRecipient(t *testing.T) {
 
 	_, err = s.Seal(zero, []byte("payload"))
 	require.ErrorIs(t, err, ErrDegenerateSharedSecret)
+}
+
+func TestDegenerateRecipientHybrid(t *testing.T) {
+	n := hybrid.X25519CTIDH1024
+	s := NewScheme(n)
+	pub, _, err := n.GenerateKeyPair()
+	require.NoError(t, err)
+
+	// A zero X25519 half alone makes the hybrid secret all zero.
+	b := pub.Bytes()
+	for i := range 32 {
+		b[i] = 0
+	}
+	degenerate, err := n.UnmarshalBinaryPublicKey(b)
+	require.NoError(t, err)
+
+	_, err = s.Seal(degenerate, []byte("payload"))
+	require.ErrorIs(t, err, ErrDegenerateSharedSecret)
+}
+
+func TestMismatchedPublicKey(t *testing.T) {
+	n := x25519.Scheme(rand.Reader)
+	s := NewScheme(n)
+	pub, priv, err := n.GenerateKeyPair()
+	require.NoError(t, err)
+	otherPub, _, err := n.GenerateKeyPair()
+	require.NoError(t, err)
+
+	ct, err := s.Seal(pub, []byte("payload"))
+	require.NoError(t, err)
+	_, err = s.Open(priv, otherPub, ct)
+	require.ErrorIs(t, err, ErrOpen)
+}
+
+func TestKeyOfOtherScheme(t *testing.T) {
+	x := x25519.Scheme(rand.Reader)
+	xPub, xPriv, err := x.GenerateKeyPair()
+	require.NoError(t, err)
+
+	n := hybrid.X25519CTIDH1024
+	s := NewScheme(n)
+	pub, priv, err := n.GenerateKeyPair()
+	require.NoError(t, err)
+
+	_, err = s.Seal(xPub, []byte("payload"))
+	require.ErrorIs(t, err, ErrKeyScheme)
+
+	ct, err := s.Seal(pub, []byte("payload"))
+	require.NoError(t, err)
+	_, err = s.Open(xPriv, pub, ct)
+	require.ErrorIs(t, err, ErrOpen)
+	_, err = s.Open(priv, xPub, ct)
+	require.ErrorIs(t, err, ErrOpen)
 }

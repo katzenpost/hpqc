@@ -65,7 +65,6 @@ hpqc/
 │   ├── circlkem/              #   FrodoKEM, Classic McEliece, Kyber via circl
 │   ├── adapter/               #   NIKE-to-KEM adapter (hashed ElGamal)
 │   ├── combiner/              #   Generic security-preserving KEM combiner
-│   ├── mkem/                  #   Multi-recipient KEM
 │   ├── pem/                   #   PEM encoding for KEM keys
 │   ├── util/                  #   Shared helpers
 │   └── schemes/               #   ByName() registry
@@ -78,6 +77,10 @@ hpqc/
 │   ├── hybrid/                #   Generic two-scheme hybrid signer
 │   ├── pem/                   #   PEM encoding for signature keys
 │   └── schemes/               #   ByName() registry
+│
+├── protocols/                 # Protocols built on a NIKE (Go)
+│   ├── box/                   #   Anonymous public-key encryption to one recipient
+│   └── mkem/                  #   Multi-recipient KEM
 │
 ├── bacap/                     # Blinding-and-Capability scheme
 │   ├── bacap.go               #   Read/write caps, encrypt/sign/verify
@@ -105,6 +108,7 @@ hpqc/
 ├── testvectors/               # Cross-language test vectors (JSON)
 │   ├── bacap/                 #   BACAP-level + primitive vectors
 │   ├── kem/                   #   MKEM cross-language vectors
+│   ├── protocols/             #   NIKE box cross-language vectors
 │   ├── primitives/            #   Ed25519 blinding, AES-GCM-SIV
 │   └── cmd/                   #   Generators
 │

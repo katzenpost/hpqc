@@ -1200,7 +1200,7 @@ func genNIKEBox() vectorFile {
 		ct, err := s.SealWithEntropy(pub, c.plaintext, deterministicReader("nike-box-ephemeral", c.name))
 		must(err)
 
-		got, err := s.Open(priv, ct)
+		got, err := s.Open(priv, pub, ct)
 		must(err)
 		if string(got) != string(c.plaintext) {
 			panic("nike box vector " + c.name + ": self-open mismatch")
@@ -1222,7 +1222,7 @@ func genNIKEBox() vectorFile {
 		FormatVersion: formatVersion,
 		Generator:     generatorName,
 		Primitive:     "nike_box",
-		Description:   "NIKE box ciphertexts (ephPub || XSalsa20-Poly1305) with key and nonce from HKDF-BLAKE2b-256(ss, salt = nil, info = \"hpqc-nike-box-v1\" || nike name || ephPub || recipientPub). Consumers must recover the recorded plaintext when opening with the recorded private key. Keys are drawn from deterministic HKDF streams, so the vectors are stable.",
+		Description:   "NIKE box ciphertexts (ephPub || XSalsa20-Poly1305) with key and nonce from HKDF-BLAKE2b-256(ss, salt = nil, info = \"hpqc-nike-box-v1\" || uint16be(len(nike name)) || nike name || ephPub || recipientPub). Consumers must recover the recorded plaintext when opening with the recorded private and public keys. Keys are drawn from deterministic HKDF streams, so the vectors are stable.",
 		Vectors:       vs,
 	}
 }

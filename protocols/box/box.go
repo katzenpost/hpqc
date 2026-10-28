@@ -10,16 +10,17 @@
 // generated for every box, so the XSalsa20-Poly1305 key and nonce, both
 // derived from the shared secret, are each used exactly once and the
 // nonce is never transmitted. The derivation binds the scheme name and
-// both public keys:
+// both public keys, with the name length as a big-endian uint16:
 //
 //	okm   = HKDF-BLAKE2b-256(ss, salt = nil,
-//	                         info = "hpqc-nike-box-v1" || name || ephPub || recipientPub)
+//	                         info = "hpqc-nike-box-v1" || len(name) || name || ephPub || recipientPub)
 //	key   = okm[0:32]
 //	nonce = okm[32:56]
 package box
 
 import (
 	"crypto/rand"
+	"encoding/binary"
 	"errors"
 	gohash "hash"
 	"io"
@@ -46,6 +47,9 @@ var (
 
 	// ErrDegenerateSharedSecret reports an all-zero shared secret.
 	ErrDegenerateSharedSecret = errors.New("box: degenerate all-zero shared secret")
+
+	// ErrKeyScheme reports a key that does not belong to the box's NIKE.
+	ErrKeyScheme = errors.New("box: key is not of this NIKE scheme")
 )
 
 // Scheme is a box scheme over one NIKE.
@@ -76,8 +80,10 @@ func (s *Scheme) Seal(recipient nike.PublicKey, plaintext []byte) ([]byte, error
 }
 
 // SealWithEntropy is Seal with the ephemeral keypair drawn from rng.
-// With a deterministic rng the box is reproducible, which is how the
-// shared test vectors are built.
+// It exists to build reproducible test vectors. The key and nonce are
+// derived from the ephemeral key, so an rng that repeats its output
+// repeats them too, and two boxes to one recipient under the same key
+// and nonce reveal the XOR of their plaintexts. Use Seal otherwise.
 func (s *Scheme) SealWithEntropy(recipient nike.PublicKey, plaintext []byte, rng io.Reader) ([]byte, error) {
 	ephPub, ephPriv, err := s.nike.GenerateKeyPairFromEntropy(rng)
 	if err != nil {
@@ -97,8 +103,11 @@ func (s *Scheme) SealWithEntropy(recipient nike.PublicKey, plaintext []byte, rng
 	return secretbox.Seal(out, plaintext, nonce, key), nil
 }
 
-// Open decrypts a box sealed to the public key of priv.
-func (s *Scheme) Open(priv nike.PrivateKey, ciphertext []byte) ([]byte, error) {
+// Open decrypts a box sealed to pub, the public key of priv. pub is
+// passed in rather than derived because deriving it costs as much as
+// the key agreement for CSIDH-based NIKEs. A pub that does not match
+// priv makes every box fail to open.
+func (s *Scheme) Open(priv nike.PrivateKey, pub nike.PublicKey, ciphertext []byte) ([]byte, error) {
 	pkSize := s.nike.PublicKeySize()
 	if len(ciphertext) < pkSize+secretbox.Overhead {
 		return nil, ErrOpen
@@ -108,9 +117,8 @@ func (s *Scheme) Open(priv nike.PrivateKey, ciphertext []byte) ([]byte, error) {
 	if err != nil {
 		return nil, ErrOpen
 	}
-	recipientPub := s.nike.DerivePublicKey(priv)
 
-	key, nonce, err := s.deriveKeys(priv, ephPub, ephPubBytes, recipientPub.Bytes())
+	key, nonce, err := s.deriveKeys(priv, ephPub, ephPubBytes, pub.Bytes())
 	if err != nil {
 		return nil, ErrOpen
 	}
@@ -126,14 +134,18 @@ func (s *Scheme) Open(priv nike.PrivateKey, ciphertext []byte) ([]byte, error) {
 
 func (s *Scheme) deriveKeys(priv nike.PrivateKey, pub nike.PublicKey, ephPub, recipientPub []byte) (*[keySize]byte, *[nonceSize]byte, error) {
 	ss := s.nike.DeriveSecret(priv, pub)
+	if ss == nil {
+		return nil, nil, ErrKeyScheme
+	}
 	defer util.ExplicitBzero(ss)
-	if len(ss) == 0 || util.CtIsZero(ss) {
+	if util.CtIsZero(ss) {
 		return nil, nil, ErrDegenerateSharedSecret
 	}
 
 	name := []byte(s.nike.Name())
-	info := make([]byte, 0, len(kdfLabel)+len(name)+len(ephPub)+len(recipientPub))
+	info := make([]byte, 0, len(kdfLabel)+2+len(name)+len(ephPub)+len(recipientPub))
 	info = append(info, kdfLabel...)
+	info = binary.BigEndian.AppendUint16(info, uint16(len(name)))
 	info = append(info, name...)
 	info = append(info, ephPub...)
 	info = append(info, recipientPub...)
