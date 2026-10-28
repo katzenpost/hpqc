@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 """Multi-recipient KEM construction.
 
-Direct port of ``hpqc/kem/mkem`` on the Go side. Wraps any NIKE
+Direct port of ``hpqc/protocols/mkem`` on the Go side. Wraps any NIKE
 scheme (X25519, CTIDH1024, hybrid) into an MKEM that encapsulates a
 single payload to one or many recipients.
 

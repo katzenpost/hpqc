@@ -43,8 +43,8 @@ import (
 	"github.com/katzenpost/hpqc/nike"
 	"github.com/katzenpost/hpqc/nike/hybrid"
 	ecdh "github.com/katzenpost/hpqc/nike/x25519"
-	"github.com/katzenpost/hpqc/protocols/box"
 	"github.com/katzenpost/hpqc/protocols/mkem"
+	"github.com/katzenpost/hpqc/protocols/sealedbox"
 	"github.com/katzenpost/hpqc/rand"
 	"github.com/katzenpost/hpqc/sign"
 	"github.com/katzenpost/hpqc/sign/ed25519"
@@ -73,6 +73,7 @@ func main() {
 	must(os.MkdirAll(filepath.Join(*out, "bacap"), 0o755))
 	must(os.MkdirAll(filepath.Join(*out, "kem"), 0o755))
 	must(os.MkdirAll(filepath.Join(*out, "nike"), 0o755))
+	must(os.MkdirAll(filepath.Join(*out, "protocols"), 0o755))
 	must(os.MkdirAll(filepath.Join(*out, "sign"), 0o755))
 
 	writeFile(*out, "primitives/sha512_256.json", genSHA512_256())
@@ -96,7 +97,7 @@ func main() {
 	writeFile(*out, "kem/mceliece.json", genMcEliece())
 
 	writeFile(*out, "nike/schemes.json", genNIKESchemes())
-	writeFile(*out, "protocols/box.json", genNIKEBox())
+	writeFile(*out, "protocols/sealedbox.json", genSealedBox())
 	writeFile(*out, "sign/schemes.json", genSignSchemes())
 
 	fmt.Println("ok")
@@ -1167,11 +1168,12 @@ func genKEMAdapter() vectorFile {
 	}
 }
 
-// NIKE box: anonymous public-key encryption to one recipient over a NIKE.
-// See protocols/box/box.go. Recipient and ephemeral keys come from deterministic
-// HKDF streams, so re-running the generator reproduces every vector.
+// Sealed box: anonymous public-key encryption to one recipient over a NIKE.
+// See protocols/sealedbox/sealedbox.go. Recipient and ephemeral keys come
+// from deterministic HKDF streams, so re-running the generator reproduces
+// every vector.
 
-type nikeBoxVector struct {
+type sealedBoxVector struct {
 	Name                   string `json:"name"`
 	NikeName               string `json:"nike_name"`
 	RecipientPrivateKeyHex string `json:"recipient_private_key_hex"`
@@ -1180,7 +1182,7 @@ type nikeBoxVector struct {
 	CiphertextHex          string `json:"ciphertext_hex"`
 }
 
-func genNIKEBox() vectorFile {
+func genSealedBox() vectorFile {
 	cases := []struct {
 		name      string
 		scheme    nike.Scheme
@@ -1192,23 +1194,23 @@ func genNIKEBox() vectorFile {
 		{"x25519_ctidh1024_long", hybrid.X25519CTIDH1024, repeatByte(0x42, 1024)},
 	}
 
-	vs := make([]nikeBoxVector, 0, len(cases))
+	vs := make([]sealedBoxVector, 0, len(cases))
 	for _, c := range cases {
-		s := box.NewScheme(c.scheme)
-		pub, priv, err := c.scheme.GenerateKeyPairFromEntropy(deterministicReader("nike-box-recipient", c.name))
+		s := sealedbox.NewScheme(c.scheme)
+		pub, priv, err := c.scheme.GenerateKeyPairFromEntropy(deterministicReader("sealedbox-recipient", c.name))
 		must(err)
-		ct, err := s.SealWithEntropy(pub, c.plaintext, deterministicReader("nike-box-ephemeral", c.name))
+		ct, err := s.SealWithEntropy(pub, c.plaintext, deterministicReader("sealedbox-ephemeral", c.name))
 		must(err)
 
 		got, err := s.Open(priv, pub, ct)
 		must(err)
 		if string(got) != string(c.plaintext) {
-			panic("nike box vector " + c.name + ": self-open mismatch")
+			panic("sealed box vector " + c.name + ": self-open mismatch")
 		}
 		privBytes, err := priv.MarshalBinary()
 		must(err)
 
-		vs = append(vs, nikeBoxVector{
+		vs = append(vs, sealedBoxVector{
 			Name:                   c.name,
 			NikeName:               c.scheme.Name(),
 			RecipientPrivateKeyHex: hex.EncodeToString(privBytes),
@@ -1221,8 +1223,8 @@ func genNIKEBox() vectorFile {
 	return vectorFile{
 		FormatVersion: formatVersion,
 		Generator:     generatorName,
-		Primitive:     "nike_box",
-		Description:   "NIKE box ciphertexts (ephPub || XSalsa20-Poly1305) with key and nonce from HKDF-BLAKE2b-256(ss, salt = nil, info = \"hpqc-nike-box-v1\" || uint16be(len(nike name)) || nike name || ephPub || recipientPub). Consumers must recover the recorded plaintext when opening with the recorded private and public keys. Keys are drawn from deterministic HKDF streams, so the vectors are stable.",
+		Primitive:     "nike_sealed_box",
+		Description:   "Sealed box ciphertexts (ephPub || XSalsa20-Poly1305) with key and nonce from HKDF-BLAKE2b-256(ss, salt = nil, info = \"hpqc-nike-sealedbox-v1\" || uint16be(len(nike name)) || nike name || ephPub || recipientPub). Consumers must recover the recorded plaintext when opening with the recorded private and public keys. Keys are drawn from deterministic HKDF streams, so the vectors are stable.",
 		Vectors:       vs,
 	}
 }

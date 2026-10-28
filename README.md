@@ -79,8 +79,8 @@ hpqc/
 │   └── schemes/               #   ByName() registry
 │
 ├── protocols/                 # Protocols built on a NIKE (Go)
-│   ├── box/                   #   Anonymous public-key encryption to one recipient
-│   └── mkem/                  #   Multi-recipient KEM
+│   ├── mkem/                  #   Multi-recipient KEM
+│   └── sealedbox/             #   Anonymous public-key encryption to one recipient
 │
 ├── bacap/                     # Blinding-and-Capability scheme
 │   ├── bacap.go               #   Read/write caps, encrypt/sign/verify
@@ -108,7 +108,7 @@ hpqc/
 ├── testvectors/               # Cross-language test vectors (JSON)
 │   ├── bacap/                 #   BACAP-level + primitive vectors
 │   ├── kem/                   #   MKEM cross-language vectors
-│   ├── protocols/             #   NIKE box cross-language vectors
+│   ├── protocols/             #   Sealed box cross-language vectors
 │   ├── primitives/            #   Ed25519 blinding, AES-GCM-SIV
 │   └── cmd/                   #   Generators
 │
@@ -420,9 +420,9 @@ func SplitPRF(ss1, ss2, ss3, cct1, cct2, cct3 []byte) []byte {
 The [MKEM package](https://pkg.go.dev/github.com/katzenpost/hpqc/protocols/mkem) is an efficient multiparty encryption scheme. You can pass it any NIKE scheme.
 
 
-## Box
+## Sealed box
 
-The [box package](https://pkg.go.dev/github.com/katzenpost/hpqc/protocols/box) is anonymous public-key encryption to a single recipient: the NaCl box construction over any NIKE scheme. With a hybrid NIKE such as X25519-CTIDH1024 it is post-quantum. A box adds the NIKE public key size plus 16 bytes to its plaintext; for one recipient that is smaller than MKEM, which wraps a message key per recipient.
+The [sealedbox package](https://pkg.go.dev/github.com/katzenpost/hpqc/protocols/sealedbox) is anonymous public-key encryption to a single recipient: a sealed box, as in libsodium's `crypto_box_seal`, over any NIKE scheme. The sender is not authenticated, and the key derivation differs from libsodium's, so the two do not interoperate even over X25519. With a hybrid NIKE such as X25519-CTIDH1024 it is post-quantum. A sealed box adds the NIKE public key size plus 16 bytes to its plaintext; for one recipient that is smaller than MKEM, which wraps a message key per recipient.
 
 
 

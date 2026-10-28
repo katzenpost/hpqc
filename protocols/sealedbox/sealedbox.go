@@ -1,22 +1,25 @@
 // SPDX-FileCopyrightText: © 2026 David Stainton
 // SPDX-License-Identifier: AGPL-3.0-only
 
-// Package box provides anonymous public-key encryption to a single
-// recipient over any NIKE: the NaCl box construction generalised from
-// X25519 to nike.Scheme, so that a post-quantum hybrid NIKE such as
-// X25519-CTIDH1024 can be used in its place.
+// Package sealedbox provides anonymous public-key encryption to a single
+// recipient over any NIKE: a sealed box in the sense of libsodium's
+// crypto_box_seal, generalised from X25519 to nike.Scheme so that a
+// post-quantum hybrid NIKE such as X25519-CTIDH1024 can be used in its
+// place. The sender is not authenticated: the recipient learns nothing
+// about who sealed a box. The key derivation differs from libsodium's,
+// so even over X25519 the two are not interoperable.
 //
-// A box is ephPub || secretbox(plaintext). A fresh ephemeral keypair is
-// generated for every box, so the XSalsa20-Poly1305 key and nonce, both
-// derived from the shared secret, are each used exactly once and the
-// nonce is never transmitted. The derivation binds the scheme name and
+// A sealed box is ephPub || secretbox(plaintext). A fresh ephemeral
+// keypair is generated for every box, so the XSalsa20-Poly1305 key and
+// nonce, both derived from the shared secret, are each used exactly
+// once and the nonce is never transmitted. The derivation binds the scheme name and
 // both public keys, with the name length as a big-endian uint16:
 //
 //	okm   = HKDF-BLAKE2b-256(ss, salt = nil,
-//	                         info = "hpqc-nike-box-v1" || len(name) || name || ephPub || recipientPub)
+//	                         info = "hpqc-nike-sealedbox-v1" || len(name) || name || ephPub || recipientPub)
 //	key   = okm[0:32]
 //	nonce = okm[32:56]
-package box
+package sealedbox
 
 import (
 	"crypto/rand"
@@ -38,35 +41,36 @@ const (
 	nonceSize = 24
 )
 
-var kdfLabel = []byte("hpqc-nike-box-v1")
+var kdfLabel = []byte("hpqc-nike-sealedbox-v1")
 
 var (
 	// ErrOpen reports any failure to open a box. Opening never says
 	// which check failed.
-	ErrOpen = errors.New("box: open failed")
+	ErrOpen = errors.New("sealedbox: open failed")
 
 	// ErrDegenerateSharedSecret reports an all-zero shared secret.
-	ErrDegenerateSharedSecret = errors.New("box: degenerate all-zero shared secret")
+	ErrDegenerateSharedSecret = errors.New("sealedbox: degenerate all-zero shared secret")
 
-	// ErrKeyScheme reports a key that does not belong to the box's NIKE.
-	ErrKeyScheme = errors.New("box: key is not of this NIKE scheme")
+	// ErrKeyScheme reports a nil key or one that does not belong to the
+	// scheme's NIKE.
+	ErrKeyScheme = errors.New("sealedbox: key is not of this NIKE scheme")
 )
 
-// Scheme is a box scheme over one NIKE.
+// Scheme is a sealed box scheme over one NIKE.
 type Scheme struct {
 	nike nike.Scheme
 }
 
-// NewScheme returns the box scheme over the given NIKE.
+// NewScheme returns the sealed box scheme over the given NIKE.
 func NewScheme(scheme nike.Scheme) *Scheme {
 	return &Scheme{
 		nike: scheme,
 	}
 }
 
-// Name returns "box-" followed by the NIKE name.
+// Name returns "sealedbox-" followed by the NIKE name.
 func (s *Scheme) Name() string {
-	return "box-" + s.nike.Name()
+	return "sealedbox-" + s.nike.Name()
 }
 
 // Overhead returns the number of bytes a box adds to its plaintext.
@@ -85,6 +89,9 @@ func (s *Scheme) Seal(recipient nike.PublicKey, plaintext []byte) ([]byte, error
 // repeats them too, and two boxes to one recipient under the same key
 // and nonce reveal the XOR of their plaintexts. Use Seal otherwise.
 func (s *Scheme) SealWithEntropy(recipient nike.PublicKey, plaintext []byte, rng io.Reader) ([]byte, error) {
+	if recipient == nil {
+		return nil, ErrKeyScheme
+	}
 	ephPub, ephPriv, err := s.nike.GenerateKeyPairFromEntropy(rng)
 	if err != nil {
 		return nil, err
@@ -108,6 +115,9 @@ func (s *Scheme) SealWithEntropy(recipient nike.PublicKey, plaintext []byte, rng
 // the key agreement for CSIDH-based NIKEs. A pub that does not match
 // priv makes every box fail to open.
 func (s *Scheme) Open(priv nike.PrivateKey, pub nike.PublicKey, ciphertext []byte) ([]byte, error) {
+	if priv == nil || pub == nil {
+		return nil, ErrOpen
+	}
 	pkSize := s.nike.PublicKeySize()
 	if len(ciphertext) < pkSize+secretbox.Overhead {
 		return nil, ErrOpen

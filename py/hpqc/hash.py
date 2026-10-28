@@ -4,7 +4,7 @@
 
 The Go side at ``hpqc/hash/hash.go`` exposes ``HashSize`` (32) and
 ``Sum256``. This Python module exposes the same surface in
-snake_case and is imported by ``hpqc.kem.mkem``.
+snake_case and is imported by ``hpqc.protocols.mkem``.
 """
 from __future__ import annotations
 

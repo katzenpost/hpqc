@@ -22,7 +22,7 @@ from pathlib import Path
 
 import pytest
 
-from hpqc.kem.mkem import MKEMScheme
+from hpqc.protocols.mkem import MKEMScheme
 from hpqc.nike.ctidh1024 import CTIDH1024
 from hpqc.nike.hybrid import HybridNIKE
 from hpqc.nike.x25519 import X25519

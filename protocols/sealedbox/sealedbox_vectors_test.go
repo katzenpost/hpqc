@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: © 2026 David Stainton
 // SPDX-License-Identifier: AGPL-3.0-only
 
-package box
+package sealedbox
 
 import (
 	"crypto/rand"
@@ -18,9 +18,9 @@ import (
 	"github.com/katzenpost/hpqc/nike/x25519"
 )
 
-// TestSharedBoxVectors opens each recorded box with its recorded private
+// TestSharedVectors opens each recorded box with its recorded private
 // key.
-func TestSharedBoxVectors(t *testing.T) {
+func TestSharedVectors(t *testing.T) {
 	type vector struct {
 		Name                   string `json:"name"`
 		NikeName               string `json:"nike_name"`
@@ -35,13 +35,13 @@ func TestSharedBoxVectors(t *testing.T) {
 		Vectors       []vector `json:"vectors"`
 	}
 
-	raw, err := os.ReadFile(filepath.Join("testdata", "box.json"))
+	raw, err := os.ReadFile(filepath.Join("testdata", "sealedbox.json"))
 	require.NoError(t, err)
 
 	var f file
 	require.NoError(t, json.Unmarshal(raw, &f))
 	require.Equal(t, 1, f.FormatVersion)
-	require.Equal(t, "nike_box", f.Primitive)
+	require.Equal(t, "nike_sealed_box", f.Primitive)
 	require.NotEmpty(t, f.Vectors)
 
 	schemes := map[string]nike.Scheme{}

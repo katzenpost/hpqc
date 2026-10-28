@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import pytest
 
-from hpqc.kem.mkem import DEKSize, MKEMScheme
+from hpqc.protocols.mkem import DEKSize, MKEMScheme
 from hpqc.nike.ctidh1024 import CTIDH1024
 from hpqc.nike.hybrid import HybridNIKE
 from hpqc.nike.scheme import Scheme as NIKEScheme

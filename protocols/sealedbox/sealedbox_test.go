@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: © 2026 David Stainton
 // SPDX-License-Identifier: AGPL-3.0-only
 
-package box
+package sealedbox
 
 import (
 	"crypto/rand"
@@ -49,7 +49,7 @@ func TestRoundTrip(t *testing.T) {
 func TestOverhead(t *testing.T) {
 	s := NewScheme(hybrid.X25519CTIDH1024)
 	require.Equal(t, 176, s.Overhead())
-	require.Equal(t, "box-X25519-CTIDH1024", s.Name())
+	require.Equal(t, "sealedbox-X25519-CTIDH1024", s.Name())
 }
 
 func TestFreshEphemeral(t *testing.T) {
@@ -232,5 +232,22 @@ func TestKeyOfOtherScheme(t *testing.T) {
 	_, err = s.Open(xPriv, pub, ct)
 	require.ErrorIs(t, err, ErrOpen)
 	_, err = s.Open(priv, xPub, ct)
+	require.ErrorIs(t, err, ErrOpen)
+}
+
+func TestNilKeys(t *testing.T) {
+	n := x25519.Scheme(rand.Reader)
+	s := NewScheme(n)
+	pub, priv, err := n.GenerateKeyPair()
+	require.NoError(t, err)
+
+	_, err = s.Seal(nil, []byte("payload"))
+	require.ErrorIs(t, err, ErrKeyScheme)
+
+	ct, err := s.Seal(pub, []byte("payload"))
+	require.NoError(t, err)
+	_, err = s.Open(nil, pub, ct)
+	require.ErrorIs(t, err, ErrOpen)
+	_, err = s.Open(priv, nil, ct)
 	require.ErrorIs(t, err, ErrOpen)
 }

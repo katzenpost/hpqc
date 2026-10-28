@@ -40,7 +40,7 @@ testvectors/
 │   │                           #   hedged ML-KEM-512/1024, from Cryptlib
 │   └── mceliece.json           #   Classic McEliece key derivation and decapsulation
 ├── nike/schemes.json           # X25519 and X448 keys, secrets and blinding
-├── protocols/box.json          # NIKE box ciphertexts over X25519 and X25519-CTIDH1024
+├── protocols/sealedbox.json    # sealed box ciphertexts over X25519 and X25519-CTIDH1024
 ├── sign/schemes.json           # key derivation and signatures of the registered signature schemes
 └── cmd/
     └── generate/               # Go program that emits the JSON files
