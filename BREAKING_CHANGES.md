@@ -28,3 +28,5 @@
    | `NewStatefulReaderFromBytes`, `NewStatefulWriterFromBytes` | `UnmarshalReadPosition`, `UnmarshalWritePosition` |
 
    A stateful type was stored as a CBOR blob; a position is stored as its capability's bytes followed by its index (`MarshalBinary`). To migrate stored state, decode each old blob with hpqc v0.0.90 (`NewStatefulReaderFromBytes`, `NewStatefulWriterFromBytes`) and keep its capability and next index; with this release, `PositionAt` turns those into a position. Code that keeps its own indexes can use the stateless methods on `MessageBoxIndex` (`EncryptForContext`, `OpenForContext`, `NextIndex`), checking an index from outside with `ReadCap.Contains` or `WriteCap.Contains`.
+
+4. **`kem/mkem` moved to `protocols/mkem`.** MKEM is a protocol built on a NIKE, not a KEM, so it now lives beside the new `protocols/box`. The API is unchanged; update the import path from `github.com/katzenpost/hpqc/kem/mkem` to `github.com/katzenpost/hpqc/protocols/mkem`.

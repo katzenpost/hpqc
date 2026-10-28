@@ -413,7 +413,12 @@ func SplitPRF(ss1, ss2, ss3, cct1, cct2, cct3 []byte) []byte {
 
 ## MKEM
 
-The [MKEM package](https://pkg.go.dev/github.com/katzenpost/hpqc/kem/mkem) is an efficient multiparty encryption scheme. You can pass it any NIKE scheme.
+The [MKEM package](https://pkg.go.dev/github.com/katzenpost/hpqc/protocols/mkem) is an efficient multiparty encryption scheme. You can pass it any NIKE scheme.
+
+
+## Box
+
+The [box package](https://pkg.go.dev/github.com/katzenpost/hpqc/protocols/box) is anonymous public-key encryption to a single recipient: the NaCl box construction over any NIKE scheme. With a hybrid NIKE such as X25519-CTIDH1024 it is post-quantum. A box adds the NIKE public key size plus 16 bytes to its plaintext; for one recipient that is smaller than MKEM, which wraps a message key per recipient.
 
 
 

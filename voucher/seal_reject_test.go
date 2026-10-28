@@ -6,8 +6,8 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/katzenpost/hpqc/kem/mkem"
 	"github.com/katzenpost/hpqc/nike/x25519"
+	"github.com/katzenpost/hpqc/protocols/mkem"
 )
 
 // A voucher public key whose X25519 half is a low-order point unmarshals but

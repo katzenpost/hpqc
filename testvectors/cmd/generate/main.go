@@ -39,11 +39,12 @@ import (
 
 	"github.com/katzenpost/hpqc/kem/adapter"
 	"github.com/katzenpost/hpqc/kem/combiner"
-	"github.com/katzenpost/hpqc/kem/mkem"
 	hpqcmlkem768 "github.com/katzenpost/hpqc/kem/mlkem768"
 	"github.com/katzenpost/hpqc/nike"
 	"github.com/katzenpost/hpqc/nike/hybrid"
 	ecdh "github.com/katzenpost/hpqc/nike/x25519"
+	"github.com/katzenpost/hpqc/protocols/box"
+	"github.com/katzenpost/hpqc/protocols/mkem"
 	"github.com/katzenpost/hpqc/rand"
 	"github.com/katzenpost/hpqc/sign"
 	"github.com/katzenpost/hpqc/sign/ed25519"
@@ -95,6 +96,7 @@ func main() {
 	writeFile(*out, "kem/mceliece.json", genMcEliece())
 
 	writeFile(*out, "nike/schemes.json", genNIKESchemes())
+	writeFile(*out, "protocols/box.json", genNIKEBox())
 	writeFile(*out, "sign/schemes.json", genSignSchemes())
 
 	fmt.Println("ok")
@@ -1161,6 +1163,66 @@ func genKEMAdapter() vectorFile {
 		Generator:     generatorName,
 		Primitive:     "kem_adapter",
 		Description:   "NIKE-to-KEM adapter (hashed ElGamal) over X25519. Each vector fixes a static recipient keypair and an ephemeral keypair; the ciphertext is the encoded ephemeral public key and the shared secret is what both Encapsulate (with that ephemeral) and Decapsulate produce. The \"prf\" field names the shared-key derivation: \"blake2b-xof\" is the deployed one, \"sha256-v1\" is a portable fixed-width alternative for implementations without BLAKE2b. Consumers must dispatch on it rather than assume. Private keys are recorded already clamped per RFC 7748 so implementations clamping on load and at use time agree. Vectors are deterministic: regenerating does not change the bytes.",
+		Vectors:       vs,
+	}
+}
+
+// NIKE box: anonymous public-key encryption to one recipient over a NIKE.
+// See protocols/box/box.go. Recipient and ephemeral keys come from deterministic
+// HKDF streams, so re-running the generator reproduces every vector.
+
+type nikeBoxVector struct {
+	Name                   string `json:"name"`
+	NikeName               string `json:"nike_name"`
+	RecipientPrivateKeyHex string `json:"recipient_private_key_hex"`
+	RecipientPublicKeyHex  string `json:"recipient_public_key_hex"`
+	PlaintextHex           string `json:"plaintext_hex"`
+	CiphertextHex          string `json:"ciphertext_hex"`
+}
+
+func genNIKEBox() vectorFile {
+	cases := []struct {
+		name      string
+		scheme    nike.Scheme
+		plaintext []byte
+	}{
+		{"x25519_empty", ecdh.Scheme(rand.Reader), []byte{}},
+		{"x25519_short", ecdh.Scheme(rand.Reader), []byte("hello")},
+		{"x25519_ctidh1024_voucher", hybrid.X25519CTIDH1024, repeatByte(0x56, 32)},
+		{"x25519_ctidh1024_long", hybrid.X25519CTIDH1024, repeatByte(0x42, 1024)},
+	}
+
+	vs := make([]nikeBoxVector, 0, len(cases))
+	for _, c := range cases {
+		s := box.NewScheme(c.scheme)
+		pub, priv, err := c.scheme.GenerateKeyPairFromEntropy(deterministicReader("nike-box-recipient", c.name))
+		must(err)
+		ct, err := s.SealWithEntropy(pub, c.plaintext, deterministicReader("nike-box-ephemeral", c.name))
+		must(err)
+
+		got, err := s.Open(priv, ct)
+		must(err)
+		if string(got) != string(c.plaintext) {
+			panic("nike box vector " + c.name + ": self-open mismatch")
+		}
+		privBytes, err := priv.MarshalBinary()
+		must(err)
+
+		vs = append(vs, nikeBoxVector{
+			Name:                   c.name,
+			NikeName:               c.scheme.Name(),
+			RecipientPrivateKeyHex: hex.EncodeToString(privBytes),
+			RecipientPublicKeyHex:  hex.EncodeToString(pub.Bytes()),
+			PlaintextHex:           hex.EncodeToString(c.plaintext),
+			CiphertextHex:          hex.EncodeToString(ct),
+		})
+	}
+
+	return vectorFile{
+		FormatVersion: formatVersion,
+		Generator:     generatorName,
+		Primitive:     "nike_box",
+		Description:   "NIKE box ciphertexts (ephPub || XSalsa20-Poly1305) with key and nonce from HKDF-BLAKE2b-256(ss, salt = nil, info = \"hpqc-nike-box-v1\" || nike name || ephPub || recipientPub). Consumers must recover the recorded plaintext when opening with the recorded private key. Keys are drawn from deterministic HKDF streams, so the vectors are stable.",
 		Vectors:       vs,
 	}
 }
