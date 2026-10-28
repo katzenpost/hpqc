@@ -1,22 +1,16 @@
 # SPDX-FileCopyrightText: © 2026 David Stainton
 # SPDX-License-Identifier: AGPL-3.0-only
-"""Asserts the Python voucher implementation against the shared cross-language
-vector file at ``voucher/testdata/voucher_vectors.json``. The Go suite asserts
-against the same file, so the two implementations are pinned to each other.
+"""Asserts the Python voucher implementation against vectors/voucher_vectors.json,
+a copy of the shared cross-language vector file at
+``voucher/testdata/voucher_vectors.json``. The Go suite asserts against the
+same file, so the two implementations are pinned to each other.
 """
 import json
 from pathlib import Path
 
 from hpqc.voucher import voucher_induct, voucher_mint, voucher_open_reply
 
-_VEC = json.loads(
-    (
-        Path(__file__).resolve().parents[3]
-        / "voucher"
-        / "testdata"
-        / "voucher_vectors.json"
-    ).read_text()
-)
+_VEC = json.loads((Path(__file__).parent / "vectors" / "voucher_vectors.json").read_text())
 _uh = bytes.fromhex
 
 

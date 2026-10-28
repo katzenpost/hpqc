@@ -3,7 +3,7 @@
 """Vector-driven cross-language tests for the BACAP Python port.
 
 Reads the vectors/{message_box_index,box_id,encrypt}.json files (each a
-per-file symlink into the canonical testvectors/bacap/ tree) and asserts
+copy of a file in the canonical testvectors/bacap/ tree) and asserts
 that the Python implementation reproduces the byte-for-byte expected
 outputs recorded by the Go primitives in the generator.
 

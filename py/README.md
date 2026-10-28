@@ -25,8 +25,10 @@ in Go, see the
   (`ReadPosition`, `WritePosition`) and the stateless API (immutable
   `MessageBoxIndex`, `WriteCap`, `ReadCap`). Encrypt, decrypt, sign,
   verify, and tombstones are all covered.
-* **MKEM** (`hpqc.kem.mkem`): multi-recipient KEM construction over
+* **MKEM** (`hpqc.protocols.mkem`): multi-recipient KEM construction over
   any NIKE.
+* **Sealed box** (`hpqc.protocols.sealedbox`): anonymous public-key
+  encryption to one recipient over any NIKE.
 * **NIKE abstractions** (`hpqc.nike.scheme`): `Scheme`, `PublicKey`,
   `PrivateKey` base classes mirroring the Go interfaces.
 * **NIKE primitives**: X25519 (`hpqc.nike.x25519`), CTIDH at field
@@ -45,10 +47,11 @@ in Go, see the
   two-component combiner plus a pre-registered
   `FalconPadded512Ed25519` instance.
 
-The Python and Go test suites read the same JSON vector files via
-per-file symlinks under `tests/.../vectors/`, so any byte-level
-divergence between the two ports trips a failing assertion on
-whichever side runs first.
+The Python and Go test suites read the same JSON vector files: the
+Python side reads copies under `tests/.../vectors/`, which
+`tests/test_vector_copies.py` keeps identical to the canonical files,
+so any byte-level divergence between the two ports trips a failing
+assertion on whichever side runs first.
 
 
 ## Installation
@@ -92,7 +95,7 @@ assert plaintext == b"hello, pigeonhole"
 Encapsulating a payload to multiple recipients with MKEM:
 
 ```python
-from hpqc.kem.mkem import MKEMScheme
+from hpqc.protocols.mkem import MKEMScheme
 from hpqc.nike.x25519 import X25519
 
 mkem = MKEMScheme(X25519())
@@ -102,6 +105,20 @@ bob_pk,   bob_sk   = mkem.generate_keypair()
 eph_priv, ct = mkem.encapsulate([alice_pk, bob_pk], b"secret payload")
 assert mkem.decapsulate(alice_sk, ct) == b"secret payload"
 assert mkem.decapsulate(bob_sk,   ct) == b"secret payload"
+```
+
+Sealing a payload to one recipient:
+
+```python
+from hpqc.protocols.sealedbox import SealedBoxScheme
+from hpqc.nike.x25519 import X25519
+
+nike = X25519()
+box = SealedBoxScheme(nike)
+pk, sk = nike.generate_keypair()
+
+ct = box.seal(pk, b"secret payload")
+assert box.open(sk, pk, ct) == b"secret payload"
 ```
 
 
@@ -115,9 +132,12 @@ pip install -e ".[test]"
 pytest
 ```
 
-Cross-language vector tests live under `tests/bacap/`, `tests/kem/`,
-and `tests/sign/`. They symlink into the canonical JSON vectors under
-`../testvectors/`, which the Go test suite also consumes.
+Cross-language vector tests live under `tests/bacap/`, `tests/protocols/`,
+and `tests/sign/`. They read copies of the canonical JSON vectors under
+`../testvectors/`, which the Go test suite also consumes. The copies are
+real files so that the sdist carries them; after regenerating the
+vectors, refresh them with the `cp` command that
+`tests/test_vector_copies.py` prints for each stale copy.
 
 
 ## License

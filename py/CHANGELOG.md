@@ -13,6 +13,21 @@ side, are also recorded in the repository-root
 
 ## [Unreleased]
 
+### Added
+
+- Sealed box (`hpqc.protocols.sealedbox`): anonymous public-key
+  encryption to one recipient over any NIKE, a port of the Go
+  `protocols/sealedbox`.
+
+### Changed
+
+- MKEM moved from `hpqc.kem.mkem` to `hpqc.protocols.mkem`, beside the
+  sealed box. The API is unchanged.
+- The test vectors under `tests/**/vectors/` are copies instead of
+  symlinks, so the sdist carries them and its tests run; flit_core 4
+  is supported again. `tests/test_vector_copies.py` keeps the copies
+  identical to the canonical files.
+
 
 ## [0.0.93] - 2026-10-14
 

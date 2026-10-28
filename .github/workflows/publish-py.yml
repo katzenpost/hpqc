@@ -67,7 +67,7 @@ jobs:
           /tmp/smoke/bin/python -c "
           import hpqc
           from hpqc.bacap import WriteCap, ReadCap, MessageBoxIndex
-          from hpqc.kem.mkem import MKEMScheme
+          from hpqc.protocols.mkem import MKEMScheme
           from hpqc.nike.x25519 import X25519
           from hpqc.nike.scheme import Scheme
           from hpqc.sign.ed25519 import VerifyKey

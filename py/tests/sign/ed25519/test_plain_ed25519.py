@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 """Vector-driven tests for plain Ed25519 verification.
 
-Reads vectors/ed25519.json, which is a per-file symlink into the canonical
+Reads vectors/ed25519.json, a copy of the file in the canonical
 testvectors/ tree at the repo root. The same JSON file is consumed by the
 Go side at sign/ed25519/plain_vectors_test.go, so any divergence between
 the Go and Python implementations surfaces here as a failed assertion.

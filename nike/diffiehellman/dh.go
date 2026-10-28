@@ -61,6 +61,8 @@ var _ nike.PrivateKey = (*PrivateKey)(nil)
 var _ nike.PublicKey = (*PublicKey)(nil)
 var _ nike.Scheme = (*dhNIKE)(nil)
 
+var errKeyType = errors.New("diffiehellman: key is not of this NIKE scheme")
+
 func (d *dhNIKE) Name() string {
 	return "DH4096_RFC3526"
 }
@@ -142,13 +144,23 @@ func (d *dhNIKE) NewKeypair(rng io.Reader) (nike.PrivateKey, nike.PublicKey) {
 }
 
 func (d *dhNIKE) DeriveSecret(privateKey nike.PrivateKey, publicKey nike.PublicKey) []byte {
-	c := diffieHellman.GenerateSessionKey(privateKey.(*PrivateKey).privateKey, publicKey.(*PublicKey).publicKey, Scheme().group())
+	priv, ok1 := privateKey.(*PrivateKey)
+	pub, ok2 := publicKey.(*PublicKey)
+	if !ok1 || !ok2 {
+		return nil
+	}
+	c := diffieHellman.GenerateSessionKey(priv.privateKey, pub.publicKey, Scheme().group())
 	return paddedBinaryEncode(c)
 }
 
 func (d *dhNIKE) Blind(groupMember nike.PublicKey, blindingFactor nike.PrivateKey) nike.PublicKey {
+	pub, ok1 := groupMember.(*PublicKey)
+	bf, ok2 := blindingFactor.(*PrivateKey)
+	if !ok1 || !ok2 {
+		return nil
+	}
 	return &PublicKey{
-		publicKey: diffieHellman.GenerateSessionKey(blindingFactor.(*PrivateKey).privateKey, groupMember.(*PublicKey).publicKey, Scheme().group()),
+		publicKey: diffieHellman.GenerateSessionKey(bf.privateKey, pub.publicKey, Scheme().group()),
 	}
 }
 
@@ -165,8 +177,12 @@ func paddedBinaryEncode(z *cyclic.Int) []byte {
 }
 
 func (d *dhNIKE) DerivePublicKey(privKey nike.PrivateKey) nike.PublicKey {
+	priv, ok := privKey.(*PrivateKey)
+	if !ok {
+		return nil
+	}
 	return &PublicKey{
-		publicKey: diffieHellman.GeneratePublicKey(privKey.(*PrivateKey).privateKey, d.group()),
+		publicKey: diffieHellman.GeneratePublicKey(priv.privateKey, d.group()),
 	}
 }
 
@@ -179,9 +195,11 @@ func (p *PrivateKey) CyclicInt() *cyclic.Int {
 }
 
 func (p *PrivateKey) DeriveSecret(pubKey nike.PublicKey) []byte {
-	c := diffieHellman.GenerateSessionKey(p.privateKey,
-		(pubKey.(*PublicKey)).publicKey,
-		Scheme().group())
+	pub, ok := pubKey.(*PublicKey)
+	if !ok {
+		return nil
+	}
+	c := diffieHellman.GenerateSessionKey(p.privateKey, pub.publicKey, Scheme().group())
 	return c.Bytes()
 }
 
@@ -241,7 +259,11 @@ type PublicKey struct {
 }
 
 func (p *PublicKey) Blind(blindingFactor nike.PrivateKey) error {
-	p.publicKey = diffieHellman.GenerateSessionKey(blindingFactor.(*PrivateKey).privateKey, p.publicKey, Scheme().group())
+	bf, ok := blindingFactor.(*PrivateKey)
+	if !ok {
+		return errKeyType
+	}
+	p.publicKey = diffieHellman.GenerateSessionKey(bf.privateKey, p.publicKey, Scheme().group())
 	return nil
 }
 

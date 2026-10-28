@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 """Vector-driven tests for Falcon-padded-512 verification.
 
-Reads vectors/falcon_padded_512.json, a per-file symlink into the
+Reads vectors/falcon_padded_512.json, a copy of the file in the
 canonical testvectors/ tree at the repo root. The same JSON file is
 consumed by the Go side at sign/falcon/falcon_vectors_test.go; a
 divergence between Go's PQClean-via-cgo encoding and the Python port's

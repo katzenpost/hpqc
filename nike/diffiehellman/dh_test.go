@@ -1,9 +1,12 @@
 package diffiehellman
 
 import (
+	"crypto/rand"
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/katzenpost/hpqc/nike/x25519"
 )
 
 // TestPaddedBinaryEncode verifies that paddedBinaryEncode always returns
@@ -24,4 +27,22 @@ func TestPaddedBinaryEncode(t *testing.T) {
 	restored := s.NewEmptyPrivateKey()
 	require.NoError(t, restored.FromBytes(key.Bytes()))
 	require.Equal(t, key.Bytes(), restored.Bytes())
+}
+
+// TestForeignKeys checks that keys of another NIKE are refused rather
+// than panicking on a type assertion.
+func TestForeignKeys(t *testing.T) {
+	s := Scheme()
+	pub, priv, err := s.GenerateKeyPair()
+	require.NoError(t, err)
+	xPub, xPriv, err := x25519.Scheme(rand.Reader).GenerateKeyPair()
+	require.NoError(t, err)
+
+	require.Nil(t, s.DeriveSecret(xPriv, pub))
+	require.Nil(t, s.DeriveSecret(priv, xPub))
+	require.Nil(t, s.DerivePublicKey(xPriv))
+	require.Nil(t, s.Blind(xPub, priv))
+	require.Nil(t, s.Blind(pub, xPriv))
+	require.Nil(t, priv.(*PrivateKey).DeriveSecret(xPub))
+	require.Error(t, pub.Blind(xPriv))
 }

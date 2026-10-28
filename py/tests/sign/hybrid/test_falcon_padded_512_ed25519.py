@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 """Vector-driven tests for the Falcon-padded-512-Ed25519 hybrid verifier.
 
-Reads vectors/falcon_padded_512_ed25519.json, a per-file symlink into
+Reads vectors/falcon_padded_512_ed25519.json, a copy of the file in
 the canonical testvectors/ tree at the repo root. The same JSON file is
 consumed by the Go side at sign/hybrid/falcon_vectors_test.go; a
 divergence in either component scheme's encoding or in the on-wire

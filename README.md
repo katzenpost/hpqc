@@ -65,7 +65,6 @@ hpqc/
 │   ├── circlkem/              #   FrodoKEM, Classic McEliece, Kyber via circl
 │   ├── adapter/               #   NIKE-to-KEM adapter (hashed ElGamal)
 │   ├── combiner/              #   Generic security-preserving KEM combiner
-│   ├── mkem/                  #   Multi-recipient KEM
 │   ├── pem/                   #   PEM encoding for KEM keys
 │   ├── util/                  #   Shared helpers
 │   └── schemes/               #   ByName() registry
@@ -78,6 +77,10 @@ hpqc/
 │   ├── hybrid/                #   Generic two-scheme hybrid signer
 │   ├── pem/                   #   PEM encoding for signature keys
 │   └── schemes/               #   ByName() registry
+│
+├── protocols/                 # Protocols built on a NIKE (Go)
+│   ├── mkem/                  #   Multi-recipient KEM
+│   └── sealedbox/             #   Anonymous public-key encryption to one recipient
 │
 ├── bacap/                     # Blinding-and-Capability scheme
 │   ├── bacap.go               #   Read/write caps, encrypt/sign/verify
@@ -105,6 +108,7 @@ hpqc/
 ├── testvectors/               # Cross-language test vectors (JSON)
 │   ├── bacap/                 #   BACAP-level + primitive vectors
 │   ├── kem/                   #   MKEM cross-language vectors
+│   ├── protocols/             #   Sealed box cross-language vectors
 │   ├── primitives/            #   Ed25519 blinding, AES-GCM-SIV
 │   └── cmd/                   #   Generators
 │
@@ -158,10 +162,11 @@ What is currently ported:
   two-component combiner plus a pre-registered
   `FalconPadded512Ed25519` instance.
 
-The Python and Go test suites read the same JSON vector files via
-per-file symlinks under `py/tests/.../vectors/`, so any divergence
-between the two ports surfaces immediately as a failing assertion
-on whichever side runs first.
+The Python and Go test suites read the same JSON vector files: the
+Python side reads copies under `py/tests/.../vectors/`, which
+`py/tests/test_vector_copies.py` keeps identical to the canonical
+files, so any divergence between the two ports surfaces as a failing
+assertion on whichever side runs first.
 
 ### Installing it
 
@@ -413,7 +418,12 @@ func SplitPRF(ss1, ss2, ss3, cct1, cct2, cct3 []byte) []byte {
 
 ## MKEM
 
-The [MKEM package](https://pkg.go.dev/github.com/katzenpost/hpqc/kem/mkem) is an efficient multiparty encryption scheme. You can pass it any NIKE scheme.
+The [MKEM package](https://pkg.go.dev/github.com/katzenpost/hpqc/protocols/mkem) is an efficient multiparty encryption scheme. You can pass it any NIKE scheme.
+
+
+## Sealed box
+
+The [sealedbox package](https://pkg.go.dev/github.com/katzenpost/hpqc/protocols/sealedbox) is anonymous public-key encryption to a single recipient: a sealed box, as in libsodium's `crypto_box_seal`, over any NIKE scheme. The sender is not authenticated, and the key derivation differs from libsodium's, so the two do not interoperate even over X25519. With a hybrid NIKE such as X25519-CTIDH1024 it is post-quantum. A sealed box adds the NIKE public key size plus 16 bytes to its plaintext; for one recipient that is smaller than MKEM, which wraps a message key per recipient.
 
 
 
