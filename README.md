@@ -162,10 +162,11 @@ What is currently ported:
   two-component combiner plus a pre-registered
   `FalconPadded512Ed25519` instance.
 
-The Python and Go test suites read the same JSON vector files via
-per-file symlinks under `py/tests/.../vectors/`, so any divergence
-between the two ports surfaces immediately as a failing assertion
-on whichever side runs first.
+The Python and Go test suites read the same JSON vector files: the
+Python side reads copies under `py/tests/.../vectors/`, which
+`py/tests/test_vector_copies.py` keeps identical to the canonical
+files, so any divergence between the two ports surfaces as a failing
+assertion on whichever side runs first.
 
 ### Installing it
 

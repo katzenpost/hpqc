@@ -47,10 +47,11 @@ in Go, see the
   two-component combiner plus a pre-registered
   `FalconPadded512Ed25519` instance.
 
-The Python and Go test suites read the same JSON vector files via
-per-file symlinks under `tests/.../vectors/`, so any byte-level
-divergence between the two ports trips a failing assertion on
-whichever side runs first.
+The Python and Go test suites read the same JSON vector files: the
+Python side reads copies under `tests/.../vectors/`, which
+`tests/test_vector_copies.py` keeps identical to the canonical files,
+so any byte-level divergence between the two ports trips a failing
+assertion on whichever side runs first.
 
 
 ## Installation
@@ -132,8 +133,11 @@ pytest
 ```
 
 Cross-language vector tests live under `tests/bacap/`, `tests/protocols/`,
-and `tests/sign/`. They symlink into the canonical JSON vectors under
-`../testvectors/`, which the Go test suite also consumes.
+and `tests/sign/`. They read copies of the canonical JSON vectors under
+`../testvectors/`, which the Go test suite also consumes. The copies are
+real files so that the sdist carries them; after regenerating the
+vectors, refresh them with the `cp` command that
+`tests/test_vector_copies.py` prints for each stale copy.
 
 
 ## License

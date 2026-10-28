@@ -2,8 +2,8 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 """Cross-language MKEM vector tests.
 
-Reads vectors/mkem.json (a per-file symlink into the canonical
-testvectors/kem/ tree) and confirms that the Python MKEM port
+Reads vectors/mkem.json (a copy of the canonical
+testvectors/kem/mkem.json) and confirms that the Python MKEM port
 decapsulates Go-produced ciphertexts to the recorded plaintext.
 
 A passing test means the Python and Go sides agree on every layer

@@ -60,10 +60,11 @@ blinded Ed25519, an AES-GCM-SIV AAD shape mismatch, and so on.
 
 ## How callers reach the vectors
 
-Each test directory that consumes vectors carries a real per-file-symlink
-directory pointing into this canonical tree. A directory only exposes the
+Each test directory that consumes vectors carries a directory holding the
 specific vector files its tests actually read, so listing it is itself
-documentation of which vectors those tests depend on.
+documentation of which vectors those tests depend on. On the Go side these
+are per-file symlinks into this canonical tree; on the Python side they are
+copies, since the sdist must carry real files.
 
 The directory naming differs by language convention:
 
@@ -72,7 +73,8 @@ The directory naming differs by language convention:
   discovery, so the symlinks do not affect builds.
 - **Python side**: each test directory under `py/tests/` has a `vectors/`
   directory. This is the idiomatic name in Python cryptography libraries
-  (`pyca/cryptography` uses the same).
+  (`pyca/cryptography` uses the same). `py/tests/test_vector_copies.py`
+  lists every copy with its canonical file and fails when one drifts.
 
 For example, the Go side at `sign/ed25519/testdata/`:
 
@@ -85,7 +87,7 @@ and the equivalent Python side at `py/tests/sign/ed25519/vectors/`:
 
 ```
 py/tests/sign/ed25519/vectors/
-└── blinded_ed25519.json -> ../../../../../testvectors/primitives/blinded_ed25519.json
+└── blinded_ed25519.json        # copy of testvectors/primitives/blinded_ed25519.json
 ```
 
 Python tests live under a top-level `py/tests/` tree that mirrors the
@@ -105,6 +107,8 @@ Commit the resulting JSON whenever the primitives change. `kem/mkem.json` is
 randomised on every run; leave it alone unless the MKEM format changed. With
 `-out` pointing elsewhere, copy `primitives/sha512.json` there first:
 `bacap/bundle.json` is assembled from the files in the output directory.
+Then refresh the Python copies of any changed files; from `py/`,
+`pytest tests/test_vector_copies.py` prints the `cp` command for each.
 
 ## BACAP inputs
 

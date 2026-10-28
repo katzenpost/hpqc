@@ -2,8 +2,8 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 """Cross-language sealed box vector tests.
 
-Reads vectors/sealedbox.json (a per-file symlink into the canonical
-testvectors/protocols/ tree). Each Go-produced box must open to the
+Reads vectors/sealedbox.json (a copy of the canonical
+testvectors/protocols/sealedbox.json). Each Go-produced box must open to the
 recorded plaintext, and sealing again from the generator's
 deterministic HKDF streams must reproduce the recorded keys and
 ciphertext byte for byte.

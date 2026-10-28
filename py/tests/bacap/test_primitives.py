@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 """Vector-driven tests for the cryptographic primitives BACAP depends on.
 
-Each vector file under vectors/ is a per-file symlink into the canonical
+Each vector file under vectors/ is a copy of a file in the canonical
 testvectors/ tree at the repo root. The same files are consumed by the Go
 side at bacap/primitive_vectors_test.go, so any divergence between the Go
 and Python implementations of these primitives surfaces here as a failed

@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 
 [build-system]
-requires = ["flit_core >=3.11,<4"]
+requires = ["flit_core >=3.11"]
 build-backend = "flit_core.buildapi"
 
 [project]

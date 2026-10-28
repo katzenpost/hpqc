@@ -2,8 +2,8 @@
 # SPDX-License-Identifier: AGPL-3.0-only
 """Vector-driven tests for blinded Ed25519.
 
-Reads vectors/blinded_ed25519.json, which is a per-file symlink into the
-canonical testvectors/ tree at the repo root. The same JSON file is consumed
+Reads vectors/blinded_ed25519.json, a copy of the file in the canonical
+testvectors/ tree at the repo root. The same JSON file is consumed
 by the Go side at sign/ed25519/blinded25519_shared_vectors_test.go, so any
 divergence between the Go and Python implementations surfaces here as a
 failed assertion.
