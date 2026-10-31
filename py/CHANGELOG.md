@@ -13,6 +13,14 @@ side, are also recorded in the repository-root
 
 ## [Unreleased]
 
+
+## [0.0.95] - 2026-10-29
+
+### Changed
+
+- The version follows the repository tag; this release is v0.0.95,
+  since v0.0.94 was not published.
+
 ### Added
 
 - Sealed box (`hpqc.protocols.sealedbox`): anonymous public-key
@@ -110,7 +118,8 @@ Initial public release.
   downstream type checkers.
 
 
-[Unreleased]: https://github.com/katzenpost/hpqc/compare/v0.0.93...HEAD
+[Unreleased]: https://github.com/katzenpost/hpqc/compare/v0.0.95...HEAD
+[0.0.95]: https://github.com/katzenpost/hpqc/compare/v0.0.93...v0.0.95
 [0.0.93]: https://github.com/katzenpost/hpqc/compare/py/v0.0.2...v0.0.93
 [0.0.2]: https://github.com/katzenpost/hpqc/compare/py/v0.0.1...py/v0.0.2
 [0.0.1]: https://github.com/katzenpost/hpqc/releases/tag/py/v0.0.1

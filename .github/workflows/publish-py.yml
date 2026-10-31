@@ -36,6 +36,12 @@ jobs:
         with:
           python-version: '3.12'
 
+      - name: Check the tag matches the package version
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          v=$(python -c "import tomllib; print(tomllib.load(open('py/pyproject.toml','rb'))['project']['version'])")
+          test "v$v" = "$GITHUB_REF_NAME" || { echo "tag $GITHUB_REF_NAME, but py/pyproject.toml has $v"; exit 1; }
+
       - name: Build distributions
         run: |
           python -m pip install --upgrade build
