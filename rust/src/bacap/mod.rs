@@ -554,21 +554,15 @@ mod tests {
         assert_eq!(rc.position_at(&ahead).unwrap().index(), &ahead);
         assert_eq!(wc.position_at(&ahead).unwrap().index(), &ahead);
 
-        let other = WriteCap::generate(&mut rng());
-        let foreign = other.index().clone();
+        // Another stream's index, numbered as a box on this one.
+        let mut foreign = WriteCap::generate(&mut rng()).index().clone();
+        foreign.idx64 = ahead.idx64;
         assert_eq!(
             rc.position_at(&foreign).unwrap_err(),
             Error::IndexNotInStream
         );
         assert_eq!(
             wc.position_at(&foreign).unwrap_err(),
-            Error::IndexNotInStream
-        );
-
-        let mut same_number = foreign.clone();
-        same_number.idx64 = ahead.idx64;
-        assert_eq!(
-            rc.position_at(&same_number).unwrap_err(),
             Error::IndexNotInStream
         );
 
