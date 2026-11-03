@@ -134,7 +134,8 @@ func newVoucherKeypair(seed []byte) (priv, pub []byte, err error) {
 }
 
 // VoucherMint mints a Voucher from the joiner's MessageStream write cap, in
-// the compact form: box 0 is [read_cap, voucher_pub_key, display_name].
+// the compact form: box 0 is [read_cap, voucher_pub_key, display_name,
+// signature], signed by the stream's root key.
 // keypairSeed may be nil for a random VoucherKeypair.
 func VoucherMint(messageWriteCap []byte, displayName string, keypairSeed []byte) (*MintResult, error) {
 	writeCap, err := bacap.NewWriteCapFromBytes(messageWriteCap)
@@ -149,7 +150,13 @@ func VoucherMint(messageWriteCap []byte, displayName string, keypairSeed []byte)
 	if err != nil {
 		return nil, err
 	}
-	payloadBytes, err := (&voucherPayloadV2{MessageReadCap: readCapBytes, VoucherPubKey: voucherPub, DisplayName: displayName}).marshal()
+	vp := &voucherPayloadV2{MessageReadCap: readCapBytes, VoucherPubKey: voucherPub, DisplayName: displayName}
+	signed, err := vp.signedBytes()
+	if err != nil {
+		return nil, err
+	}
+	vp.Signature = writeCap.RootPrivateKey().SignMessage(signed)
+	payloadBytes, err := vp.marshal()
 	if err != nil {
 		return nil, err
 	}
@@ -240,6 +247,17 @@ func VoucherInduct(voucher, voucherPayload, whoReply, salt, sealSeed []byte) (*I
 		vp, err := voucherPayloadV2FromBytes(voucherPayload)
 		if err != nil {
 			return nil, ErrInvalidArgument
+		}
+		rc, err := bacap.ReadCapFromBytes(vp.MessageReadCap)
+		if err != nil {
+			return nil, ErrInvalidArgument
+		}
+		signed, err := vp.signedBytes()
+		if err != nil {
+			return nil, ErrInvalidArgument
+		}
+		if !rc.RootPublicKey().Verify(vp.Signature, signed) {
+			return nil, ErrSignatureVerificationFailed
 		}
 		displayName, readCapBytes, voucherPubKey = vp.DisplayName, vp.MessageReadCap, vp.VoucherPubKey
 	} else {

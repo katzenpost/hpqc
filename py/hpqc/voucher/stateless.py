@@ -174,12 +174,15 @@ def assemble_voucher_payload(
 
 
 def assemble_voucher_payload_v2(
-    message_read_cap: ReadCap, voucher_pub_key: bytes, display_name: str
+    message_write_cap: WriteCap, voucher_pub_key: bytes, display_name: str
 ) -> Tuple[bytes, bytes]:
-    """Assembles the compact VoucherPayload. Returns (voucher_hash, payload_bytes)."""
+    """Assembles the compact VoucherPayload, signed by the MessageStream root key. Returns
+    (voucher_hash, payload_bytes)."""
     if not isinstance(display_name, str):
         raise InvalidArgument("display_name must be a string")
-    payload_bytes = VoucherPayloadV2(message_read_cap, bytes(voucher_pub_key), display_name).to_bytes()
+    unsigned = VoucherPayloadV2(message_write_cap.read_cap(), bytes(voucher_pub_key), display_name)
+    signature = bytes(message_write_cap.root_private_key.sign(unsigned.signed_bytes()).signature)
+    payload_bytes = dataclasses.replace(unsigned, signature=signature).to_bytes()
     return sum256(payload_bytes), payload_bytes
 
 
@@ -192,6 +195,10 @@ def parse_and_verify_payload(voucher: bytes, payload_bytes: bytes) -> ParsedPayl
         raise VoucherHashMismatch("VoucherPayload does not hash to the Voucher")
     if payload_version(payload_bytes) == 2:
         p = VoucherPayloadV2.from_bytes(payload_bytes)
+        if not Ed25519Scheme.verify(bytes(p.message_read_cap.root_public_key), p.signed_bytes(), p.signature):
+            raise SignatureVerificationFailed(
+                "VoucherPayload did not verify under its read cap's root public key"
+            )
         return ParsedPayload(
             display_name=p.display_name,
             message_read_cap=p.message_read_cap,

@@ -11,6 +11,7 @@ import pytest
 from hpqc.bacap import WriteCap
 from hpqc.voucher import (
     SealOpenFailed,
+    SignatureVerificationFailed,
     VoucherHashMismatch,
     VoucherPayloadV2,
     payload_version,
@@ -49,9 +50,10 @@ def test_payload_is_the_array_form(bob):
     mint = voucher_mint(bob.to_bytes(), "bob")
     assert mint.version == 2
     assert payload_version(mint.voucher_payload) == 2
-    rc, pk, name = cbor2.loads(mint.voucher_payload)
+    rc, pk, name, sig = cbor2.loads(mint.voucher_payload)
     assert (rc, pk, name) == (bob.read_cap().to_bytes(), mint.voucher_public_key, "bob")
-    assert len(mint.voucher_payload) == 301 + 1 + 3
+    assert len(sig) == 64
+    assert len(mint.voucher_payload) == 367 + 1 + 3
     assert VoucherPayloadV2.from_bytes(mint.voucher_payload).display_name == "bob"
 
 
@@ -78,13 +80,28 @@ def test_old_payload_is_answered_in_the_old_form(bob):
 
 def test_tampered_payload_is_refused(bob):
     mint = voucher_mint(bob.to_bytes(), "bob")
-    rc, pk, name = cbor2.loads(mint.voucher_payload)
+    rc, pk, name, sig = cbor2.loads(mint.voucher_payload)
     with pytest.raises(VoucherHashMismatch):
-        voucher_induct(mint.voucher, cbor2.dumps([rc, pk, "eve"]), WHO)
+        voucher_induct(mint.voucher, cbor2.dumps([rc, pk, "eve", sig]), WHO)
+
+
+def test_signature_is_checked(bob):
+    """A payload whose hash is the voucher but whose signature is not the read cap's own:
+    someone naming a stream it does not hold."""
+    mint = voucher_mint(bob.to_bytes(), "bob")
+    rc, pk, name, sig = cbor2.loads(mint.voucher_payload)
+    for bad in (cbor2.dumps([rc, pk, "eve", sig]), cbor2.dumps([rc, pk, name, bytes(64)]), cbor2.dumps([rc, pk, name, sig[:-1] + bytes([sig[-1] ^ 1])])):
+        with pytest.raises(SignatureVerificationFailed):
+            voucher_induct(stateless.sum256(bad), bad, WHO)
+    carol = WriteCap.generate()
+    other = cbor2.loads(voucher_mint(carol.to_bytes(), "carol").voucher_payload)[3]
+    forged = cbor2.dumps([rc, pk, name, other])
+    with pytest.raises(SignatureVerificationFailed):
+        voucher_induct(stateless.sum256(forged), forged, WHO)
 
 
 def test_malformed_payloads_are_refused(bob):
-    for bad in (cbor2.dumps([b"x", b"y"]), cbor2.dumps([1, 2, 3]), b"\x00", b""):
+    for bad in (cbor2.dumps([b"x", b"y"]), cbor2.dumps([1, 2, 3]), cbor2.dumps([bob.read_cap().to_bytes(), b"k", "bob"]), b"\x00", b""):
         with pytest.raises(Exception):
             voucher_induct(stateless.sum256(bad), bad, WHO)
 

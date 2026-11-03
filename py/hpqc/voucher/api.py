@@ -110,7 +110,7 @@ def voucher_mint(
     )
     if version == 2:
         voucher, voucher_payload = stateless.assemble_voucher_payload_v2(
-            write_cap.read_cap(), voucher_public_key, display_name
+            write_cap, voucher_public_key, display_name
         )
     elif version == 1:
         signed_please_add = stateless.make_signed_please_add(write_cap, display_name)

@@ -91,13 +91,27 @@ func voucherReplyFromBytes(data []byte) (*voucherReply, error) {
 }
 
 // voucherPayloadV2 is box 0 in the compact form: the CBOR array
-// [read_cap, voucher_pub_key, display_name]. The Voucher is the hash of
-// these bytes, which is what authenticates them; there is no signature.
+// [read_cap, voucher_pub_key, display_name, signature], the signature an
+// Ed25519 signature by the read cap's root key over the CBOR array of the
+// first three (signedBytes). The Voucher is the hash of the whole.
 type voucherPayloadV2 struct {
 	_              struct{} `cbor:",toarray"`
 	MessageReadCap []byte
 	VoucherPubKey  []byte
 	DisplayName    string
+	Signature      []byte
+}
+
+type voucherPayloadV2Unsigned struct {
+	_              struct{} `cbor:",toarray"`
+	MessageReadCap []byte
+	VoucherPubKey  []byte
+	DisplayName    string
+}
+
+// signedBytes is what the signature covers.
+func (v *voucherPayloadV2) signedBytes() ([]byte, error) {
+	return ccbor.Marshal(&voucherPayloadV2Unsigned{MessageReadCap: v.MessageReadCap, VoucherPubKey: v.VoucherPubKey, DisplayName: v.DisplayName})
 }
 
 func (v *voucherPayloadV2) marshal() ([]byte, error) { return ccbor.Marshal(v) }

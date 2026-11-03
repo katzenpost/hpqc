@@ -16,8 +16,9 @@ side, are also recorded in the repository-root
 ### Added
 
 - `voucher`: the compact Contact Voucher form. `voucher_mint` now writes box 0 as the CBOR
-  array `[read_cap, voucher_pub_key, display_name]` (no signature: the Voucher, the hash of
-  the payload, authenticates it) and `voucher_induct` answers it with a sealed box
+  array `[read_cap, voucher_pub_key, display_name, signature]` (Ed25519 by the stream's
+  root key over the CBOR of the first three, so the seal key is signed too) and
+  `voucher_induct` verifies it and answers with a sealed box
   (`protocols.sealedbox` over CTIDH1024-X25519) of `[who_reply, salt]`, 213 bytes of
   overhead instead of 359. A map payload is still answered with the MKEM reply, and
   `voucher_open_reply` opens either; `voucher_mint(..., version=1)` writes the map form.

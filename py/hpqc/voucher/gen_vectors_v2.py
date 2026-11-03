@@ -17,7 +17,7 @@ def vectors(inputs: dict) -> dict:
     induct = voucher_induct(mint.voucher, mint.voucher_payload, uh(inputs["who_reply"]), salt=uh(inputs["salt"]), seal_seed=uh(inputs["seal_seed"]))
     opened = voucher_open_reply(mint.voucher_secret_key, induct.sealed_reply, uh(inputs["message_write_cap"]))
     return {
-        "about": "The compact Contact Voucher form: box 0 is the CBOR array [read_cap, voucher_pub_key, display_name], the Voucher its SHA-256; the reply is the sealed box (hpqc protocols/sealedbox over CTIDH1024-X25519, ephemeral key from SHAKE256(seal_seed)) of the CBOR array [who_reply, salt]. Inputs are those of voucher_vectors.json.",
+        "about": "The compact Contact Voucher form: box 0 is the CBOR array [read_cap, voucher_pub_key, display_name, signature], the signature Ed25519 by the read cap's root key over the CBOR array of the first three, the Voucher the BLAKE2b-256 of box 0; the reply is the sealed box (hpqc protocols/sealedbox over CTIDH1024-X25519, ephemeral key from SHAKE256(seal_seed)) of the CBOR array [who_reply, salt]. Inputs are those of voucher_vectors.json.",
         "inputs": inputs,
         "mint": {
             "voucher": mint.voucher.hex(),

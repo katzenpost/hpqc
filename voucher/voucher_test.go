@@ -159,7 +159,7 @@ func TestBothFormsRoundTrip(t *testing.T) {
 }
 
 func TestCompactPayloadRefusals(t *testing.T) {
-	for _, bad := range [][]byte{{}, {0x00}, {0x82, 0x41, 0x78, 0x41, 0x79}, {0x83, 0x01, 0x02, 0x03}} {
+	for _, bad := range [][]byte{{}, {0x00}, {0x82, 0x41, 0x78, 0x41, 0x79}, {0x83, 0x01, 0x02, 0x03}, {0x84, 0x01, 0x02, 0x03, 0x04}} {
 		sum := hash.Sum256(bad)
 		if _, err := VoucherInduct(sum[:], bad, []byte("who"), nil, nil); err == nil {
 			t.Errorf("payload %x accepted", bad)
@@ -173,5 +173,35 @@ func TestCompactPayloadRefusals(t *testing.T) {
 	flipped[len(flipped)-1] ^= 1
 	if _, err := VoucherOpenReply(mint.VoucherSecretKey, flipped, bob); err != ErrSealOpenFailed {
 		t.Errorf("tampered reply: %v", err)
+	}
+}
+
+// The compact payload's signature is checked: a payload hashing to its voucher
+// but naming a stream it was not signed by is refused.
+func TestCompactPayloadSignature(t *testing.T) {
+	bobWC, _ := bacap.NewWriteCap(rand.Reader)
+	bob, _ := bobWC.MarshalBinary()
+	mint, err := VoucherMint(bob, "bob", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	vp, err := voucherPayloadV2FromBytes(mint.VoucherPayload)
+	if err != nil || len(vp.Signature) != 64 {
+		t.Fatalf("payload %v, signature %d bytes", err, len(vp.Signature))
+	}
+	carolWC, _ := bacap.NewWriteCap(rand.Reader)
+	carol, _ := carolWC.MarshalBinary()
+	other, _ := VoucherMint(carol, "carol", nil)
+	ovp, _ := voucherPayloadV2FromBytes(other.VoucherPayload)
+	for name, bad := range map[string]*voucherPayloadV2{
+		"renamed":   {MessageReadCap: vp.MessageReadCap, VoucherPubKey: vp.VoucherPubKey, DisplayName: "eve", Signature: vp.Signature},
+		"zero":      {MessageReadCap: vp.MessageReadCap, VoucherPubKey: vp.VoucherPubKey, DisplayName: vp.DisplayName, Signature: make([]byte, 64)},
+		"another's": {MessageReadCap: vp.MessageReadCap, VoucherPubKey: vp.VoucherPubKey, DisplayName: vp.DisplayName, Signature: ovp.Signature},
+	} {
+		b, _ := bad.marshal()
+		sum := hash.Sum256(b)
+		if _, err := VoucherInduct(sum[:], b, []byte("who"), nil, nil); err != ErrSignatureVerificationFailed {
+			t.Errorf("%s: %v", name, err)
+		}
 	}
 }
