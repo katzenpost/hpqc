@@ -89,3 +89,56 @@ func voucherReplyFromBytes(data []byte) (*voucherReply, error) {
 	}
 	return v, nil
 }
+
+// voucherPayloadV2 is box 0 in the compact form: the CBOR array
+// [read_cap, voucher_pub_key, display_name]. The Voucher is the hash of
+// these bytes, which is what authenticates them; there is no signature.
+type voucherPayloadV2 struct {
+	_              struct{} `cbor:",toarray"`
+	MessageReadCap []byte
+	VoucherPubKey  []byte
+	DisplayName    string
+}
+
+func (v *voucherPayloadV2) marshal() ([]byte, error) { return ccbor.Marshal(v) }
+
+func voucherPayloadV2FromBytes(data []byte) (*voucherPayloadV2, error) {
+	v := &voucherPayloadV2{}
+	if err := cbor.Unmarshal(data, v); err != nil {
+		return nil, err
+	}
+	return v, nil
+}
+
+// voucherReplyV2 is the sealed reply plaintext in the compact form: the
+// CBOR array [who_reply, salt].
+type voucherReplyV2 struct {
+	_           struct{} `cbor:",toarray"`
+	WhoReply    []byte
+	VoucherSalt []byte
+}
+
+func (r *voucherReplyV2) marshal() ([]byte, error) { return ccbor.Marshal(r) }
+
+func voucherReplyV2FromBytes(data []byte) (*voucherReplyV2, error) {
+	r := &voucherReplyV2{}
+	if err := cbor.Unmarshal(data, r); err != nil {
+		return nil, err
+	}
+	return r, nil
+}
+
+// PayloadVersion is 1 for the map form of a VoucherPayload and 2 for the
+// array form, by the first byte's CBOR major type.
+func PayloadVersion(data []byte) (int, error) {
+	if len(data) == 0 {
+		return 0, ErrInvalidArgument
+	}
+	switch data[0] >> 5 {
+	case 5:
+		return 1, nil
+	case 4:
+		return 2, nil
+	}
+	return 0, ErrInvalidArgument
+}

@@ -24,11 +24,14 @@ import (
 	"errors"
 	"io"
 
+	"github.com/fxamacker/cbor/v2"
+
 	"github.com/katzenpost/hpqc/bacap"
 	"github.com/katzenpost/hpqc/hash"
 	"github.com/katzenpost/hpqc/nike"
 	"github.com/katzenpost/hpqc/nike/schemes"
 	"github.com/katzenpost/hpqc/protocols/mkem"
+	"github.com/katzenpost/hpqc/protocols/sealedbox"
 )
 
 // VoucherSaltSize is the size of a VoucherSalt, which re-seeds the joiner's
@@ -53,6 +56,8 @@ var (
 var (
 	sealNike = schemes.ByName("CTIDH1024-X25519")
 	sealMKEM = mkem.NewScheme(sealNike)
+	// sealBox seals the compact form's reply: one recipient, no DEK layer.
+	sealBox = sealedbox.NewScheme(sealNike)
 )
 
 // shakeReader returns SHAKE256(seed) as an io.Reader. Python obtains the same
@@ -68,6 +73,8 @@ func shakeReader(seed []byte) io.Reader {
 // to the inductor out of band; VoucherPayload is published to VoucherStream
 // box 0. The caller persists VoucherSecretKey to open the reply later.
 type MintResult struct {
+	// Version is the payload's form: 2 the compact array, 1 the signed map.
+	Version          int
 	Voucher          []byte
 	VoucherPayload   []byte
 	VoucherWriteCap  []byte
@@ -81,6 +88,10 @@ type MintResult struct {
 // live read cap the inductor hands the group. SealedReply is written to
 // VoucherStream box 1; Salt is the VoucherSalt the inductor minted.
 type InductResult struct {
+	// Version is the form the payload was in and the reply is in: 2 is the
+	// compact array, sealed as a sealed box and written framed over boxes 1
+	// on; 1 is the signed map, sealed with the MKEM and written to box 1.
+	Version               int
 	DisplayName           string
 	MutatedMessageReadCap []byte
 	SealedReply           []byte
@@ -122,9 +133,46 @@ func newVoucherKeypair(seed []byte) (priv, pub []byte, err error) {
 	return privKey.Bytes(), pubKey.Bytes(), nil
 }
 
-// VoucherMint mints a Voucher from the joiner's MessageStream write cap.
+// VoucherMint mints a Voucher from the joiner's MessageStream write cap, in
+// the compact form: box 0 is [read_cap, voucher_pub_key, display_name].
 // keypairSeed may be nil for a random VoucherKeypair.
 func VoucherMint(messageWriteCap []byte, displayName string, keypairSeed []byte) (*MintResult, error) {
+	writeCap, err := bacap.NewWriteCapFromBytes(messageWriteCap)
+	if err != nil {
+		return nil, ErrInvalidArgument
+	}
+	readCapBytes, err := writeCap.ReadCap().MarshalBinary()
+	if err != nil {
+		return nil, err
+	}
+	voucherPriv, voucherPub, err := newVoucherKeypair(keypairSeed)
+	if err != nil {
+		return nil, err
+	}
+	payloadBytes, err := (&voucherPayloadV2{MessageReadCap: readCapBytes, VoucherPubKey: voucherPub, DisplayName: displayName}).marshal()
+	if err != nil {
+		return nil, err
+	}
+	voucher := hash.Sum256(payloadBytes)
+	stream, err := deriveStream(voucher[:])
+	if err != nil {
+		return nil, err
+	}
+	return &MintResult{
+		Version:          2,
+		Voucher:          voucher[:],
+		VoucherPayload:   payloadBytes,
+		VoucherWriteCap:  stream.VoucherWriteCap,
+		VoucherReadCap:   stream.VoucherReadCap,
+		VoucherSecretKey: voucherPriv,
+		VoucherPublicKey: voucherPub,
+	}, nil
+}
+
+// VoucherMintV1 mints a Voucher in the map form, with the signed PleaseAdd,
+// which inductors before the compact form read.
+// keypairSeed may be nil for a random VoucherKeypair.
+func VoucherMintV1(messageWriteCap []byte, displayName string, keypairSeed []byte) (*MintResult, error) {
 	writeCap, err := bacap.NewWriteCapFromBytes(messageWriteCap)
 	if err != nil {
 		return nil, ErrInvalidArgument
@@ -162,6 +210,7 @@ func VoucherMint(messageWriteCap []byte, displayName string, keypairSeed []byte)
 		return nil, err
 	}
 	return &MintResult{
+		Version:          1,
 		Voucher:          voucher[:],
 		VoucherPayload:   payloadBytes,
 		VoucherWriteCap:  stream.VoucherWriteCap,
@@ -181,24 +230,43 @@ func VoucherInduct(voucher, voucherPayload, whoReply, salt, sealSeed []byte) (*I
 	if !hmac.Equal(got[:], voucher) {
 		return nil, ErrVoucherHashMismatch
 	}
-	vp, err := voucherPayloadFromBytes(voucherPayload)
+	version, err := PayloadVersion(voucherPayload)
+	if err != nil {
+		return nil, err
+	}
+	var displayName string
+	var readCapBytes, voucherPubKey []byte
+	if version == 2 {
+		vp, err := voucherPayloadV2FromBytes(voucherPayload)
+		if err != nil {
+			return nil, ErrInvalidArgument
+		}
+		displayName, readCapBytes, voucherPubKey = vp.DisplayName, vp.MessageReadCap, vp.VoucherPubKey
+	} else {
+		vp, err := voucherPayloadFromBytes(voucherPayload)
+		if err != nil {
+			return nil, ErrInvalidArgument
+		}
+		spa, err := signedPleaseAddFromBytes(vp.SignedPleaseAdd)
+		if err != nil {
+			return nil, ErrInvalidArgument
+		}
+		pa, err := pleaseAddFromBytes(spa.PleaseAdd)
+		if err != nil {
+			return nil, ErrInvalidArgument
+		}
+		rc, err := bacap.ReadCapFromBytes(pa.MessageReadCap)
+		if err != nil {
+			return nil, ErrInvalidArgument
+		}
+		if !rc.RootPublicKey().Verify(spa.Signature, spa.PleaseAdd) {
+			return nil, ErrSignatureVerificationFailed
+		}
+		displayName, readCapBytes, voucherPubKey = pa.DisplayName, pa.MessageReadCap, vp.VoucherPubKey
+	}
+	readCap, err := bacap.ReadCapFromBytes(readCapBytes)
 	if err != nil {
 		return nil, ErrInvalidArgument
-	}
-	spa, err := signedPleaseAddFromBytes(vp.SignedPleaseAdd)
-	if err != nil {
-		return nil, ErrInvalidArgument
-	}
-	pa, err := pleaseAddFromBytes(spa.PleaseAdd)
-	if err != nil {
-		return nil, ErrInvalidArgument
-	}
-	readCap, err := bacap.ReadCapFromBytes(pa.MessageReadCap)
-	if err != nil {
-		return nil, ErrInvalidArgument
-	}
-	if !readCap.RootPublicKey().Verify(spa.Signature, spa.PleaseAdd) {
-		return nil, ErrSignatureVerificationFailed
 	}
 
 	if salt == nil {
@@ -210,7 +278,12 @@ func VoucherInduct(voucher, voucherPayload, whoReply, salt, sealSeed []byte) (*I
 	if len(salt) != VoucherSaltSize {
 		return nil, ErrInvalidArgument
 	}
-	sealed, err := sealReply(vp.VoucherPubKey, whoReply, salt, sealSeed)
+	var sealed []byte
+	if version == 2 {
+		sealed, err = sealReplyV2(voucherPubKey, whoReply, salt, sealSeed)
+	} else {
+		sealed, err = sealReply(voucherPubKey, whoReply, salt, sealSeed)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -227,7 +300,8 @@ func VoucherInduct(voucher, voucherPayload, whoReply, salt, sealSeed []byte) (*I
 		return nil, err
 	}
 	return &InductResult{
-		DisplayName:           pa.DisplayName,
+		Version:               version,
+		DisplayName:           displayName,
 		MutatedMessageReadCap: mutatedReadCap,
 		SealedReply:           sealed,
 		VoucherWriteCap:       stream.VoucherWriteCap,
@@ -246,18 +320,33 @@ func VoucherOpenReply(voucherSecretKey, sealedReply, messageWriteCap []byte) (*O
 	if err != nil {
 		return nil, ErrInvalidArgument
 	}
-	ct, err := mkem.CiphertextFromBytes(sealMKEM, sealedReply)
-	if err != nil {
-		return nil, ErrSealOpenFailed
+	var whoReply, voucherSalt []byte
+	if isMKEMReply(sealedReply) {
+		ct, err := mkem.CiphertextFromBytes(sealMKEM, sealedReply)
+		if err != nil {
+			return nil, ErrSealOpenFailed
+		}
+		plaintext, err := sealMKEM.Decapsulate(priv, ct)
+		if err != nil {
+			return nil, ErrSealOpenFailed
+		}
+		reply, err := voucherReplyFromBytes(plaintext)
+		if err != nil {
+			return nil, ErrSealOpenFailed
+		}
+		whoReply, voucherSalt = reply.WhoReply, reply.VoucherSalt
+	} else {
+		plaintext, err := sealBox.Open(priv, sealNike.DerivePublicKey(priv), sealedReply)
+		if err != nil {
+			return nil, ErrSealOpenFailed
+		}
+		reply, err := voucherReplyV2FromBytes(plaintext)
+		if err != nil || len(reply.VoucherSalt) != VoucherSaltSize {
+			return nil, ErrSealOpenFailed
+		}
+		whoReply, voucherSalt = reply.WhoReply, reply.VoucherSalt
 	}
-	plaintext, err := sealMKEM.Decapsulate(priv, ct)
-	if err != nil {
-		return nil, ErrSealOpenFailed
-	}
-	reply, err := voucherReplyFromBytes(plaintext)
-	if err != nil {
-		return nil, ErrSealOpenFailed
-	}
+	reply := &voucherReply{WhoReply: whoReply, VoucherSalt: voucherSalt}
 
 	writeCap, err := bacap.NewWriteCapFromBytes(messageWriteCap)
 	if err != nil {
@@ -297,6 +386,40 @@ func deriveStream(voucher []byte) (*VoucherStreamResult, error) {
 		return nil, err
 	}
 	return &VoucherStreamResult{VoucherWriteCap: wcBytes, VoucherReadCap: rcBytes}, nil
+}
+
+// isMKEMReply says whether a sealed reply is the map form's MKEM ciphertext:
+// a CBOR map with its three keys. The sealed box form begins with an
+// ephemeral public key, not a map.
+func isMKEMReply(sealed []byte) bool {
+	if len(sealed) == 0 || sealed[0]>>5 != 5 {
+		return false
+	}
+	var m map[string]cbor.RawMessage
+	if err := cbor.Unmarshal(sealed, &m); err != nil || len(m) != 3 {
+		return false
+	}
+	_, a := m["EphemeralPublicKey"]
+	_, b := m["DEKCiphertexts"]
+	_, c := m["Envelope"]
+	return a && b && c
+}
+
+// sealReplyV2 seals [who_reply, salt] to the VoucherKeypair public key as a
+// sealed box, the ephemeral key from SHAKE256(sealSeed) when given.
+func sealReplyV2(voucherPubKey, whoReply, salt, sealSeed []byte) ([]byte, error) {
+	voucherPub, err := sealNike.UnmarshalBinaryPublicKey(voucherPubKey)
+	if err != nil {
+		return nil, ErrInvalidArgument
+	}
+	plaintext, err := (&voucherReplyV2{WhoReply: whoReply, VoucherSalt: salt}).marshal()
+	if err != nil {
+		return nil, err
+	}
+	if sealSeed == nil {
+		return sealBox.Seal(voucherPub, plaintext)
+	}
+	return sealBox.SealWithEntropy(voucherPub, plaintext, shakeReader(sealSeed))
 }
 
 func sealReply(voucherPubKey, whoReply, salt, sealSeed []byte) ([]byte, error) {

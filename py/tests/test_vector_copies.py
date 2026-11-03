@@ -41,6 +41,7 @@ COPIES = {
     "tests/sign/falcon/vectors/falcon_padded_512.json": "testvectors/primitives/falcon_padded_512.json",
     "tests/sign/hybrid/vectors/falcon_padded_512_ed25519.json": "testvectors/primitives/falcon_padded_512_ed25519.json",
     "tests/voucher/vectors/voucher_vectors.json": "voucher/testdata/voucher_vectors.json",
+    "tests/voucher/vectors/voucher_vectors_v2.json": "voucher/testdata/voucher_vectors_v2.json",
 }
 
 pytestmark = pytest.mark.skipif(

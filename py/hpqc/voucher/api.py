@@ -49,6 +49,7 @@ class MintResult:
     voucher_read_cap: bytes
     voucher_secret_key: bytes
     voucher_public_key: bytes
+    version: int = 2
 
 
 @dataclasses.dataclass(frozen=True)
@@ -68,6 +69,10 @@ class InductResult:
     voucher_write_cap: bytes
     voucher_read_cap: bytes
     salt: bytes
+    version: int = 2
+    """The payload's form, which the reply answers in: 2 is the compact array form, sealed as
+    a sealed box and written framed; 1 is the map form, sealed with the MKEM and written to
+    box 1 alone."""
 
 
 @dataclasses.dataclass(frozen=True)
@@ -95,16 +100,25 @@ def voucher_mint(
     display_name: str,
     *,
     keypair_seed: Optional[bytes] = None,
+    version: int = 2,
 ) -> MintResult:
-    """Mints a Voucher from the joiner's MessageStream write cap."""
+    """Mints a Voucher from the joiner's MessageStream write cap. ``version`` 2 is the compact
+    array payload; 1 the signed map payload that older inductors read."""
     write_cap = WriteCap.from_bytes(bytes(message_write_cap))
     voucher_secret_key, voucher_public_key = stateless.new_voucher_keypair(
         seed=keypair_seed
     )
-    signed_please_add = stateless.make_signed_please_add(write_cap, display_name)
-    voucher, voucher_payload = stateless.assemble_voucher_payload(
-        signed_please_add, voucher_public_key
-    )
+    if version == 2:
+        voucher, voucher_payload = stateless.assemble_voucher_payload_v2(
+            write_cap.read_cap(), voucher_public_key, display_name
+        )
+    elif version == 1:
+        signed_please_add = stateless.make_signed_please_add(write_cap, display_name)
+        voucher, voucher_payload = stateless.assemble_voucher_payload(
+            signed_please_add, voucher_public_key
+        )
+    else:
+        raise ValueError("voucher payload version must be 1 or 2")
     vwrite, vread = stateless.derive_voucher_stream(voucher)
     return MintResult(
         voucher=voucher,
@@ -113,6 +127,7 @@ def voucher_mint(
         voucher_read_cap=vread.to_bytes(),
         voucher_secret_key=voucher_secret_key,
         voucher_public_key=voucher_public_key,
+        version=version,
     )
 
 
@@ -124,7 +139,8 @@ def voucher_induct(
     salt: Optional[bytes] = None,
     seal_seed: Optional[bytes] = None,
 ) -> InductResult:
-    """Verifies a published VoucherPayload and seals a reply to the joiner.
+    """Verifies a published VoucherPayload and seals a reply to the joiner, in the payload's
+    form: a sealed box for the array form, the MKEM for the map form.
 
     Raises :class:`hpqc.voucher.VoucherHashMismatch` if the payload does not
     hash to the Voucher, or :class:`hpqc.voucher.SignatureVerificationFailed`
@@ -134,9 +150,14 @@ def voucher_induct(
     vwrite, vread = stateless.derive_voucher_stream(bytes(voucher))
     if salt is None:
         salt = stateless.new_salt()
-    sealed_reply = stateless.seal_reply(
-        parsed.voucher_pub_key, bytes(who_reply), salt, seal_seed=seal_seed
-    )
+    if parsed.version == 2:
+        sealed_reply = stateless.seal_reply_v2(
+            parsed.voucher_pub_key, bytes(who_reply), salt, seal_seed=seal_seed
+        )
+    else:
+        sealed_reply = stateless.seal_reply(
+            parsed.voucher_pub_key, bytes(who_reply), salt, seal_seed=seal_seed
+        )
     # Mutate the joiner's read cap by the salt: the live read cap for the group.
     mutated_read_cap = parsed.message_read_cap.mutate_kdf_state(salt)
     return InductResult(
@@ -146,6 +167,7 @@ def voucher_induct(
         voucher_write_cap=vwrite.to_bytes(),
         voucher_read_cap=vread.to_bytes(),
         salt=salt,
+        version=parsed.version,
     )
 
 

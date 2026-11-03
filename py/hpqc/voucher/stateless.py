@@ -29,6 +29,7 @@ from cryptography.exceptions import InvalidTag
 
 from hpqc.hash import sum256
 from hpqc.protocols.mkem import MKEMScheme
+from hpqc.protocols.sealedbox import OpenError, SealedBoxScheme
 from hpqc.nike.ctidh1024 import CTIDH1024
 from hpqc.nike.hybrid import HybridNIKE
 from hpqc.nike.x25519 import X25519
@@ -46,7 +47,10 @@ from .messages import (
     PleaseAdd,
     SignedPleaseAdd,
     VoucherPayload,
+    VoucherPayloadV2,
     VoucherReply,
+    VoucherReplyV2,
+    payload_version,
 )
 
 #: The VoucherKeypair seal: MKEM over the same hybrid PQ NIKE the pigeonhole
@@ -59,6 +63,8 @@ from .messages import (
 #: Python and Go implementations.
 SEAL_NIKE = HybridNIKE(X25519(), CTIDH1024(), name="CTIDH1024-X25519")
 SEAL_MKEM = MKEMScheme(SEAL_NIKE)
+#: The compact reply's seal: a single-recipient sealed box over the same NIKE.
+SEAL_BOX = SealedBoxScheme(SEAL_NIKE)
 
 #: Size of a VoucherSalt, which re-seeds the joiner's MessageStream KDF ratchet.
 VOUCHER_SALT_SIZE: int = 32
@@ -71,7 +77,8 @@ class ParsedPayload:
     display_name: str
     message_read_cap: ReadCap
     voucher_pub_key: bytes
-    signed_please_add: bytes  # CBOR SignedPleaseAdd, for the group Introduction
+    signed_please_add: Optional[bytes]  # CBOR SignedPleaseAdd in the map form; None in the array form
+    version: int = 1
 
 
 def new_salt() -> bytes:
@@ -166,12 +173,32 @@ def assemble_voucher_payload(
     return sum256(payload_bytes), payload_bytes
 
 
+def assemble_voucher_payload_v2(
+    message_read_cap: ReadCap, voucher_pub_key: bytes, display_name: str
+) -> Tuple[bytes, bytes]:
+    """Assembles the compact VoucherPayload. Returns (voucher_hash, payload_bytes)."""
+    if not isinstance(display_name, str):
+        raise InvalidArgument("display_name must be a string")
+    payload_bytes = VoucherPayloadV2(message_read_cap, bytes(voucher_pub_key), display_name).to_bytes()
+    return sum256(payload_bytes), payload_bytes
+
+
 def parse_and_verify_payload(voucher: bytes, payload_bytes: bytes) -> ParsedPayload:
-    """Checks the payload hashes to the Voucher, then verifies the signature."""
+    """Checks the payload hashes to the Voucher, then reads it in whichever form it is in; the
+    map form's signature is verified as well."""
     if len(voucher) != 32:
         raise InvalidArgument("voucher must be 32 bytes")
     if sum256(payload_bytes) != bytes(voucher):
         raise VoucherHashMismatch("VoucherPayload does not hash to the Voucher")
+    if payload_version(payload_bytes) == 2:
+        p = VoucherPayloadV2.from_bytes(payload_bytes)
+        return ParsedPayload(
+            display_name=p.display_name,
+            message_read_cap=p.message_read_cap,
+            voucher_pub_key=p.voucher_pub_key,
+            signed_please_add=None,
+            version=2,
+        )
     payload = VoucherPayload.from_bytes(payload_bytes)
     spa = SignedPleaseAdd.from_bytes(payload.signed_please_add)
     please_add = verify_signed_please_add(spa)
@@ -180,6 +207,7 @@ def parse_and_verify_payload(voucher: bytes, payload_bytes: bytes) -> ParsedPayl
         message_read_cap=please_add.message_read_cap,
         voucher_pub_key=payload.voucher_pub_key,
         signed_please_add=payload.signed_please_add,
+        version=1,
     )
 
 
@@ -225,19 +253,63 @@ def seal_reply(
     return ciphertext.marshal()
 
 
+def seal_reply_v2(
+    voucher_pub_key: bytes,
+    who_reply: bytes,
+    salt: bytes,
+    seal_seed: Optional[bytes] = None,
+) -> bytes:
+    """Seals ``[who_reply, salt]`` to the VoucherKeypair public key as a sealed box: the
+    ephemeral hybrid public key, then the secretbox of the plaintext. With ``seal_seed`` the
+    ephemeral key is drawn from ``SHAKE256(seal_seed)``."""
+    if len(salt) != VOUCHER_SALT_SIZE:
+        raise InvalidArgument(f"salt must be {VOUCHER_SALT_SIZE} bytes")
+    voucher_pub = SEAL_NIKE.public_key_from_bytes(bytes(voucher_pub_key))
+    plaintext = VoucherReplyV2(bytes(who_reply), bytes(salt)).to_bytes()
+    if seal_seed is None:
+        return SEAL_BOX.seal(voucher_pub, plaintext)
+    return SEAL_BOX.seal_with_entropy(voucher_pub, plaintext, shake_reader(seal_seed))
+
+
+def _mkem_reply(sealed: bytes) -> bool:
+    """Whether ``sealed`` is the map form's MKEM ciphertext: a CBOR map with its three keys."""
+    if not sealed or sealed[0] >> 5 != 5:
+        return False
+    try:
+        import cbor2
+
+        m = cbor2.loads(sealed)
+    except Exception:
+        return False
+    return isinstance(m, dict) and set(m) == {"EphemeralPublicKey", "DEKCiphertexts", "Envelope"}
+
+
 def open_sealed_reply(voucher_secret_key: bytes, sealed: bytes) -> VoucherReply:
-    """Opens a sealed reply with the VoucherKeypair secret key.
+    """Opens a sealed reply of either form with the VoucherKeypair secret key.
 
     Raises ``SealOpenFailed`` if the ciphertext does not authenticate under
     this key or the recovered plaintext is malformed.
     """
     voucher_priv = SEAL_NIKE.private_key_from_bytes(bytes(voucher_secret_key))
+    if _mkem_reply(bytes(sealed)):
+        try:
+            ciphertext = SEAL_MKEM.ciphertext_from_bytes(bytes(sealed))
+            plaintext = SEAL_MKEM.decapsulate(voucher_priv, ciphertext)
+        except (ValueError, InvalidTag) as e:
+            raise SealOpenFailed("could not open sealed reply") from e
+        try:
+            return VoucherReply.from_bytes(plaintext)
+        except InvalidArgument as e:
+            raise SealOpenFailed("sealed reply plaintext was malformed") from e
+    voucher_pub = SEAL_NIKE.derive_public_key(voucher_priv)
     try:
-        ciphertext = SEAL_MKEM.ciphertext_from_bytes(bytes(sealed))
-        plaintext = SEAL_MKEM.decapsulate(voucher_priv, ciphertext)
-    except (ValueError, InvalidTag) as e:
+        plaintext = SEAL_BOX.open(voucher_priv, voucher_pub, bytes(sealed))
+    except OpenError as e:
         raise SealOpenFailed("could not open sealed reply") from e
     try:
-        return VoucherReply.from_bytes(plaintext)
+        r = VoucherReplyV2.from_bytes(plaintext)
     except InvalidArgument as e:
         raise SealOpenFailed("sealed reply plaintext was malformed") from e
+    if len(r.salt) != VOUCHER_SALT_SIZE:
+        raise SealOpenFailed("sealed reply plaintext was malformed")
+    return VoucherReply(r.who_reply, r.salt)

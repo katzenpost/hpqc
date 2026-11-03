@@ -35,7 +35,10 @@ from .messages import (
     PleaseAdd,
     SignedPleaseAdd,
     VoucherPayload,
+    VoucherPayloadV2,
     VoucherReply,
+    VoucherReplyV2,
+    payload_version,
 )
 from .stateless import VOUCHER_SALT_SIZE
 
@@ -54,6 +57,9 @@ __all__ = [
     "PleaseAdd",
     "SignedPleaseAdd",
     "VoucherPayload",
+    "VoucherPayloadV2",
+    "VoucherReplyV2",
+    "payload_version",
     "VoucherReply",
     # exceptions
     "VoucherError",

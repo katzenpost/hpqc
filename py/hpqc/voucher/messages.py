@@ -143,3 +143,63 @@ class VoucherReply:
             bytes(_field(d, "WhoReply", "VoucherReply")),
             bytes(_field(d, "VoucherSalt", "VoucherReply")),
         )
+
+
+# ----- the compact forms: CBOR arrays, told from the maps above by their major type -----
+
+
+@dataclasses.dataclass(frozen=True)
+class VoucherPayloadV2:
+    """VoucherStream box 0 in the compact form: ``[read_cap, voucher_pub_key, display_name]``.
+    The Voucher is the hash of these bytes, which is what authenticates them; there is no
+    signature."""
+
+    message_read_cap: ReadCap
+    voucher_pub_key: bytes
+    display_name: str
+
+    def to_bytes(self) -> bytes:
+        return cbor2.dumps([self.message_read_cap.to_bytes(), bytes(self.voucher_pub_key), self.display_name])
+
+    @classmethod
+    def from_bytes(cls, data: bytes) -> "VoucherPayloadV2":
+        try:
+            v = cbor2.loads(data)
+        except Exception as e:
+            raise InvalidArgument("VoucherPayload: not CBOR") from e
+        if not (isinstance(v, list) and len(v) == 3 and isinstance(v[0], bytes) and isinstance(v[1], bytes) and isinstance(v[2], str)):
+            raise InvalidArgument("VoucherPayload: expected [read_cap, voucher_pub_key, display_name]")
+        return cls(ReadCap.from_bytes(bytes(v[0])), bytes(v[1]), v[2])
+
+
+@dataclasses.dataclass(frozen=True)
+class VoucherReplyV2:
+    """The sealed reply plaintext in the compact form: ``[who_reply, salt]``."""
+
+    who_reply: bytes
+    salt: bytes
+
+    def to_bytes(self) -> bytes:
+        return cbor2.dumps([bytes(self.who_reply), bytes(self.salt)])
+
+    @classmethod
+    def from_bytes(cls, data: bytes) -> "VoucherReplyV2":
+        try:
+            v = cbor2.loads(data)
+        except Exception as e:
+            raise InvalidArgument("VoucherReply: not CBOR") from e
+        if not (isinstance(v, list) and len(v) == 2 and isinstance(v[0], bytes) and isinstance(v[1], bytes)):
+            raise InvalidArgument("VoucherReply: expected [who_reply, salt]")
+        return cls(bytes(v[0]), bytes(v[1]))
+
+
+def payload_version(data: bytes) -> int:
+    """1 for the map form, 2 for the array form, by the first byte's CBOR major type."""
+    if not data:
+        raise InvalidArgument("VoucherPayload: empty")
+    major = data[0] >> 5
+    if major == 5:
+        return 1
+    if major == 4:
+        return 2
+    raise InvalidArgument("VoucherPayload: neither a CBOR map nor an array")

@@ -20,6 +20,7 @@ def test_mint_vector():
         _uh(inp["message_write_cap"]),
         inp["display_name"],
         keypair_seed=_uh(inp["keypair_seed"]),
+        version=1,
     )
     assert mint.voucher.hex() == want["voucher"]
     assert mint.voucher_payload.hex() == want["voucher_payload"]
