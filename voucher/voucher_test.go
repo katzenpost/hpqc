@@ -121,7 +121,7 @@ func TestBothFormsRoundTrip(t *testing.T) {
 		name    string
 		mint    func([]byte, string, []byte) (*MintResult, error)
 		version int
-	}{{"compact", VoucherMint, 2}, {"map", VoucherMintV1, 1}} {
+	}{{"compact", VoucherMint, 2}, {"map", VoucherMintLong, 1}} {
 		t.Run(tc.name, func(t *testing.T) {
 			bobWC, _ := bacap.NewWriteCap(rand.Reader)
 			bob, _ := bobWC.MarshalBinary()

@@ -1,20 +1,62 @@
 // SPDX-FileCopyrightText: © 2026 David Stainton
 // SPDX-License-Identifier: AGPL-3.0-only
 
-// Package voucher implements the Contact Voucher protocol cryptography.
+// Package voucher implements the cryptography of the Contact Voucher, the way
+// a newcomer joins a Pigeonhole group.
 //
-// The Contact Voucher lets a newcomer (the joiner) hand an existing group
-// member (the inductor) a single small Voucher out of band, after which the
-// two exchange read capabilities through a hash-derived rendezvous stream.
-// See website/content/en/docs/specs/contact_voucher_narration.md.
+// The joiner mints a Voucher, a 32-byte code it hands to a member of the
+// group out of band. Both sides derive the same rendezvous BACAP stream from
+// the Voucher: the joiner publishes its request in box 0, and the member
+// answering (the inductor) publishes a sealed reply from box 1 on. The reply
+// carries the group's members and a salt that moves the joiner's stream to
+// a fresh, unpredictable position.
 //
-// The public surface is four pure functions, with no IO: VoucherMint,
-// VoucherInduct, VoucherOpenReply, and DeriveVoucherStream. The caller
-// performs all pigeonhole reads and writes, the all-or-nothing COPY, and the
-// box-0 tombstone using the caps and payloads they return. This package and
-// the Python package hpqc.voucher agree byte-for-byte under shared test
-// vectors; randomness is injectable (a seed) so every function is
-// deterministic for those vectors.
+// # Flow
+//
+//	joiner:    m := VoucherMintCompact(writeCap, name, nil)
+//	           write m.VoucherPayload to box 0 of the stream at m.VoucherWriteCap
+//	           hand m.Voucher to a member; keep m.VoucherSecretKey
+//	inductor:  s := DeriveVoucherStream(voucher); read box 0 with s.VoucherReadCap
+//	           r := VoucherInduct(voucher, payload, whoReply, nil, nil)
+//	           write r.SealedReply from box 1 on (see Forms); give the group r.MutatedMessageReadCap
+//	joiner:    read the reply from box 1 on
+//	           o := VoucherOpenReply(m.VoucherSecretKey, sealedReply, writeCap)
+//	           write to the group with o.MutatedMessageWriteCap; read members from o.WhoReply
+//
+// # Forms
+//
+// A Voucher comes in two forms, chosen when it is minted.
+//
+//   - Compact (VoucherMintCompact, the default of VoucherMint): box 0 is the
+//     CBOR array [read_cap, voucher_pub_key, display_name, signature]. The
+//     reply is a single-recipient sealed box written framed over boxes 1, 2,
+//     …: pieces of the box size less one byte, each behind 'C', the last
+//     behind 'F'.
+//   - Long (VoucherMintLong): box 0 is the signed CBOR map form that clients
+//     before the compact form read. The reply is the MKEM ciphertext,
+//     written unframed in box 1 alone.
+//
+// VoucherInduct answers a payload in the form it was minted in, and
+// VoucherOpenReply opens either. PayloadVersion tells the forms apart. The
+// framing of a compact reply over boxes is the caller's to do; this package
+// only seals and opens.
+//
+// Both forms are authenticated twice. The Voucher is the BLAKE2b-256 of box
+// 0, so the inductor detects any change to it. The payload is signed by the
+// joiner's stream root key, so the joiner holds the stream it names.
+//
+// # Guarantees
+//
+// Every function is pure: no IO, no clock, no global state. Secrets and
+// capabilities cross the API as opaque bytes. Randomness can be fixed by the
+// seed and salt arguments, and with them this package and the Python package
+// hpqc.voucher produce the same bytes; the shared vectors are
+// testdata/voucher_vectors.json (long form) and
+// testdata/voucher_vectors_v2.json (compact form). Pass nil seeds in
+// production.
+//
+// Specification: katzenpost/website, docs/specs/katzenqt1_reticulum.md
+// (Vouchers) and docs/specs/contact_voucher_narration.md.
 package voucher
 
 import (
@@ -133,11 +175,25 @@ func newVoucherKeypair(seed []byte) (priv, pub []byte, err error) {
 	return privKey.Bytes(), pubKey.Bytes(), nil
 }
 
-// VoucherMint mints a Voucher from the joiner's MessageStream write cap, in
-// the compact form: box 0 is [read_cap, voucher_pub_key, display_name,
-// signature], signed by the stream's root key.
-// keypairSeed may be nil for a random VoucherKeypair.
+// VoucherMint mints a Voucher in the compact form. It is VoucherMintCompact,
+// the form new clients use; see VoucherMintLong for joining an inductor that
+// only reads the long form.
 func VoucherMint(messageWriteCap []byte, displayName string, keypairSeed []byte) (*MintResult, error) {
+	return VoucherMintCompact(messageWriteCap, displayName, keypairSeed)
+}
+
+// VoucherMintCompact mints a Voucher in the compact form.
+//
+// messageWriteCap is the joiner's own MessageStream write capability (a
+// marshalled bacap.WriteCap); displayName is the name the group will show.
+// The result's VoucherPayload, the CBOR array [read_cap, voucher_pub_key,
+// display_name, signature], goes to box 0 of the stream at VoucherWriteCap;
+// Voucher is handed to a member out of band; VoucherSecretKey must be kept to
+// open the reply, which will be a sealed box framed over boxes 1 on.
+//
+// keypairSeed fixes the seal keypair for test vectors; pass nil otherwise.
+// Errors: ErrInvalidArgument for a malformed write cap.
+func VoucherMintCompact(messageWriteCap []byte, displayName string, keypairSeed []byte) (*MintResult, error) {
 	writeCap, err := bacap.NewWriteCapFromBytes(messageWriteCap)
 	if err != nil {
 		return nil, ErrInvalidArgument
@@ -176,10 +232,12 @@ func VoucherMint(messageWriteCap []byte, displayName string, keypairSeed []byte)
 	}, nil
 }
 
-// VoucherMintV1 mints a Voucher in the map form, with the signed PleaseAdd,
-// which inductors before the compact form read.
-// keypairSeed may be nil for a random VoucherKeypair.
-func VoucherMintV1(messageWriteCap []byte, displayName string, keypairSeed []byte) (*MintResult, error) {
+// VoucherMintLong mints a Voucher in the long form, the signed CBOR map that
+// inductors from before the compact form read. Use it to join a group whose
+// members have not upgraded. The reply will be the MKEM ciphertext, unframed
+// in box 1 alone. Arguments, results and errors are as for
+// VoucherMintCompact.
+func VoucherMintLong(messageWriteCap []byte, displayName string, keypairSeed []byte) (*MintResult, error) {
 	writeCap, err := bacap.NewWriteCapFromBytes(messageWriteCap)
 	if err != nil {
 		return nil, ErrInvalidArgument
@@ -227,8 +285,21 @@ func VoucherMintV1(messageWriteCap []byte, displayName string, keypairSeed []byt
 	}, nil
 }
 
-// VoucherInduct verifies a published VoucherPayload and seals a reply to the
-// joiner. salt and sealSeed may be nil (a fresh random salt, a random seal).
+// VoucherInduct answers a Voucher: it checks the published payload and seals
+// a reply to the joiner, in the form the payload was minted in.
+//
+// voucher is the code the joiner handed over; voucherPayload is what box 0
+// of its stream (from DeriveVoucherStream) holds; whoReply is the opaque
+// group membership to send, the protocol's ReplyWho encoding. The result's
+// SealedReply is written from box 1 on: framed if Version is 2, unframed in
+// box 1 if Version is 1. MutatedMessageReadCap is where the group reads the
+// joiner from now on; DisplayName is the name it asked for.
+//
+// salt and sealSeed fix the salt and the seal's ephemeral key for test
+// vectors; pass nil otherwise. Errors: ErrVoucherHashMismatch when the
+// payload is not the one the Voucher names, ErrSignatureVerificationFailed
+// when its signature does not verify under the read cap it names, and
+// ErrInvalidArgument for anything malformed.
 func VoucherInduct(voucher, voucherPayload, whoReply, salt, sealSeed []byte) (*InductResult, error) {
 	if len(voucher) != hash.HashSize {
 		return nil, ErrInvalidArgument
@@ -328,11 +399,17 @@ func VoucherInduct(voucher, voucherPayload, whoReply, salt, sealSeed []byte) (*I
 	}, nil
 }
 
-// VoucherOpenReply opens the inductor's sealed reply with the joiner's
-// VoucherSecretKey, recovers the VoucherSalt, and mutates the joiner's
-// MessageStream write cap by it. The returned MutatedMessageWriteCap is the
-// live write cap with which the joiner writes real messages; it lands on the
-// same box sequence as the read cap the inductor mutated and handed the group.
+// VoucherOpenReply opens the reply to a Voucher the caller minted.
+//
+// voucherSecretKey is MintResult.VoucherSecretKey; sealedReply is the reply's
+// bytes, reassembled from boxes 1 on for a compact Voucher or box 1 alone for
+// a long one (either is accepted); messageWriteCap is the write cap the
+// Voucher was minted from. The result's MutatedMessageWriteCap is where the
+// joiner writes to the group from now on, the stream the inductor told the
+// group to read; WhoReply is the group membership the inductor sent.
+//
+// Errors: ErrSealOpenFailed when the reply was not sealed to this key or is
+// malformed, ErrInvalidArgument for a malformed key or write cap.
 func VoucherOpenReply(voucherSecretKey, sealedReply, messageWriteCap []byte) (*OpenReplyResult, error) {
 	priv, err := sealNike.UnmarshalBinaryPrivateKey(voucherSecretKey)
 	if err != nil {
@@ -381,8 +458,11 @@ func VoucherOpenReply(voucherSecretKey, sealedReply, messageWriteCap []byte) (*O
 	}, nil
 }
 
-// DeriveVoucherStream derives the VoucherStream caps deterministically from
-// the Voucher, which the inductor needs to read box 0 before inducting.
+// DeriveVoucherStream returns the rendezvous stream's capabilities, which
+// both sides compute from the Voucher alone: the inductor reads box 0 and
+// writes the reply with them, the joiner reads the reply. Box 0 is the
+// stream's first index; the reply starts at the next. Errors:
+// ErrInvalidArgument unless voucher is 32 bytes.
 func DeriveVoucherStream(voucher []byte) (*VoucherStreamResult, error) {
 	return deriveStream(voucher)
 }

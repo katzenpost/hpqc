@@ -81,7 +81,7 @@ func eqHex(t *testing.T, name string, got []byte, want string) {
 
 func TestVectorsMint(t *testing.T) {
 	v := loadVectors(t)
-	mint, err := VoucherMintV1(
+	mint, err := VoucherMintLong(
 		unhex(t, v.Inputs.MessageWriteCap),
 		v.Inputs.DisplayName,
 		unhex(t, v.Inputs.KeypairSeed),

@@ -125,3 +125,10 @@ def test_determinism(bob):
 def _minted(bob):
     m = voucher_mint(bob.to_bytes(), "bob", keypair_seed=b"k" * 32)
     return m.voucher, m.voucher_payload
+
+
+def test_named_mints(bob):
+    from hpqc.voucher import voucher_mint_compact, voucher_mint_long
+
+    assert voucher_mint_compact(bob.to_bytes(), "bob").version == 2
+    assert payload_version(voucher_mint_long(bob.to_bytes(), "bob").voucher_payload) == 1

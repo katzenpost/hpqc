@@ -142,8 +142,11 @@ func voucherReplyV2FromBytes(data []byte) (*voucherReplyV2, error) {
 	return r, nil
 }
 
-// PayloadVersion is 1 for the map form of a VoucherPayload and 2 for the
-// array form, by the first byte's CBOR major type.
+// PayloadVersion reports a VoucherPayload's form from its first byte's CBOR
+// major type: 1 for the long form (a map), 2 for the compact form (an
+// array). A caller uses it to know how the reply will be laid out: framed
+// over boxes 1 on for 2, unframed in box 1 for 1. Errors: ErrInvalidArgument
+// for an empty payload or one that is neither.
 func PayloadVersion(data []byte) (int, error) {
 	if len(data) == 0 {
 		return 0, ErrInvalidArgument
