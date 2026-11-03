@@ -10,7 +10,9 @@ keywords = ["cryptography", "post-quantum", "kem", "hybrid", "signature"]
 categories = ["cryptography"]
 
 [dependencies]
+aes-gcm-siv = "0.12.1"
 blake2b_simd = "1.0.5"
+curve25519-dalek = "5.0.0"
 ed25519-dalek = "3.0.0"
 ml-dsa = { version = "0.1.1", features = ["zeroize"] }
 ml-kem = { version = "0.3.2", features = ["zeroize"] }

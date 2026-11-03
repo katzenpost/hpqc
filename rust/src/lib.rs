@@ -10,6 +10,7 @@
 //! Encodings are byte compatible with the Go reference implementation,
 //! `github.com/katzenpost/hpqc`.
 
+pub mod bacap;
 pub mod error;
 pub mod hash;
 pub mod kem;
