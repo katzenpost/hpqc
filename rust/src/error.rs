@@ -24,6 +24,8 @@ pub enum Error {
     EmptyBox,
     /// A BACAP box is not the one the capability and index derive.
     BoxMismatch,
+    /// A voucher payload does not hash to the voucher.
+    VoucherMismatch,
     InvalidInput(&'static str),
     Unsupported(&'static str),
 }
@@ -43,6 +45,7 @@ impl fmt::Display for Error {
             Error::IndexTooFar => f.write_str("index is too far ahead to check"),
             Error::EmptyBox => f.write_str("empty box, no message received"),
             Error::BoxMismatch => f.write_str("box is not the one the capability and index derive"),
+            Error::VoucherMismatch => f.write_str("payload does not hash to the voucher"),
             Error::InvalidInput(what) => write!(f, "invalid input: {what}"),
             Error::Unsupported(what) => write!(f, "unsupported: {what}"),
         }

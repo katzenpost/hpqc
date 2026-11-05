@@ -12,6 +12,8 @@ behind object-safe traits, so they can be composed and selected at runtime.
   and Ed25519 key blinding.
 - `bacap`: BACAP, the blinded capability scheme of
   [Echomix](https://arxiv.org/abs/2501.02933) section 4.
+- `protocols`: the sealed box and MKEM over any NIKE.
+- `voucher`: the Contact Voucher, how a newcomer joins a Pigeonhole group.
 
 Each module has a registry that looks schemes up by name:
 

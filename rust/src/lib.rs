@@ -11,12 +11,15 @@
 //! `github.com/katzenpost/hpqc`.
 
 pub mod bacap;
+mod cbor;
 pub mod error;
 pub mod hash;
 pub mod kem;
 pub mod nike;
+pub mod protocols;
 pub mod sign;
 mod util;
+pub mod voucher;
 
 pub use error::{Error, Result};
 pub use rand_core;
