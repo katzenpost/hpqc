@@ -82,6 +82,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "cc"
+version = "1.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "375989decec1a0fa424442bed520fa12ede43a48475ce8c7417d2c69b32b5f6b"
+dependencies = [
+ "find-msvc-tools",
+ "shlex",
+]
+
+[[package]]
 name = "cfg-if"
 version = "1.0.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -297,6 +307,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "64cd1e32ddd350061ae6edb1b082d7c54915b5c672c389143b9a63403a109f24"
 
 [[package]]
+name = "find-msvc-tools"
+version = "0.1.15"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1c66915cc5391097de7a2b0b972e8505aa33c0df401fd3a6811dbdb32881ba48"
+
+[[package]]
 name = "getrandom"
 version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -336,6 +352,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
 
 [[package]]
+name = "highctidh"
+version = "0.1.0"
+source = "git+https://github.com/katzenpost/highctidh-rs?rev=4686e46273d959e59d33736206ed2dbce7f82e57#4686e46273d959e59d33736206ed2dbce7f82e57"
+dependencies = [
+ "cc",
+ "rand_core",
+ "subtle",
+ "zeroize",
+]
+
+[[package]]
 name = "hpqc"
 version = "0.1.0"
 dependencies = [
@@ -345,6 +372,7 @@ dependencies = [
  "ed25519-dalek",
  "getrandom",
  "hex",
+ "highctidh",
  "ml-dsa",
  "ml-kem",
  "pq-mceliece",
@@ -636,6 +664,12 @@ dependencies = [
  "keccak",
  "sponge-cursor",
 ]
+
+[[package]]
+name = "shlex"
+version = "2.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f8fadd59c855ef2080decdef8ff161eb6661b86933c9d82e5ba29dc602a55aba"
 
 [[package]]
 name = "signature"

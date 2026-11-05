@@ -3,7 +3,9 @@
 Hybrid post-quantum cryptography for Rust: KEM, NIKE and signature schemes
 behind object-safe traits, so they can be composed and selected at runtime.
 
-- `nike`: X25519, X448, and a hybrid of any two NIKEs.
+- `nike`: X25519, X448, CTIDH-1024 (highctidh, through the
+  [highctidh-rs](https://github.com/katzenpost/highctidh-rs) crate, so a C
+  compiler is needed), and a hybrid of any two NIKEs.
 - `kem`: ML-KEM-512/768/1024 and their hedged variants, Classic McEliece,
   any NIKE as a KEM (hashed ElGamal), and a combiner of any number of KEMs.
 - `sign`: Ed25519, ML-DSA-44/65/87, a hybrid of any two signature schemes,

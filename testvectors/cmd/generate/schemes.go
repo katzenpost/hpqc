@@ -116,7 +116,7 @@ func nikeKeyPair(s nike.Scheme, label, vname string) (nike.PublicKey, nike.Priva
 
 func genNIKESchemes() vectorFile {
 	var vs []nikeSchemeVector
-	for _, name := range []string{"x25519", "x448"} {
+	for _, name := range []string{"x25519", "x448", "ctidh1024", "CTIDH1024-X25519"} {
 		scheme := nikeschemes.ByName(name)
 		for i := 1; i <= 3; i++ {
 			vname := name + "/case_" + string(rune('0'+i))
@@ -144,7 +144,7 @@ func genNIKESchemes() vectorFile {
 		FormatVersion: formatVersion,
 		Generator:     generatorName,
 		Primitive:     "nike_schemes",
-		Description: "Key pairs, shared secrets and blinding for the registered elliptic-curve NIKEs. " +
+		Description: "Key pairs, shared secrets and blinding for the registered elliptic-curve and CTIDH NIKEs. " +
 			"Private keys are the raw scalars read from a deterministic HKDF stream, unclamped; " +
 			"clamping happens at use. The blinded key is Scheme.Blind(alice public key, blinding " +
 			"factor). Vectors are deterministic.",
