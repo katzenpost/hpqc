@@ -1,634 +1,71 @@
-
-
-# HPQC
+# hpqc
 
 [![Go Reference](https://pkg.go.dev/badge/github.com/katzenpost/hpqc.svg)](https://pkg.go.dev/github.com/katzenpost/hpqc)
-[![Release](https://img.shields.io/github/v/tag/katzenpost/hpqc)](https://github.com/katzenpost/hpqc/tags)
-[![Go Report Card](https://goreportcard.com/badge/github.com/katzenpost/hpqc)](https://goreportcard.com/report/github.com/katzenpost/hpqc)
-[![CI](https://github.com/katzenpost/hpqc/actions/workflows/go.yml/badge.svg)](https://github.com/katzenpost/hpqc/actions/workflows/go.yml)
+[![PyPI](https://img.shields.io/pypi/v/hpqc)](https://pypi.org/project/hpqc/)
+[![Go tests](https://github.com/katzenpost/hpqc/actions/workflows/go.yml/badge.svg)](https://github.com/katzenpost/hpqc/actions/workflows/go.yml)
+[![Python tests](https://github.com/katzenpost/hpqc/actions/workflows/python.yml/badge.svg)](https://github.com/katzenpost/hpqc/actions/workflows/python.yml)
 
+hpqc is a hybrid post-quantum cryptography library. It offers KEMs, NIKEs and
+signature schemes behind common `Scheme` interfaces, builds hybrids from them,
+and implements the BACAP capability scheme. [Katzenpost](https://katzenpost.network)
+uses it. Go is the reference implementation; the Python and Rust ports
+cover parts of it, and all three check the same [test vectors](testvectors/).
+hpqc has had no external security review and should be considered experimental.
 
-
-## Hybrid Post Quantum Cryptography
-
-This library contains Golang implementations of leading quantum-resistant cryptographic primitives, popular and time-tested classical primitives, hybrid primitives that combine the strength of both, and ways to combine them all according to your needs. It also includes BACAP (blinding-and-capability) scheme, an orginal cryptographic protocol with a wide range of applications, including constructing anonymous messaging systems.
-
-hpqc is used by the Katzenpost mixnet and published under the AGPLv3.0 licence
-
-This library is divided into four parts:
-
-* NIKE (non-interactive key exchange) encryption
-* KEM (key encapsulation mechanism) encryption
-* signature schemes
-* BACAP 
-
-NIKE is what we usually think about when we say "Diffie-Hellman" key exchange. It allows two parties to each derive the same shared secret from each other's public keys, without any interaction beyond publishing those keys. By contrast, KEM is a mechanism where the encapsulation function takes a public key and produces both a ciphertext and a randomly generated shared secret; the recipient can then recover the same shared secret by decapsulating the ciphertext with their private key.
-
-This library includes CTIDH, currently the only post-quantum NIKE in existence, based on isogenies of supersingular elliptic curves. For post-quantum KEMs, we provide ML-KEM-768, FrodoKEM, Classic McEliece, NTRU Prime, and HQC. All of these can be combined with classical primitives like X25519 or X448 to form hybrid schemes.
-
-The key to understanding and using this cryptography library is to review the `Scheme` interfaces, for NIKE, KEM and signature schemes, as well as the BACAP API:
-
-* NIKE Scheme: https://pkg.go.dev/github.com/katzenpost/hpqc/nike#Scheme
-* KEM Scheme: https://pkg.go.dev/github.com/katzenpost/hpqc/kem#Scheme
-* signature schemes' Scheme: https://pkg.go.dev/github.com/katzenpost/hpqc/sign#Scheme
-* BACAP API documentation: https://pkg.go.dev/github.com/katzenpost/hpqc/bacap
-
-Using our generic NIKE, KEM and Signature scheme interfaces helps you achieve cryptographic code agility which makes it easy to switch between cryptographic primitives.
-
-
-## Directory Tree
-
-The repository contains both the Go reference implementation (in
-the top-level packages) and a Python port (under `py/`). The two
-sides expose equivalent APIs for the parts of the library that
-have been ported, and share the same test vectors under
-`testvectors/`.
-
-```
-hpqc/
-├── nike/                      # Non-Interactive Key Exchange (Go)
-│   ├── nike.go                #   Scheme/PublicKey/PrivateKey interfaces
-│   ├── x25519/                #   X25519
-│   ├── x448/                  #   X448
-│   ├── ctidh/                 #   CTIDH 511, 512, 1024, 2048 (CGO bindings)
-│   ├── hybrid/                #   CTIDH-X25519, CTIDH-X448, etc.
-│   ├── diffiehellman/         #   Classical DH (RFC 3526, currently disabled)
-│   ├── pem/                   #   PEM encoding for NIKE keys
-│   └── schemes/               #   ByName() registry
-│
-├── kem/                       # Key Encapsulation Mechanisms (Go)
-│   ├── interfaces.go          #   Scheme/PublicKey/PrivateKey interfaces
-│   ├── mlkem768/              #   ML-KEM-768, and hedged MLKEMHedged768
-│   ├── sntrup/                #   sntrup4591761 (NTRU Prime)
-│   ├── hqc/                   #   HQC (NIST round 4)
-│   ├── xwing/                 #   XWING (ML-KEM-768 + X25519)
-│   ├── circlkem/              #   FrodoKEM, Classic McEliece, Kyber via circl
-│   ├── adapter/               #   NIKE-to-KEM adapter (hashed ElGamal)
-│   ├── combiner/              #   Generic security-preserving KEM combiner
-│   ├── pem/                   #   PEM encoding for KEM keys
-│   ├── util/                  #   Shared helpers
-│   └── schemes/               #   ByName() registry
-│
-├── sign/                      # Signature schemes (Go)
-│   ├── interfaces.go          #   Scheme/PublicKey/PrivateKey interfaces
-│   ├── ed25519/               #   Ed25519
-│   ├── sphincsplus/           #   Sphincs+ (SHAKE-256f)
-│   ├── circlsign/             #   Ed448, eddilithium2/3 via circl
-│   ├── hybrid/                #   Generic two-scheme hybrid signer
-│   ├── pem/                   #   PEM encoding for signature keys
-│   └── schemes/               #   ByName() registry
-│
-├── protocols/                 # Protocols built on a NIKE (Go)
-│   ├── mkem/                  #   Multi-recipient KEM
-│   └── sealedbox/             #   Anonymous public-key encryption to one recipient
-│
-├── bacap/                     # Blinding-and-Capability scheme
-│   ├── bacap.go               #   Read/write caps, encrypt/sign/verify
-│   ├── bacap_test.go          #   Unit tests
-│   ├── bacap_vectors_test.go  #   Cross-language test vector consumer
-│   └── primitive_vectors_test.go  #   Ed25519 + AES-GCM-SIV primitive vectors
-│
-├── hash/                      # BLAKE2b helpers used across the library
-├── rand/                      # CSPRNG and deterministic test RNG
-├── util/                      # ctIsZero, explicitBzero, PEM helpers
-├── examples/                  # Runnable example programs
-│   ├── nike_and_cipher/
-│   └── kem_and_cipher/
-│
-├── py/                        # Python port (pip-installable as "hpqc")
-│   ├── pyproject.toml
-│   ├── hpqc/                  #   Public package
-│   │   ├── hash.py
-│   │   ├── nike/              #     X25519, CTIDH 511/512/1024/2048, hybrid
-│   │   ├── kem/               #     mkem, scheme adapter
-│   │   ├── sign/              #     Ed25519, blinded Ed25519
-│   │   └── bacap/             #     BACAP: positions and the stateless API
-│   └── tests/                 #   pytest suites; share vectors with Go
-│
-├── testvectors/               # Cross-language test vectors (JSON)
-│   ├── bacap/                 #   BACAP-level + primitive vectors
-│   ├── kem/                   #   MKEM cross-language vectors
-│   ├── protocols/             #   Sealed box cross-language vectors
-│   ├── primitives/            #   Ed25519 blinding, AES-GCM-SIV
-│   └── cmd/                   #   Generators
-│
-├── misc/                      # Operator scripts (Debian Go deps installer)
-└── BREAKING_CHANGES.md        # Changelog of API-breaking changes
+```mermaid
+flowchart LR
+  N["NIKE: X25519, X448, CTIDH"] -->|adapter| C{{combiner}}
+  K["KEM: ML-KEM, HQC, McEliece, FrodoKEM"] --> C
+  C --> H["hybrid KEM, e.g. MLKEM768-X25519"]
 ```
 
+## Quick start
 
-## Python port
-
-A Python port of selected hpqc primitives lives under `py/`. It is
-not a complete mirror of the Go reference, but it covers BACAP,
-MKEM, the NIKE primitives those depend on, and a verify-only
-slice of the signature surface (plain Ed25519, Falcon-padded-512,
-and the Falcon-padded-512-Ed25519 hybrid), so Python applications
-and tooling that need these constructions can use them directly.
-The two ports share their JSON test vectors so neither side can
-drift silently from the other.
-
-What is currently ported:
-
-* **BACAP** (`hpqc.bacap`): positions (`ReadPosition`,
-  `WritePosition`) and the stateless API (immutable
-  `MessageBoxIndex`, `ReadCap`, `WriteCap`), with full coverage of
-  encrypt, decrypt, sign, verify and tombstones. Cross-language vectors live under
-  `testvectors/bacap/`; the underlying primitive vectors
-  (SHA-512/256, BLAKE2b-512, HKDF-BLAKE2b-512, AES-256-GCM-SIV)
-  live under `testvectors/primitives/`.
-* **MKEM** (`hpqc.kem.mkem`): the multi-recipient KEM construction
-  on top of any NIKE. Cross-language vectors live under
-  `testvectors/kem/`.
-* **NIKE abstract classes** (`hpqc.nike.scheme`): the `Scheme`,
-  `PublicKey` and `PrivateKey` base classes that any NIKE
-  implementation must satisfy, mirroring the Go interfaces.
-* **CTIDH wrappers** (`hpqc.nike.ctidh{511,512,1024,2048}`): thin
-  adapters over the upstream `highctidh` package that present
-  CTIDH at each supported field size under the abstract NIKE
-  interface. A shared factory in `hpqc.nike._ctidh` keeps the
-  per-field-size classes distinct, so `isinstance` still catches
-  attempts to mix keys across field sizes.
-* **NIKE concretes**: X25519 and `HybridNIKE`, a generic combiner
-  that exposes two NIKEs as one.
-* **Ed25519 signature verification** (`hpqc.sign.ed25519`): the
-  blinded Ed25519 variant on which BACAP relies, plus an
-  `Ed25519Scheme` verify-only wrapper for plain Ed25519.
-* **Falcon-padded-512 signature verification**
-  (`hpqc.sign.falcon.FalconPadded512Scheme`), backed by the
-  [`pqcrypto`](https://pypi.org/project/pqcrypto/) PyPI dependency,
-  which vendors the same PQClean reference C used by the Go side.
-* **Hybrid signature verification** (`hpqc.sign.hybrid`): a generic
-  two-component combiner plus a pre-registered
-  `FalconPadded512Ed25519` instance.
-
-The Python and Go test suites read the same JSON vector files: the
-Python side reads copies under `py/tests/.../vectors/`, which
-`py/tests/test_vector_copies.py` keeps identical to the canonical
-files, so any divergence between the two ports surfaces as a failing
-assertion on whichever side runs first.
-
-### Installing it
-
-```bash
-pip install hpqc
-```
-
-The CTIDH wrappers pull in the upstream `highctidh` package (also
-a runtime dependency); see
-[CTIDH](#the-pq-nike-ctidh-via-highctidh) below for build notes.
-
-### Running the unit tests
-
-The test suite is not shipped with the PyPI wheel; clone the repo
-and install from the source checkout to run it:
-
-```bash
-cd hpqc/py
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -e ".[test]"
-pytest
-```
-
-
-## Using existing NIKE Schemes
-
-NIKE schemes API docs: https://pkg.go.dev/github.com/katzenpost/hpqc/nike/schemes
-
-NIKE interfaces docs; each NIKE implements three interfaces, Scheme, PublicKey and PrivateKey interfaces which are documented here: https://pkg.go.dev/github.com/katzenpost/hpqc/nike
-
-
-If you want to get started with one of our many existing NIKE schemes, you can reference NIKE schemes by name like so:
-
-```golang
-import (
-	"github.com/katzenpost/hpqc/nike/schemes"
-	"github.com/katzenpost/hpqc/nike"
-)
-
-
-func doCryptoStuff() {
-	scheme := schemes.ByName("X25519")
-	if scheme == nil {
-		panic("NIKE scheme not found")
-	}
-
-	alicePubKey, alicePrivKey, err := scheme.GenerateKeyPair()
-	if err != nil {
-		panic(err)
-	}
-
-	bobPubKey, bobPrivKey, err := scheme.GenerateKeyPair()
-	if err != nil {
-		panic(err)
-	}
-
-	aliceSharedSecret := scheme.DeriveSecret(alicePrivKey, bobPubKey)
-	bobSharedSecret := scheme.DeriveSecret(bobPrivKey, alicePubKey)
-	
-	// do stuff with shared secrets.
-	// aliceSharedSecret is equal to bobSharedSecret
-}
-```
-
-Generic cryptographic interfaces means that if your double ratchet is already using the NIKE interfaces, then it's trivial to upgrade it to use a hybrid NIKE which appeases the exact same interfaces:
-
-```golang
-import (
-	"github.com/katzenpost/hpqc/nike"
-	"github.com/katzenpost/hpqc/nike/ctidh/ctidh1024"
-	"github.com/katzenpost/hpqc/nike/x25519"
-	"github.com/katzenpost/hpqc/rand"
-)
-
-var CTIDH1024X25519 nike.Scheme = &hybrid.Scheme{
-	name:   "CTIDH1024-X25519",
-	second: ctidh1024.Scheme(),
-	first:  x25519.Scheme(rand.Reader),
-}
-```
-
-A list of implemented NIKEs can be found towards the end of this document.
-
-## Using existing KEM Schemes
-
-KEM schemes API docs: https://pkg.go.dev/github.com/katzenpost/hpqc/kem/schemes
-
-KEM interfaces docs; each KEM implements three interfaces, Scheme, PublicKey and PrivateKey interfaces which are documented here:
-https://pkg.go.dev/github.com/katzenpost/hpqc/kem
-
-If you want to get started with one of our many existing KEM schemes, you can reference KEM schemes by name like so:
-
-```golang
-import (
-	"github.com/katzenpost/hpqc/kem/schemes"
-	"github.com/katzenpost/hpqc/kem"
-)
-
-
-func doCryptoStuff() {
-	scheme := schemes.ByName("Xwing")
-	if scheme == nil {
-		panic("KEM scheme not found")
-	}
-
-	myPubKey, myPrivKey, err := scheme.GenerateKeyPair()
-	if err != nil {
-		panic(err)
-	}
-	
-	kemCiphertext, sharedSecret, err := scheme.Encapsulate(myPubKey)
-	if err != nil {
-		panic(err)
-	}
-
-	sharedSecret2, err := scheme.Decapsulate(myPrivKey, kemCiphertext)
-	if err != nil {
-		panic(err)
-	}
-	
-	// do stuff with sharedSecret2 which is equal to sharedSecret
-}
-```
-```golang
-import "github.com/katzenpost/hpqc/kem"
-
-func encryptMessage(publicKey kem.PublicKey, scheme kem.Scheme, message []byte) {
-        ct, ss, err := scheme.Encapsulate(publicKey)
-		if err != nil {
-		        panic(err)
-		}
-		// ...
-}
-```
-
-A list of implemented KEMs can be found towards the end of this document.
-
-## Using existing signature schemes' Schemes
-
-Signature schemes API docs: https://pkg.go.dev/github.com/katzenpost/hpqc/sign/schemes
-
-Singature interfaces docs; each signature scheme implements three interfaces, Scheme, PublicKey and PrivateKey interfaces which are documented here:
-https://pkg.go.dev/github.com/katzenpost/hpqc/sign 
-
-If you want to get started with one of our existing signature schemes, you can reference signature schemes by name like so:
-
-```golang
-import (
-	"github.com/katzenpost/hpqc/sign/schemes"
-	"github.com/katzenpost/hpqc/sign"
-)
-
-
-func doCryptoStuff(message []byte) {
-	scheme := schemes.ByName("ed25519")
-	if scheme == nil {
-		panic("Signature scheme not found")
-	}
-	
-	alicePubKey, alicePrivKey := scheme.GenerateKey()
-	signature := scheme.Sign(alicePrivKey, message, nil)
-	
-	ok := scheme.Verify(alicePubKey, message, signature, nil)
-	
-	if !ok {
-		panic("signature verification failed!")
-	}
-	
-	// ...
-}
-```
-
-Generic hybrid signature scheme, combines any two signature schemes into one
-
-```golang
-import (
-	"github.com/katzenpost/hpqc/sign/hybrid"
-	"github.com/katzenpost/hpqc/sign/ed25519"
-	"github.com/katzenpost/hpqc/sign/sphincsplus"
-)
-
-var Ed25519Sphincs = hybrid.New("Ed25519-Sphincs+", ed25519.Scheme(), sphincsplus.Scheme())
-```
-
-
-A list of implemented signature schemes can be found towards the end of this document.
-
-## NIKE to KEM adapter and KEM combiner
-
-Any NIKE primitive can be turned into a KEM to be used in combination with KEM primitives. Our "NIKE to KEM adapter" uses an ad hoc hashed ElGamal construction. The construction in pseudo code:
-
-```
-func ENCAPSULATE(their_pubkey publickey) ([]byte, []byte) {
-    my_privkey, my_pubkey = GEN_KEYPAIR(RNG)
-    ss = DH(my_privkey, their_pubkey)
-    ss2 = PRF(ss || their_pubkey || my_pubkey)
-    return my_pubkey, ss2
-}
-
-func DECAPSULATE(my_privkey, their_pubkey) []byte {
-    s = DH(my_privkey, their_pubkey)
-    shared_key = PRF(ss || my_pubkey || their_pubkey)
-    return shared_key
-}
-```
-
-The following code demonstrates the use of both the adapter and the combiner into a hybrid KEM:
-
-```golang
-import (
-	"github.com/katzenpost/hpqc/kem"
-	"github.com/katzenpost/hpqc/kem/adapter"
-	"github.com/katzenpost/hpqc/kem/circlkem"
-	"github.com/katzenpost/hpqc/kem/combiner"
-	"github.com/katzenpost/hpqc/kem/mlkem768"
-	"github.com/katzenpost/circl/kem/frodo/frodo640shake"
-	"github.com/katzenpost/hpqc/nike/ctidh/ctidh1024"
-	"github.com/katzenpost/hpqc/nike/x448"
-	"github.com/katzenpost/hpqc/rand"
-)
-
-kemScheme, err := combiner.New(
-	"MLKEM768-Frodo640Shake-CTIDH1024-X448",
-	[]kem.Scheme{
-		mlkem768.Scheme(),
-		circlkem.FromCircl(frodo640shake.Scheme()),
-		adapter.FromNIKE(ctidh1024.Scheme()),
-		adapter.FromNIKE(x448.Scheme(rand.Reader)),
-	},
-)
-if err != nil {
-	panic(err)
-}
-```
-
-
-The [KEM Combiners paper](https://eprint.iacr.org/2018/024.pdf) makes the observation that if a KEM combiner is not security preserving then the resulting hybrid KEM will not have IND-CCA2 security if one of the composing KEMs does not have IND-CCA2 security. Likewise the paper points out that when using a security preserving KEM combiner, if only one of the composing KEMs has IND-CCA2 security then the resulting hybrid KEM will have IND-CCA2 security.
-
-Our KEM combiner uses the split PRF design for an arbitrary number of kems, here shown with only three, in pseudo code:
-
-```
-func SplitPRF(ss1, ss2, ss3, cct1, cct2, cct3 []byte) []byte {
-    cct := cct1 || cct2 || cct3
-    return PRF(ss1 || cct) XOR PRF(ss2 || cct) XOR PRF(ss3 || cct)
-}
-```
-
-
-## MKEM
-
-The [MKEM package](https://pkg.go.dev/github.com/katzenpost/hpqc/protocols/mkem) is an efficient multiparty encryption scheme. You can pass it any NIKE scheme.
-
-
-## Sealed box
-
-The [sealedbox package](https://pkg.go.dev/github.com/katzenpost/hpqc/protocols/sealedbox) is anonymous public-key encryption to a single recipient: a sealed box, as in libsodium's `crypto_box_seal`, over any NIKE scheme. The sender is not authenticated, and the key derivation differs from libsodium's, so the two do not interoperate even over X25519. With a hybrid NIKE such as X25519-CTIDH1024 it is post-quantum. A sealed box adds the NIKE public key size plus 16 bytes to its plaintext; for one recipient that is smaller than MKEM, which wraps a message key per recipient.
-
-
-
-
-## BACAP
-
-BACAP is a cryptographic protocol that we are very proud of and you can read more about it in section 4 of our paper: https://arxiv.org/abs/2501.02933. The main author of BACAP is @threebithacker. It can be used for a wide range of capability management applications. 
-
-One example, that we are implementing in our group chat protocol, is for multi-client messaging. It allows us to deterministically derive a sequence of key pairs using blinding. It is built upon the Ed25519 signature scheme, and relies on its properties throughout the design. It enables participants to derive a sequence of public-key values and corresponding encryption keys for independent, single-use capabilities using shared symmetric keys.
-
-In the context of a messaging system, the protocol is used by Alice to send an infinite sequence of messages to Bob, one per box (public key in the sequence), with Bob using a separate, second instance of the protocol to send messages to Alice. Alice will use a root private key to derive a root public key for Bob. The root key and a CSPRNG instantiated from recursive KDF applications are then used to obtain a sequence of context-specific values for exercising and verifying a capability. A context value ctx, which is a hash of a universally public value, will be used as additional input. It can, for simplicity, be a hash of the name of the storage network, or can be bound to a specific period of time, e.g., the long epoch SRV published by the Katzenpost directories at regular intervals, similar to how Tor uses its SRV in onion services. The context value makes it safe to unlinkably relocate messages to a different network. The BACAP API is described in the library’s documentation: https://pkg.go.dev/github.com/katzenpost/hpqc/bacap
-
-### Addressing boxes: positions
-
-A box is named by a capability and a `MessageBoxIndex` together. The index
-alone does not say which stream it belongs to: paired with the wrong
-capability, it still derives a valid-looking box. A reader then waits
-forever on a box nobody writes, and a writer writes where nobody reads, and
-neither sees an error.
-
-A position is a capability bound to one box on its stream. Positions come
-only from `Start`, `PositionAt` and `Next`, so a mismatched pair cannot be
-built. Use them:
+Go, with cgo and a C compiler (error checks left out):
 
 ```go
-w := writeCap.Start()                     // the first box the cap writes
-box, ct, sig, err := w.Encrypt(ctx, msg)  // encrypt and sign for this box
-w, err = w.Next()                         // the following box
+import "github.com/katzenpost/hpqc/kem/schemes"
 
-r := readCap.Start()                      // the first box the cap reads
-pt, err := r.Open(ctx, box, ct, sig)      // checks it is r's box, then decrypts
-r, err = r.Next()
+kem := schemes.ByName("MLKEM768-X25519")
+pk, sk, err := kem.GenerateKeyPair()
+ct, secret, err := kem.Encapsulate(pk)
+secret2, err := kem.Decapsulate(sk, ct) // equal to secret
 ```
 
-An index that arrives from outside, from storage or another process, is
-checked once and then used as a position:
+Python, after `pip install hpqc`:
 
-```go
-r, err := readCap.PositionAt(idx) // ErrIndexNotInChannel unless idx is on the cap's stream
+```python
+from hpqc.nike.x25519 import X25519
+from hpqc.protocols.sealedbox import SealedBoxScheme
+
+nike = X25519()
+pk, sk = nike.generate_keypair()
+box = SealedBoxScheme(nike)
+assert box.open(sk, pk, box.seal(pk, b"hello")) == b"hello"
 ```
 
-The capabilities and the stateless methods on `MessageBoxIndex`
-(`EncryptForContext`, `OpenForContext`, `NextIndex`) remain the lower-level
-API, for code that keeps its own indexes; `ReadCap.Contains` checks an index
-there.
+Rust, which is not yet on crates.io: `cargo add hpqc --git https://github.com/katzenpost/hpqc`,
+then see [rust/README.md](rust/README.md).
 
-`StatefulReader` and `StatefulWriter` have been removed;
-[BREAKING_CHANGES.md](BREAKING_CHANGES.md) lists what replaces each of their
-methods.
+## Docs
 
-## The PQ NIKE: CTIDH via highctidh
+- [Schemes](docs/schemes.md): every scheme name in Go, Python and Rust
+- [Using hpqc from Go](docs/go.md) and the [Python port](py/README.md)
+- [Constructions](docs/constructions.md): the NIKE adapter, KEM combiner, MKEM and sealed box
+- [BACAP](docs/bacap.md) and [CTIDH](docs/ctidh.md)
+- [Building and testing](docs/building.md), [repository layout](docs/layout.md), [breaking changes](BREAKING_CHANGES.md) and [planned changes](PLANNED_CHANGES.md)
 
-This library includes the post quantum NIKE (non-interactive key exchange) known as [CTIDH](https://ctidh.isogeny.org/) via CGO bindings. However these CGO bindings are now being maintained by the highctidh fork: https://codeberg.org/vula/highctidh.git If you are going to use CTIDH you'll want to read the highctidh README; below we reproduce some of the notes about the golang cgo bindings.
+## Related
 
+- [circl](https://github.com/katzenpost/circl): fork of Cloudflare's CIRCL, source of ML-KEM-512 and -1024, FrodoKEM, Classic McEliece, Kyber768, X448, Ed448 and EdDilithium
+- [sntrup4591761](https://github.com/katzenpost/sntrup4591761), [sphincsplus](https://github.com/katzenpost/sphincsplus), [falcon](https://github.com/katzenpost/falcon) and [sqisign](https://github.com/katzenpost/sqisign): the NTRU Prime, SPHINCS+, Falcon and SQIsign implementations
+- [chacha20](https://github.com/katzenpost/chacha20) and [chacha20poly1305](https://github.com/katzenpost/chacha20poly1305): forks of Yawning Angel's ciphers, used by `rand` and MKEM
+- [highctidh-rs](https://github.com/katzenpost/highctidh-rs): Rust bindings to highctidh's CTIDH-1024
+- [nyquist](https://github.com/katzenpost/nyquist): a fork of Yawning Angel's Noise library that uses hpqc's KEMs
+- [Cryptlib](https://github.com/katzenpost/cryptlib): a Lean cryptography library whose hedged ML-KEM and BACAP agree with hpqc's under shared vectors
 
-### musl libc and cgo
+## License
 
-The Golang bindings are compatable with musl libc for field sizes 511 and 512 without any configuration. For field sizes of 1024 and 2048, Golang users building with musl libc will need to set an environment variable to increase the default stack size at build time. The stack size should be a multiple of the page size. 
-
-For GNU/Linux:
-
-```
-CGO_LDFLAGS: -Wl,-z,stack-size=0x1F40000
-```
-For MacOS:
-
-```
-CGO_LDFLAGS: -Wl,-stack_size,0x1F40000
-```
-
-
-## Cryptographic Primitives
-
-The tables below enumerate the full Go-side surface. The Python port
-covers a strict subset; see [Python port (cryptographic primitives)](#python-port-cryptographic-primitives)
-further down for the Python-side tables.
-
-
-| NIKE: Non-Interactive Key Exchange (Go) |
-|:---:|
-
-| Primitive | HPQC name | security |
-|  --------  |  -------  | -------  |
-| X25519 | "X25519" | classic |
-| X448 | "X448" | classic |
-| Implementations of CTIDH | "ctidh511", "ctidh512", "ctidh1024", "ctidh2048" | post-quantum |
-| hybrids of CTIDH with X25519 | "CTIDH512-X25519", "CTIDH1024-X25519" (alias "X25519-CTIDH1024") | hybrid |
-| hybrids of CTIDH with X448 | "CTIDH512-X448", "CTIDH1024-X448", "CTIDH2048-X448" | hybrid |
-
-__________
-
-| KEM: Key Encapsulation Mechanism (Go) |
-|:---:|
-
-
-| Primitive | HPQC name | security |
-|  --------  |  -------  | -------  | 
-| ML-KEM-512| "MLKEM512" | post-quantum |
-| ML-KEM-768| "MLKEM768" | post-quantum |
-| ML-KEM-1024| "MLKEM1024" | post-quantum |
-| ML-KEM-768 with round-3 Kyber's m ← H(m) pre-hash restored, hedging against a weak RNG; matches [Cryptlib](https://github.com/katzenpost/cryptlib)'s verified `MLKEMHedged768`. Not FIPS 203. | "MLKEMHedged768" | post-quantum |
-| Hedged ML-KEM-512 and ML-KEM-1024, as above | "MLKEMHedged512", "MLKEMHedged1024" | post-quantum |
-| XWING is a hybrid primitive that pre-combines ML-KEM-768 and X25519. Due to [security properties](https://eprint.iacr.org/2018/024) of our combiner, we also implement our own combination of the two below.| "XWING" | hybrid |
-| The sntrup4591761 version of the NTRU cryptosystem. | "sntrup4591761" | post-quantum |
-| FrodoKEM-640-SHAKE |"FrodoKEM-640-SHAKE"| post-quantum|
-| Various forms of the McEliece cryptosystem| "mceliece348864", "mceliece348864f", "mceliece460896", "mceliece460896f", "mceliece6688128", "mceliece6688128f", "mceliece6960119", "mceliece6960119f", "mceliece8192128", "mceliece8192128f" | post-quantum|
-| The HQC code-based cryptosystem, in its three NIST parameter sets | "HQC-128", "HQC-192", "HQC-256" | post-quantum |
-|A hybrid of ML-KEM-768 and X25519. The [KEM Combiners paper](https://eprint.iacr.org/2018/024.pdf) is the reason we implemented our own combination in addition to including XWING. |"MLKEM768-X25519"| hybrid |
-|A hybrid of hedged ML-KEM-768 and X25519|"MLKEMHedged768-X25519"| hybrid |
-|Hybrids of ML-KEM-512 and ML-KEM-1024, standard and hedged, with X25519|"MLKEM512-X25519", "MLKEMHedged512-X25519", "MLKEM1024-X25519", "MLKEMHedged1024-X25519"| hybrid |
-|A hybrid of ML-KEM-1024 and X448|"MLKEM1024-X448"| hybrid |
-|A hybrid of FrodoKEM-640-SHAKE and X448|"FrodoKEM-640-SHAKE-X448"| hybrid |
-|A hybrid of NTRU and X448| "sntrup4591761-X448"| hybrid |
-|Hybrids of the McEliece primitives and X25519| "mceliece348864-X25519", "mceliece348864f-X25519", "mceliece460896-X25519", "mceliece460896f-X25519", "mceliece6688128-X25519", "mceliece6688128f-X25519", "mceliece6960119-X25519", "mceliece6960119f-X25519", "mceliece8192128-X25519", "mceliece8192128f-X25519" | hybrid|
-|Hybrids of HQC with X25519, and HQC-256 additionally with X448| "HQC-128-X25519", "HQC-192-X25519", "HQC-256-X25519", "HQC-256-X448" | hybrid|
-
-As well as all of the NIKE schemes through the KEM adapter, and any combinations of the above through the combiner.
-
-____________
-
-| SIGN: Cryptographic Signature Schemes (Go) |
-|:---:|
-
-
-| Primitive | HPQC name | security |
-|  --------  |  -------  |  -------  |
-| Ed25519 | "ed25519" | classic |
-| Ed448 | "ed448" | classic |
-| Sphincs+shake-256f | "Sphincs+" | post-quantum |
-| Falcon-padded-512 | "Falcon-padded-512" | post-quantum |
-| Falcon-padded-1024 | "Falcon-padded-1024" | post-quantum |
-| ML-DSA-44 | "ML-DSA-44" | post-quantum |
-| ML-DSA-65 | "ML-DSA-65" | post-quantum |
-| ML-DSA-87 | "ML-DSA-87" | post-quantum |
-| hybrids of Sphincs+ and ECC | "Ed25519-Sphincs+", "Ed448-Sphincs+" (legacy alias "Ed25519 Sphincs+" still resolves) | hybrid |
-| hybrids of Dilithium 2 and 3 with Ed25519 | "eddilithium2", "eddilithium3" | hybrid |
-| hybrids of ML-DSA and Ed25519 | "ML-DSA-44-Ed25519", "ML-DSA-65-Ed25519", "ML-DSA-87-Ed25519" | hybrid |
-| hybrids of Falcon-padded and Ed25519 | "Falcon-padded-512-Ed25519", "Falcon-padded-1024-Ed25519" | hybrid |
-
-
-### Python port (cryptographic primitives)
-
-The Python port at `py/hpqc` covers a deliberately narrow subset of
-the Go surface (see [Python port](#python-port) above for the
-rationale). The tables below enumerate everything the Python port
-exposes today; primitives absent from these tables are Go-only.
-
-
-| NIKE (Python port) |
-|:---:|
-
-
-| Primitive | HPQC name | security |
-|  --------  |  -------  |  -------  |
-| X25519 | "x25519" | classic |
-| Implementations of CTIDH | "ctidh511", "ctidh512", "ctidh1024", "ctidh2048" | post-quantum |
-| Generic two-NIKE combiner | `HybridNIKE` (constructed at call site) | hybrid |
-
-
-| KEM (Python port) |
-|:---:|
-
-
-| Primitive | HPQC name | security |
-|  --------  |  -------  |  -------  |
-| MKEM, the multi-recipient KEM, over any Python NIKE | `MKEMScheme` (constructed at call site) | hybrid |
-
-
-| SIGN (Python port) |
-|:---:|
-
-
-| Primitive | HPQC name | security |
-|  --------  |  -------  |  -------  |
-| Ed25519 (verify-only) | `Ed25519Scheme` ("Ed25519") | classic |
-| Blinded Ed25519 (sign and verify, BACAP) | `BlindableSigningKey`, `BlindableVerifyKey` | classic |
-| Falcon-padded-512 (verify-only) | `FalconPadded512Scheme` ("Falcon-padded-512") | post-quantum |
-| Falcon-padded-512 with Ed25519 (verify-only) | `FalconPadded512Ed25519` ("Falcon-padded-512-Ed25519") | hybrid |
-
-The verify-only entries use the `pqcrypto` PyPI package for Falcon
-and `pynacl` for Ed25519. Sign and key generation for the post-quantum
-schemes remain Go-only.
-
-
-## Warning
-
-This cryptography library has not had any external security review. It should be considered experimental.
-
-## Acknowledgements
-
-This library was inspired by Cloudflare's `circl` cryptography library. HPQC uses the same set of interfaces as circl for signature schemes and for KEM schemes.
-
-## licensing
-
-**HPQC (aka hpqc) is free libre open source software (FLOSS) under the AGPL-3.0 software license.**
-
-* [LICENSE file](https://github.com/katzenpost/hpqc/blob/main/LICENSE).
-* [About free software philosophy](https://www.gnu.org/philosophy/free-sw.html)
-* There are precisely two files which were borrowed from cloudflare's
-`circl` cryptography library:
-
-1. https://github.com/katzenpost/hpqc/blob/main/kem/interfaces.go
-2. https://github.com/katzenpost/hpqc/blob/main/sign/interfaces.go
-
-* Classical Diffiehellman implementation from Elixxir/XX Network and modified in place
-to conform to our NIKE scheme interfaces, [BSD 2-clause LICENSE file included](https://github.com/katzenpost/hpqc/blob/main/nike/diffiehellman/LICENSE)
-
-https://github.com/katzenpost/hpqc/blob/main/nike/diffiehellman/dh.go
+AGPL-3.0-only; see [LICENSE](LICENSE). `kem/interfaces.go` and `sign/interfaces.go`
+come from circl, whose KEM and signature interfaces hpqc follows. `nike/diffiehellman`
+comes from Elixxir and keeps its [BSD 2-clause license](nike/diffiehellman/LICENSE).
