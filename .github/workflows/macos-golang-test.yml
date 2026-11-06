@@ -10,7 +10,8 @@ permissions:
   contents: read
 
 jobs:
-  build:
+  macos:
+    name: macos (${{ matrix.os }})
     strategy:
       fail-fast: false
       matrix:
@@ -53,3 +54,10 @@ jobs:
           CGO_ENABLED: "1"
           CGO_LDFLAGS: -Wl,-stack_size,0x1F40000
         run: go test -v ./...
+
+  build:
+    needs: macos
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - run: test "${{ needs.macos.result }}" = success
