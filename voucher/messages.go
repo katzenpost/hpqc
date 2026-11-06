@@ -89,3 +89,73 @@ func voucherReplyFromBytes(data []byte) (*voucherReply, error) {
 	}
 	return v, nil
 }
+
+// voucherPayloadV2 is box 0 in the compact form: the CBOR array
+// [read_cap, voucher_pub_key, display_name, signature], the signature an
+// Ed25519 signature by the read cap's root key over the CBOR array of the
+// first three (signedBytes). The Voucher is the hash of the whole.
+type voucherPayloadV2 struct {
+	_              struct{} `cbor:",toarray"`
+	MessageReadCap []byte
+	VoucherPubKey  []byte
+	DisplayName    string
+	Signature      []byte
+}
+
+type voucherPayloadV2Unsigned struct {
+	_              struct{} `cbor:",toarray"`
+	MessageReadCap []byte
+	VoucherPubKey  []byte
+	DisplayName    string
+}
+
+// signedBytes is what the signature covers.
+func (v *voucherPayloadV2) signedBytes() ([]byte, error) {
+	return ccbor.Marshal(&voucherPayloadV2Unsigned{MessageReadCap: v.MessageReadCap, VoucherPubKey: v.VoucherPubKey, DisplayName: v.DisplayName})
+}
+
+func (v *voucherPayloadV2) marshal() ([]byte, error) { return ccbor.Marshal(v) }
+
+func voucherPayloadV2FromBytes(data []byte) (*voucherPayloadV2, error) {
+	v := &voucherPayloadV2{}
+	if err := cbor.Unmarshal(data, v); err != nil {
+		return nil, err
+	}
+	return v, nil
+}
+
+// voucherReplyV2 is the sealed reply plaintext in the compact form: the
+// CBOR array [who_reply, salt].
+type voucherReplyV2 struct {
+	_           struct{} `cbor:",toarray"`
+	WhoReply    []byte
+	VoucherSalt []byte
+}
+
+func (r *voucherReplyV2) marshal() ([]byte, error) { return ccbor.Marshal(r) }
+
+func voucherReplyV2FromBytes(data []byte) (*voucherReplyV2, error) {
+	r := &voucherReplyV2{}
+	if err := cbor.Unmarshal(data, r); err != nil {
+		return nil, err
+	}
+	return r, nil
+}
+
+// PayloadVersion reports a VoucherPayload's form from its first byte's CBOR
+// major type: 1 for the long form (a map), 2 for the compact form (an
+// array). A caller uses it to know how the reply will be laid out: framed
+// over boxes 1 on for 2, unframed in box 1 for 1. Errors: ErrInvalidArgument
+// for an empty payload or one that is neither.
+func PayloadVersion(data []byte) (int, error) {
+	if len(data) == 0 {
+		return 0, ErrInvalidArgument
+	}
+	switch data[0] >> 5 {
+	case 5:
+		return 1, nil
+	case 4:
+		return 2, nil
+	}
+	return 0, ErrInvalidArgument
+}

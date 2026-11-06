@@ -46,9 +46,13 @@ type vectors struct {
 	} `json:"open"`
 }
 
-func loadVectors(t *testing.T) *vectors {
+func loadVectors(t *testing.T) *vectors { return loadVectorFile(t, "voucher_vectors.json") }
+
+func loadVectorsV2(t *testing.T) *vectors { return loadVectorFile(t, "voucher_vectors_v2.json") }
+
+func loadVectorFile(t *testing.T, name string) *vectors {
 	t.Helper()
-	data, err := os.ReadFile("testdata/voucher_vectors.json")
+	data, err := os.ReadFile("testdata/" + name)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -77,7 +81,7 @@ func eqHex(t *testing.T, name string, got []byte, want string) {
 
 func TestVectorsMint(t *testing.T) {
 	v := loadVectors(t)
-	mint, err := VoucherMint(
+	mint, err := VoucherMintLong(
 		unhex(t, v.Inputs.MessageWriteCap),
 		v.Inputs.DisplayName,
 		unhex(t, v.Inputs.KeypairSeed),
@@ -121,6 +125,44 @@ func TestVectorsOpenReply(t *testing.T) {
 		unhex(t, v.Induct.SealedReply),
 		unhex(t, v.Inputs.MessageWriteCap),
 	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	eqHex(t, "who_reply", open.WhoReply, v.Open.WhoReply)
+	eqHex(t, "salt", open.Salt, v.Open.Salt)
+	eqHex(t, "mutated_message_write_cap", open.MutatedMessageWriteCap, v.Open.MutatedMessageWriteCap)
+}
+
+// The compact form, from the same inputs, against the vectors Python wrote.
+func TestVectorsV2(t *testing.T) {
+	v := loadVectorsV2(t)
+	mint, err := VoucherMint(unhex(t, v.Inputs.MessageWriteCap), v.Inputs.DisplayName, unhex(t, v.Inputs.KeypairSeed))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if mint.Version != 2 {
+		t.Errorf("mint version %d", mint.Version)
+	}
+	eqHex(t, "voucher", mint.Voucher, v.Mint.Voucher)
+	eqHex(t, "voucher_payload", mint.VoucherPayload, v.Mint.VoucherPayload)
+	eqHex(t, "voucher_write_cap", mint.VoucherWriteCap, v.Mint.VoucherWriteCap)
+	eqHex(t, "voucher_read_cap", mint.VoucherReadCap, v.Mint.VoucherReadCap)
+	eqHex(t, "voucher_secret_key", mint.VoucherSecretKey, v.Mint.VoucherSecretKey)
+	eqHex(t, "voucher_public_key", mint.VoucherPublicKey, v.Mint.VoucherPublicKey)
+
+	induct, err := VoucherInduct(unhex(t, v.Mint.Voucher), unhex(t, v.Mint.VoucherPayload), unhex(t, v.Inputs.WhoReply), unhex(t, v.Inputs.Salt), unhex(t, v.Inputs.SealSeed))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if induct.Version != 2 || induct.DisplayName != v.Induct.DisplayName {
+		t.Errorf("induct: version %d name %q", induct.Version, induct.DisplayName)
+	}
+	eqHex(t, "mutated_message_read_cap", induct.MutatedMessageReadCap, v.Induct.MutatedMessageReadCap)
+	eqHex(t, "sealed_reply", induct.SealedReply, v.Induct.SealedReply)
+	eqHex(t, "voucher_write_cap", induct.VoucherWriteCap, v.Induct.VoucherWriteCap)
+	eqHex(t, "salt", induct.Salt, v.Induct.Salt)
+
+	open, err := VoucherOpenReply(unhex(t, v.Mint.VoucherSecretKey), unhex(t, v.Induct.SealedReply), unhex(t, v.Inputs.MessageWriteCap))
 	if err != nil {
 		t.Fatal(err)
 	}

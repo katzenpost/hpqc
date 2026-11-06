@@ -22,6 +22,8 @@ from .api import (
     derive_voucher_stream,
     voucher_induct,
     voucher_mint,
+    voucher_mint_compact,
+    voucher_mint_long,
     voucher_open_reply,
 )
 from .exceptions import (
@@ -35,13 +37,18 @@ from .messages import (
     PleaseAdd,
     SignedPleaseAdd,
     VoucherPayload,
+    VoucherPayloadV2,
     VoucherReply,
+    VoucherReplyV2,
+    payload_version,
 )
 from .stateless import VOUCHER_SALT_SIZE
 
 __all__ = [
     # the four methods
     "voucher_mint",
+    "voucher_mint_compact",
+    "voucher_mint_long",
     "voucher_induct",
     "voucher_open_reply",
     "derive_voucher_stream",
@@ -54,6 +61,9 @@ __all__ = [
     "PleaseAdd",
     "SignedPleaseAdd",
     "VoucherPayload",
+    "VoucherPayloadV2",
+    "VoucherReplyV2",
+    "payload_version",
     "VoucherReply",
     # exceptions
     "VoucherError",
