@@ -16,7 +16,7 @@ hpqc has had no external security review and should be considered experimental.
 flowchart LR
   N["NIKE: X25519, X448, CTIDH"] -->|adapter| C{{combiner}}
   K["KEM: ML-KEM, HQC, McEliece, FrodoKEM"] --> C
-  C --> H["hybrid KEM, e.g. MLKEM768-X25519"]
+  C --> H["hybrid KEM"]
 ```
 
 ## Quick start
