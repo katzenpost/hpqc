@@ -25,10 +25,17 @@ pub fn blake2b_256(key: &[u8], data: &[u8]) -> Result<[u8; 32]> {
 
 const BLAKE2B_BLOCK: usize = 128;
 
-fn hmac_blake2b_512(key: &[u8], parts: &[&[u8]]) -> Zeroizing<[u8; 64]> {
+/// HMAC over BLAKE2b with an `N`-byte digest, as Go's
+/// `hmac.New(blake2b.NewN, key)`.
+fn hmac_blake2b<const N: usize>(key: &[u8], parts: &[&[u8]]) -> Zeroizing<[u8; N]> {
+    let hasher = || {
+        let mut params = blake2b_simd::Params::new();
+        params.hash_length(N);
+        params.to_state()
+    };
     let mut block = Zeroizing::new([0u8; BLAKE2B_BLOCK]);
     if key.len() > BLAKE2B_BLOCK {
-        block[..64].copy_from_slice(blake2b_simd::blake2b(key).as_bytes());
+        block[..N].copy_from_slice(hasher().update(key).finalize().as_bytes());
     } else {
         block[..key.len()].copy_from_slice(key);
     }
@@ -39,12 +46,12 @@ fn hmac_blake2b_512(key: &[u8], parts: &[&[u8]]) -> Zeroizing<[u8; 64]> {
         }
         p
     };
-    let mut inner = blake2b_simd::State::new();
+    let mut inner = hasher();
     inner.update(&*pad(0x36));
     for part in parts {
         inner.update(part);
     }
-    let mut outer = blake2b_simd::State::new();
+    let mut outer = hasher();
     outer.update(&*pad(0x5c));
     outer.update(inner.finalize().as_bytes());
     Zeroizing::new(
@@ -52,25 +59,37 @@ fn hmac_blake2b_512(key: &[u8], parts: &[&[u8]]) -> Zeroizing<[u8; 64]> {
             .finalize()
             .as_bytes()
             .try_into()
-            .expect("64-byte digest"),
+            .expect("N-byte digest"),
     )
+}
+
+fn hkdf<const N: usize>(secret: &[u8], salt: &[u8], info: &[u8], out: &mut [u8]) -> Result<()> {
+    if out.len() > 255 * N {
+        return Err(Error::InvalidInput("HKDF output longer than 255 blocks"));
+    }
+    let zeros = [0u8; N];
+    let salt: &[u8] = if salt.is_empty() { &zeros } else { salt };
+    let prk = hmac_blake2b::<N>(salt, &[secret]);
+    let mut t = Zeroizing::new([0u8; N]);
+    for (i, chunk) in out.chunks_mut(N).enumerate() {
+        let prev: &[u8] = if i == 0 { &[] } else { &t[..] };
+        let next = hmac_blake2b::<N>(&prk[..], &[prev, info, &[i as u8 + 1]]);
+        *t = *next;
+        chunk.copy_from_slice(&t[..chunk.len()]);
+    }
+    Ok(())
 }
 
 /// HKDF (RFC 5869) over BLAKE2b-512, as Go's
 /// `hkdf.New(blake2b.New512, secret, salt, info)`. Fills `out`, which is at
 /// most 255 * 64 bytes.
 pub fn hkdf_blake2b(secret: &[u8], salt: &[u8], info: &[u8], out: &mut [u8]) -> Result<()> {
-    if out.len() > 255 * 64 {
-        return Err(Error::InvalidInput("HKDF output longer than 255 blocks"));
-    }
-    let salt: &[u8] = if salt.is_empty() { &[0; 64] } else { salt };
-    let prk = hmac_blake2b_512(salt, &[secret]);
-    let mut t = Zeroizing::new([0u8; 64]);
-    for (i, chunk) in out.chunks_mut(64).enumerate() {
-        let prev: &[u8] = if i == 0 { &[] } else { &t[..] };
-        let next = hmac_blake2b_512(&prk[..], &[prev, info, &[i as u8 + 1]]);
-        *t = *next;
-        chunk.copy_from_slice(&t[..chunk.len()]);
-    }
-    Ok(())
+    hkdf::<64>(secret, salt, info, out)
+}
+
+/// HKDF (RFC 5869) over BLAKE2b-256, as Go's
+/// `hkdf.New(blake2b.New256, secret, salt, info)`. Fills `out`, which is at
+/// most 255 * 32 bytes.
+pub fn hkdf_blake2b_256(secret: &[u8], salt: &[u8], info: &[u8], out: &mut [u8]) -> Result<()> {
+    hkdf::<32>(secret, salt, info, out)
 }

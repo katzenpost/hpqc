@@ -3,11 +3,27 @@
 use std::sync::{Arc, LazyLock};
 
 use super::Scheme;
+use super::ctidh1024::Ctidh1024;
+use super::hybrid::Hybrid;
 use super::x448::X448;
 use super::x25519::X25519;
 
-static SCHEMES: LazyLock<Vec<Arc<dyn Scheme>>> =
-    LazyLock::new(|| vec![Arc::new(X25519), Arc::new(X448)]);
+static SCHEMES: LazyLock<Vec<Arc<dyn Scheme>>> = LazyLock::new(|| {
+    vec![
+        Arc::new(X25519),
+        Arc::new(X448),
+        Arc::new(Ctidh1024),
+        Arc::new(x25519_ctidh1024("X25519-CTIDH1024")),
+        Arc::new(x25519_ctidh1024("CTIDH1024-X25519")),
+    ]
+});
+
+/// X25519 then CTIDH-1024. Go registers it under two names: the legacy
+/// `CTIDH1024-X25519`, whose name disagrees with its layout but which
+/// deployed code uses, and `X25519-CTIDH1024`.
+fn x25519_ctidh1024(name: &str) -> Hybrid {
+    Hybrid::new(name, Arc::new(X25519), Arc::new(Ctidh1024))
+}
 
 /// Looks up a scheme by name, ignoring ASCII case.
 pub fn by_name(name: &str) -> Option<Arc<dyn Scheme>> {

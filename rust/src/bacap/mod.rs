@@ -419,6 +419,11 @@ impl WriteCap {
         self.key.verifying_key()
     }
 
+    /// The stream's root signing key, for signing on the stream's behalf.
+    pub(crate) fn root_signing_key(&self) -> &SigningKey {
+        &self.key
+    }
+
     /// The first index this cap writes.
     pub fn index(&self) -> &MessageBoxIndex {
         &self.index
