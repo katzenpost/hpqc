@@ -3,10 +3,17 @@
 Hybrid post-quantum cryptography for Rust: KEM, NIKE and signature schemes
 behind object-safe traits, so they can be composed and selected at runtime.
 
-- `nike`: X25519, X448, and a hybrid of any two NIKEs.
+- `nike`: X25519, X448, CTIDH-1024 (highctidh, through the
+  [highctidh-rs](https://github.com/katzenpost/highctidh-rs) crate, so a C
+  compiler is needed), and a hybrid of any two NIKEs.
 - `kem`: ML-KEM-512/768/1024 and their hedged variants, Classic McEliece,
   any NIKE as a KEM (hashed ElGamal), and a combiner of any number of KEMs.
-- `sign`: Ed25519, ML-DSA-44/65/87, and a hybrid of any two signature schemes.
+- `sign`: Ed25519, ML-DSA-44/65/87, a hybrid of any two signature schemes,
+  and Ed25519 key blinding.
+- `bacap`: BACAP, the blinded capability scheme of
+  [Echomix](https://arxiv.org/abs/2501.02933) section 4.
+- `protocols`: the sealed box and MKEM over any NIKE.
+- `voucher`: the Contact Voucher, how a newcomer joins a Pigeonhole group.
 
 Each module has a registry that looks schemes up by name:
 
@@ -35,6 +42,33 @@ let kem = Combiner::new(
     "MLKEM1024-X448",
     vec![Arc::new(NikeKem::new(Arc::new(X448))), Arc::new(MlKem1024::new())],
 )?;
+# Ok::<(), hpqc::Error>(())
+```
+
+## BACAP
+
+A `WriteCap` derives an endless stream of single-use boxes, each with its own
+blinded Ed25519 key and AES-256-GCM-SIV key; its `ReadCap` derives the same
+box IDs and decryption keys but cannot sign. Positions pair a cap with one box
+on its own stream:
+
+```rust
+use hpqc::bacap::WriteCap;
+use hpqc::rand_core::UnwrapErr;
+
+let write_cap = WriteCap::generate(&mut UnwrapErr(getrandom::SysRng));
+let read_cap = write_cap.read_cap();
+
+let writer = write_cap.start();
+let (box_id, ciphertext, signature) = writer.encrypt(b"ctx", b"hello")?;
+
+let reader = read_cap.start();
+assert_eq!(reader.box_id(b"ctx")?, box_id);
+assert_eq!(reader.open(b"ctx", &box_id, &ciphertext, &signature)?, b"hello");
+
+// An index from outside is checked against the cap's stream first.
+let next = read_cap.position_at(writer.next()?.index())?;
+# let _ = next;
 # Ok::<(), hpqc::Error>(())
 ```
 

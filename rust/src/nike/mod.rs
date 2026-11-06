@@ -1,5 +1,6 @@
 //! Non-interactive key exchange.
 
+pub mod ctidh1024;
 pub mod hybrid;
 pub mod schemes;
 pub mod x25519;

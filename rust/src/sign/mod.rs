@@ -1,5 +1,6 @@
 //! Signatures.
 
+pub mod blinded_ed25519;
 pub mod ed25519;
 pub mod hybrid;
 pub mod mldsa;

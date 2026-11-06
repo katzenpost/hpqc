@@ -1,0 +1,25 @@
+name: Rust tests
+on:
+  push:
+    branches: [main]
+  pull_request:
+  merge_group:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: rust
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: Install Rust
+        run: rustup toolchain install stable --profile minimal --component clippy && rustup default stable
+      - name: cargo test
+        run: cargo test --locked
+      - name: cargo clippy
+        run: cargo clippy --locked --all-targets -- -D warnings
