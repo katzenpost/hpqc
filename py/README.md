@@ -11,12 +11,12 @@ operations directly. The shared JSON test vectors under
 
 For the rationale behind BACAP and a short overview of the
 construction, see the
-[BACAP section of the main README](https://github.com/katzenpost/hpqc#bacap).
+[BACAP page](https://github.com/katzenpost/hpqc/blob/main/docs/bacap.md).
 For a fuller treatment, see §4 of the
 [Echomix paper](https://arxiv.org/abs/2501.02933). For the full
 catalogue of NIKE, KEM, and signature schemes that hpqc implements
-in Go, see the
-[main repository README](https://github.com/katzenpost/hpqc#readme).
+in Go, see
+[the scheme tables](https://github.com/katzenpost/hpqc/blob/main/docs/schemes.md).
 
 
 ## What is ported
@@ -40,8 +40,8 @@ in Go, see the
   `Ed25519Scheme` verify-only wrapper for plain Ed25519.
 * **Falcon-padded-512 signature verification**
   (`hpqc.sign.falcon.FalconPadded512Scheme`), backed by the
-  [`pqcrypto`](https://pypi.org/project/pqcrypto/) runtime
-  dependency, which vendors the same PQClean reference C used by
+  [`pqcrypto`](https://pypi.org/project/pqcrypto/) package (the
+  `falcon` extra), which vendors the same PQClean reference C used by
   the Go side.
 * **Hybrid signature verification** (`hpqc.sign.hybrid`): generic
   two-component combiner plus a pre-registered
@@ -61,7 +61,12 @@ pip install hpqc
 ```
 
 Runtime dependencies (`pynacl`, `cryptography`, `cbor2`,
-`highctidh`, `pqcrypto`) are pulled in automatically.
+`highctidh`) are pulled in automatically. Falcon verification needs
+the `falcon` extra, which adds `pqcrypto`:
+
+```bash
+pip install 'hpqc[falcon]'
+```
 
 To install from a source checkout instead (for example to test an
 unreleased change):
@@ -147,6 +152,6 @@ AGPL-3.0-only. See [LICENSE](LICENSE).
 
 ## See also
 
-* [Main repository README](https://github.com/katzenpost/hpqc#readme) — full Go reference, design notes, and tables of every NIKE, KEM, and signature scheme that hpqc implements.
+* [Main repository README](https://github.com/katzenpost/hpqc#readme) and [scheme tables](https://github.com/katzenpost/hpqc/blob/main/docs/schemes.md): the Go reference, design notes, and every NIKE, KEM, and signature scheme that hpqc implements.
 * [Echomix paper](https://arxiv.org/abs/2501.02933) — the design of BACAP (§4) and Pigeonhole (§5).
 * [Katzenpost mix network](https://katzenpost.network/) — the system this library serves.
