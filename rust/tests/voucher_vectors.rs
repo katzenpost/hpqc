@@ -1,13 +1,10 @@
 mod common;
 
-use std::sync::Arc;
-
 use hpqc::bacap::WriteCap;
-use hpqc::nike::ctidh1024::Ctidh1024;
 use hpqc::nike::schemes;
 use hpqc::protocols::mkem::{Ciphertext, Mkem};
 use hpqc::protocols::sealedbox::SealedBox;
-use hpqc::voucher::{Form, ShakeRng, Vouchers};
+use hpqc::voucher::{self, Form, ShakeRng};
 use serde_json::Value;
 
 fn hex(v: &Value, section: &str, field: &str) -> Vec<u8> {
@@ -15,11 +12,8 @@ fn hex(v: &Value, section: &str, field: &str) -> Vec<u8> {
 }
 
 /// Mints, inducts and opens from the recorded inputs and checks every
-/// output byte for byte against what Go and Python produced. The voucher
-/// takes highctidh-rs's CTIDH-1024 as a caller-supplied `nike::Scheme`, the
-/// way firmware plugs in its own binding of highctidh's C library.
+/// output byte for byte against what Go and Python produced.
 fn check_voucher_vectors(rel: &str, form: Form) {
-    let vouchers = Vouchers::new(Arc::new(Ctidh1024));
     let Some(v) = common::load(rel) else {
         return;
     };
@@ -27,8 +21,8 @@ fn check_voucher_vectors(rel: &str, form: Form) {
     let name = common::str(&v["inputs"], "display_name");
     let keypair_rng = &mut ShakeRng::new(&hex(&v, "inputs", "keypair_seed"));
     let minted = match form {
-        Form::Compact => vouchers.mint(&write_cap, name, keypair_rng),
-        Form::Long => vouchers.mint_long(&write_cap, name, keypair_rng),
+        Form::Compact => voucher::mint(&write_cap, name, keypair_rng),
+        Form::Long => voucher::mint_long(&write_cap, name, keypair_rng),
     };
     assert_eq!(minted.form, form);
     assert_eq!(minted.voucher.to_vec(), hex(&v, "mint", "voucher"));
@@ -45,15 +39,14 @@ fn check_voucher_vectors(rel: &str, form: Form) {
     assert_eq!(minted.public_key, hex(&v, "mint", "voucher_public_key"));
 
     let salt: [u8; 32] = hex(&v, "inputs", "salt").try_into().unwrap();
-    let inducted = vouchers
-        .induct_with_salt(
-            &minted.voucher,
-            &minted.payload,
-            &hex(&v, "inputs", "who_reply"),
-            &salt,
-            &mut ShakeRng::new(&hex(&v, "inputs", "seal_seed")),
-        )
-        .unwrap();
+    let inducted = voucher::induct_with_salt(
+        &minted.voucher,
+        &minted.payload,
+        &hex(&v, "inputs", "who_reply"),
+        &salt,
+        &mut ShakeRng::new(&hex(&v, "inputs", "seal_seed")),
+    )
+    .unwrap();
     assert_eq!(inducted.form, form);
     assert_eq!(
         inducted.display_name,
@@ -70,13 +63,12 @@ fn check_voucher_vectors(rel: &str, form: Form) {
     );
     assert_eq!(inducted.salt.to_vec(), hex(&v, "induct", "salt"));
 
-    let opened = vouchers
-        .open_reply(
-            &hex(&v, "mint", "voucher_secret_key"),
-            &hex(&v, "induct", "sealed_reply"),
-            &write_cap,
-        )
-        .unwrap();
+    let opened = voucher::open_reply(
+        &hex(&v, "mint", "voucher_secret_key"),
+        &hex(&v, "induct", "sealed_reply"),
+        &write_cap,
+    )
+    .unwrap();
     assert_eq!(opened.who_reply, hex(&v, "open", "who_reply"));
     assert_eq!(opened.salt.to_vec(), hex(&v, "open", "salt"));
     assert_eq!(

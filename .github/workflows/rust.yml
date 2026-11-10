@@ -36,10 +36,8 @@ jobs:
       - name: Install Rust
         run: rustup toolchain install stable --profile minimal --component clippy --target thumbv7em-none-eabihf && rustup default stable
       - name: cargo build for a no_std target
-        run: cargo build --locked --target thumbv7em-none-eabihf --no-default-features --features bacap,voucher,kem
+        run: cargo build --locked --target thumbv7em-none-eabihf --no-default-features --features bacap,kem
       - name: cargo test bacap and voucher without default features
         run: cargo test --locked --no-default-features --features bacap,voucher
-      - name: cargo test voucher over highctidh-rs without std
-        run: cargo test --locked --no-default-features --features bacap,voucher,ctidh
       - name: cargo clippy without default features
         run: cargo clippy --locked --all-targets --no-default-features --features bacap,voucher -- -D warnings

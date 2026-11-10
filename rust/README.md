@@ -23,11 +23,9 @@ picks what it needs, e.g. `default-features = false, features = ["bacap",
 "voucher"]`; `nike`, `sign`, `protocols` and `hash` are always built.
 
 - `std`: the dependencies' std and default features.
-- `bacap`, `voucher`: those modules. `voucher` needs `bacap`; without
-  `ctidh`, the caller supplies CTIDH-1024 to `voucher::Vouchers::new`.
+- `bacap`, `voucher`: those modules. `voucher` needs `bacap` and `ctidh`.
 - `kem`: the `kem` module.
-- `ctidh`: CTIDH-1024 and its hybrids, through highctidh-rs and
-  highctidh's C library.
+- `ctidh`: CTIDH-1024 and its hybrids, through highctidh's C library.
 - `mceliece`: Classic McEliece, which needs `std`.
 
 Each module has a registry that looks schemes up by name:

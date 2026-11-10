@@ -21,7 +21,7 @@ std = [
     "x448/default",
 ]
 bacap = []
-voucher = ["bacap"]
+voucher = ["bacap", "ctidh"]
 kem = ["dep:ml-kem"]
 # CTIDH-1024 through highctidh's C library.
 ctidh = ["dep:highctidh"]
@@ -64,7 +64,7 @@ required-features = ["bacap"]
 
 [[test]]
 name = "voucher_vectors"
-required-features = ["voucher", "ctidh"]
+required-features = ["voucher"]
 
 [[test]]
 name = "kem_vectors"

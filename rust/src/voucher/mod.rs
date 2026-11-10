@@ -13,26 +13,23 @@
 //!
 //! ```no_run
 //! # use hpqc::bacap::WriteCap;
-//! # use hpqc::voucher::{VoucherStream, Vouchers};
-//! # fn example(ctidh1024: std::sync::Arc<dyn hpqc::nike::Scheme>) -> hpqc::Result<()> {
+//! # use hpqc::voucher::{self, VoucherStream};
+//! # fn main() -> hpqc::Result<()> {
 //! # let rng = &mut hpqc::voucher::ShakeRng::new(b"example");
 //! # let (write_cap, payload, who_reply, reply) = (WriteCap::generate(rng), vec![], vec![], vec![]);
-//! // The caller's CTIDH-1024; `Vouchers::default()` with the `ctidh` feature.
-//! let vouchers = Vouchers::new(ctidh1024);
-//!
 //! // Joiner: publish `minted.payload` in box 0 of `minted.stream`, hand
 //! // `minted.voucher` to a member, keep `minted.secret_key`.
-//! let minted = vouchers.mint(&write_cap, "alice", rng);
+//! let minted = voucher::mint(&write_cap, "alice", rng);
 //!
 //! // Inductor: read box 0 of the stream the voucher names, answer it, write
 //! // `inducted.sealed_reply` from box 1 on and give the group
 //! // `inducted.mutated_read_cap`.
 //! let stream = VoucherStream::derive(&minted.voucher);
-//! let inducted = vouchers.induct(&minted.voucher, &payload, &who_reply, rng)?;
+//! let inducted = voucher::induct(&minted.voucher, &payload, &who_reply, rng)?;
 //!
 //! // Joiner: read the reply from box 1 on, then write to the group with
 //! // `opened.mutated_write_cap`.
-//! let opened = vouchers.open_reply(&minted.secret_key, &reply, &write_cap)?;
+//! let opened = voucher::open_reply(&minted.secret_key, &reply, &write_cap)?;
 //! # Ok(())
 //! # }
 //! ```
@@ -41,17 +38,17 @@
 //!
 //! A voucher comes in two [`Form`]s, chosen when it is minted.
 //!
-//! - [`Form::Compact`] ([`mint_compact`](Vouchers::mint_compact), the default of [`mint`](Vouchers::mint)): box 0 is
+//! - [`Form::Compact`] ([`mint_compact`], the default of [`mint`]): box 0 is
 //!   the CBOR array `[read_cap, voucher_pub_key, display_name, signature]`.
 //!   The reply is a [`SealedBox`] written framed over boxes 1, 2, …: pieces
 //!   of the box size less one byte, each behind `'C'`, the last behind
 //!   `'F'`.
-//! - [`Form::Long`] ([`mint_long`](Vouchers::mint_long)): box 0 is the signed CBOR map that
+//! - [`Form::Long`] ([`mint_long`]): box 0 is the signed CBOR map that
 //!   clients before the compact form read. The reply is an [`Mkem`]
 //!   ciphertext, written unframed in box 1 alone.
 //!
-//! [`induct`](Vouchers::induct) answers a payload in the form it was minted in, and
-//! [`open_reply`](Vouchers::open_reply) opens either. Framing a compact reply over boxes is the
+//! [`induct`] answers a payload in the form it was minted in, and
+//! [`open_reply`] opens either. Framing a compact reply over boxes is the
 //! caller's to do; this module only seals and opens.
 //!
 //! Both forms are authenticated twice. The voucher is the BLAKE2b-256 of
@@ -77,9 +74,7 @@ use subtle::ConstantTimeEq;
 use crate::bacap::{ReadCap, WriteCap};
 use crate::cbor::Value;
 use crate::hash::blake2b_256;
-use crate::nike::Scheme;
-use crate::nike::hybrid::Hybrid;
-use crate::nike::x25519::X25519;
+use crate::nike::{Scheme, schemes};
 use crate::prelude::*;
 use crate::protocols::mkem::{Ciphertext, Mkem};
 use crate::protocols::sealedbox::SealedBox;
@@ -94,37 +89,10 @@ pub const SALT_SIZE: usize = 32;
 
 const MALFORMED: Error = Error::InvalidInput("malformed voucher message");
 
-/// The voucher functions over a CTIDH-1024 implementation the caller
-/// supplies. The voucher keypair's NIKE is X25519 then that CTIDH-1024,
-/// under its legacy name `CTIDH1024-X25519`, which the sealed box binds into
-/// its key derivation.
-///
-/// With the `ctidh` feature, [`Vouchers::default`] uses highctidh-rs and
-/// the free functions `mint`, `induct` and `open_reply` use that.
-/// Without it, firmware brings its own binding of highctidh's C library as
-/// a [`Scheme`] with highctidh's encodings: 128-byte public keys and shared
-/// secrets, 130-byte private keys.
-#[derive(Clone)]
-pub struct Vouchers {
-    seal: Arc<dyn Scheme>,
-}
-
-impl Vouchers {
-    /// Panics if `ctidh1024`'s key sizes are not CTIDH-1024's.
-    pub fn new(ctidh1024: Arc<dyn Scheme>) -> Self {
-        assert_eq!(ctidh1024.public_key_size(), 128, "CTIDH-1024 public key");
-        assert_eq!(ctidh1024.private_key_size(), 130, "CTIDH-1024 private key");
-        Self {
-            seal: Arc::new(Hybrid::new("CTIDH1024-X25519", Arc::new(X25519), ctidh1024)),
-        }
-    }
-}
-
-#[cfg(feature = "ctidh")]
-impl Default for Vouchers {
-    fn default() -> Self {
-        Self::new(Arc::new(crate::nike::ctidh1024::Ctidh1024))
-    }
+/// The voucher keypair's NIKE, X25519 then CTIDH-1024 under its legacy name
+/// `CTIDH1024-X25519`, which the sealed box binds into its key derivation.
+fn seal_nike() -> Arc<dyn Scheme> {
+    schemes::by_name("CTIDH1024-X25519").expect("registered")
 }
 
 /// SHAKE256 of a seed as a deterministic [`CryptoRng`], the stream Go's and
@@ -224,7 +192,7 @@ pub struct Minted {
     pub public_key: Vec<u8>,
 }
 
-/// What [`Vouchers::induct`] returns.
+/// What [`induct`] returns.
 #[derive(Debug)]
 pub struct Inducted {
     /// The form of the payload, and so of the reply.
@@ -241,7 +209,7 @@ pub struct Inducted {
     pub salt: [u8; SALT_SIZE],
 }
 
-/// What [`Vouchers::open_reply`] returns.
+/// What [`open_reply`] returns.
 #[derive(Debug)]
 pub struct OpenedReply {
     /// The group membership the inductor sent, opaque here.
@@ -252,231 +220,65 @@ pub struct OpenedReply {
     pub mutated_write_cap: WriteCap,
 }
 
-impl Vouchers {
-    /// Mints a voucher in the compact form, the form new clients use. It is
-    /// [`Self::mint_compact`]; see [`Self::mint_long`] for an inductor that reads only the
-    /// long form.
-    pub fn mint(
-        &self,
-        write_cap: &WriteCap,
-        display_name: &str,
-        rng: &mut dyn CryptoRng,
-    ) -> Minted {
-        self.mint_compact(write_cap, display_name, rng)
-    }
+/// Mints a voucher in the compact form, the form new clients use. It is
+/// [`mint_compact`]; see [`mint_long`] for an inductor that reads only the
+/// long form.
+pub fn mint(write_cap: &WriteCap, display_name: &str, rng: &mut dyn CryptoRng) -> Minted {
+    mint_compact(write_cap, display_name, rng)
+}
 
-    /// Mints a voucher in the compact form.
-    ///
-    /// `write_cap` is the joiner's own stream, `display_name` the name the group
-    /// will show. The voucher keypair is drawn from `rng`.
-    pub fn mint_compact(
-        &self,
-        write_cap: &WriteCap,
-        display_name: &str,
-        rng: &mut dyn CryptoRng,
-    ) -> Minted {
-        let read_cap = write_cap.read_cap().to_bytes().to_vec();
-        let secret = self.seal.clone().generate_key(rng);
-        let public_key = secret.public_key().to_bytes();
-        let mut fields = vec![
-            Value::Bytes(read_cap),
-            Value::Bytes(public_key.clone()),
-            Value::Text(display_name.into()),
-        ];
-        let signature = write_cap
-            .root_signing_key()
-            .sign(&Value::Array(fields.clone()).to_bytes());
-        fields.push(Value::Bytes(signature.to_bytes().to_vec()));
-        finish_mint(
-            Form::Compact,
-            Value::Array(fields).to_bytes(),
-            secret.to_bytes(),
-            public_key,
-        )
-    }
+/// Mints a voucher in the compact form.
+///
+/// `write_cap` is the joiner's own stream, `display_name` the name the group
+/// will show. The voucher keypair is drawn from `rng`.
+pub fn mint_compact(write_cap: &WriteCap, display_name: &str, rng: &mut dyn CryptoRng) -> Minted {
+    let read_cap = write_cap.read_cap().to_bytes().to_vec();
+    let secret = seal_nike().generate_key(rng);
+    let public_key = secret.public_key().to_bytes();
+    let mut fields = vec![
+        Value::Bytes(read_cap),
+        Value::Bytes(public_key.clone()),
+        Value::Text(display_name.into()),
+    ];
+    let signature = write_cap
+        .root_signing_key()
+        .sign(&Value::Array(fields.clone()).to_bytes());
+    fields.push(Value::Bytes(signature.to_bytes().to_vec()));
+    finish_mint(
+        Form::Compact,
+        Value::Array(fields).to_bytes(),
+        secret.to_bytes(),
+        public_key,
+    )
+}
 
-    /// Mints a voucher in the long form, the signed CBOR map that inductors
-    /// from before the compact form read. Its reply is an MKEM ciphertext.
-    /// Arguments are as for [`Self::mint_compact`].
-    pub fn mint_long(
-        &self,
-        write_cap: &WriteCap,
-        display_name: &str,
-        rng: &mut dyn CryptoRng,
-    ) -> Minted {
-        let read_cap = write_cap.read_cap().to_bytes().to_vec();
-        let secret = self.seal.clone().generate_key(rng);
-        let public_key = secret.public_key().to_bytes();
-        let please_add = Value::Map(vec![
-            ("DisplayName".into(), Value::Text(display_name.into())),
-            ("MessageReadCap".into(), Value::Bytes(read_cap)),
-        ])
-        .to_bytes();
-        let signature = write_cap.root_signing_key().sign(&please_add);
-        let signed = Value::Map(vec![
-            ("PleaseAdd".into(), Value::Bytes(please_add)),
-            (
-                "Signature".into(),
-                Value::Bytes(signature.to_bytes().to_vec()),
-            ),
-        ])
-        .to_bytes();
-        let payload = Value::Map(vec![
-            ("SignedPleaseAdd".into(), Value::Bytes(signed)),
-            ("VoucherPubKey".into(), Value::Bytes(public_key.clone())),
-        ])
-        .to_bytes();
-        finish_mint(Form::Long, payload, secret.to_bytes(), public_key)
-    }
-
-    /// Answers a voucher: checks the payload and seals a reply to the joiner,
-    /// in the form the payload was minted in. The salt and the seal's ephemeral
-    /// key are drawn from `rng`, in that order.
-    ///
-    /// `voucher` is the code the joiner handed over, `payload` what box 0 of its
-    /// [`VoucherStream`] holds, `who_reply` the group membership to send.
-    ///
-    /// Fails with [`Error::VoucherMismatch`] when the payload is not the one
-    /// the voucher names, [`Error::InvalidSignature`] when its signature does
-    /// not verify under the read cap it names, and [`Error::InvalidInput`] or
-    /// [`Error::InvalidKey`] for anything malformed.
-    pub fn induct(
-        &self,
-        voucher: &[u8; VOUCHER_SIZE],
-        payload: &[u8],
-        who_reply: &[u8],
-        rng: &mut dyn CryptoRng,
-    ) -> Result<Inducted> {
-        let mut salt = [0; SALT_SIZE];
-        rng.fill_bytes(&mut salt);
-        self.induct_with_salt(voucher, payload, who_reply, &salt, rng)
-    }
-
-    /// [`Self::induct`] with the salt given, drawing only the seal's ephemeral key
-    /// from `rng`. This is the split Go's and Python's `VoucherInduct` take
-    /// their `salt` and `seal_seed` arguments in.
-    pub fn induct_with_salt(
-        &self,
-        voucher: &[u8; VOUCHER_SIZE],
-        payload: &[u8],
-        who_reply: &[u8],
-        salt: &[u8; SALT_SIZE],
-        rng: &mut dyn CryptoRng,
-    ) -> Result<Inducted> {
-        let hash = blake2b_256(&[], payload)?;
-        if !bool::from(hash.ct_eq(voucher)) {
-            return Err(Error::VoucherMismatch);
-        }
-        let form = Form::of_payload(payload)?;
-        let (display_name, read_cap, public_key) = match form {
-            Form::Compact => {
-                let [read_cap, public_key, name, signature] =
-                    Value::from_bytes(payload)?.into_array()?;
-                let (read_cap, public_key, name) = (
-                    read_cap.into_bytes()?,
-                    public_key.into_bytes()?,
-                    name.into_text()?,
-                );
-                let signed = Value::Array(vec![
-                    Value::Bytes(read_cap.clone()),
-                    Value::Bytes(public_key.clone()),
-                    Value::Text(name.clone()),
-                ])
-                .to_bytes();
-                let read_cap = ReadCap::from_bytes(&read_cap).map_err(|_| MALFORMED)?;
-                verify(&read_cap, &signed, &signature.into_bytes()?)?;
-                (name, read_cap, public_key)
-            }
-            Form::Long => {
-                let [signed, public_key] = Value::from_bytes(payload)?
-                    .into_fields(["SignedPleaseAdd", "VoucherPubKey"])?;
-                let [please_add, signature] = Value::from_bytes(&signed.into_bytes()?)?
-                    .into_fields(["PleaseAdd", "Signature"])?;
-                let please_add = please_add.into_bytes()?;
-                let [name, read_cap] = Value::from_bytes(&please_add)?
-                    .into_fields(["DisplayName", "MessageReadCap"])?;
-                let read_cap =
-                    ReadCap::from_bytes(&read_cap.into_bytes()?).map_err(|_| MALFORMED)?;
-                verify(&read_cap, &please_add, &signature.into_bytes()?)?;
-                (name.into_text()?, read_cap, public_key.into_bytes()?)
-            }
-        };
-        let recipient = self
-            .seal
-            .clone()
-            .public_key_from_bytes(&public_key)
-            .map_err(|_| MALFORMED)?;
-        let sealed_reply = match form {
-            Form::Compact => {
-                let plaintext = Value::Array(vec![
-                    Value::Bytes(who_reply.to_vec()),
-                    Value::Bytes(salt.to_vec()),
-                ])
-                .to_bytes();
-                SealedBox::new(self.seal.clone()).seal(&*recipient, &plaintext, rng)?
-            }
-            Form::Long => {
-                let plaintext = Value::Map(vec![
-                    ("WhoReply".into(), Value::Bytes(who_reply.to_vec())),
-                    ("VoucherSalt".into(), Value::Bytes(salt.to_vec())),
-                ])
-                .to_bytes();
-                let (_, ciphertext) =
-                    Mkem::new(self.seal.clone()).encapsulate(&[&*recipient], &plaintext, rng)?;
-                ciphertext.to_bytes()
-            }
-        };
-        Ok(Inducted {
-            form,
-            display_name,
-            mutated_read_cap: read_cap.mutate_kdf_state(salt),
-            sealed_reply,
-            stream: VoucherStream::derive(voucher),
-            salt: *salt,
-        })
-    }
-
-    /// Opens the reply to a voucher the caller minted, in either form.
-    ///
-    /// `secret_key` is [`Minted::secret_key`], `sealed_reply` the reply
-    /// reassembled from boxes 1 on (compact) or box 1 alone (long), and
-    /// `write_cap` the stream the voucher was minted from.
-    ///
-    /// Fails with [`Error::DecryptionFailed`] when the reply was not sealed to
-    /// this key or is malformed, and [`Error::InvalidKey`] for a malformed key.
-    pub fn open_reply(
-        &self,
-        secret_key: &[u8],
-        sealed_reply: &[u8],
-        write_cap: &WriteCap,
-    ) -> Result<OpenedReply> {
-        let private_key = self.seal.clone().private_key_from_bytes(secret_key)?;
-        let opened = || -> Result<(Vec<u8>, Vec<u8>)> {
-            if is_mkem_reply(sealed_reply) {
-                let mkem = Mkem::new(self.seal.clone());
-                let plaintext =
-                    mkem.decapsulate(&*private_key, &Ciphertext::from_bytes(&mkem, sealed_reply)?)?;
-                let [who, salt] =
-                    Value::from_bytes(&plaintext)?.into_fields(["WhoReply", "VoucherSalt"])?;
-                Ok((who.into_bytes()?, salt.into_bytes()?))
-            } else {
-                let plaintext = SealedBox::new(self.seal.clone()).open(
-                    &*private_key,
-                    &*private_key.public_key(),
-                    sealed_reply,
-                )?;
-                let [who, salt] = Value::from_bytes(&plaintext)?.into_array()?;
-                Ok((who.into_bytes()?, salt.into_bytes()?))
-            }
-        };
-        let (who_reply, salt) = opened().map_err(|_| Error::DecryptionFailed)?;
-        let salt: [u8; SALT_SIZE] = salt.try_into().map_err(|_| Error::DecryptionFailed)?;
-        Ok(OpenedReply {
-            who_reply,
-            salt,
-            mutated_write_cap: write_cap.mutate_kdf_state(&salt),
-        })
-    }
+/// Mints a voucher in the long form, the signed CBOR map that inductors
+/// from before the compact form read. Its reply is an MKEM ciphertext.
+/// Arguments are as for [`mint_compact`].
+pub fn mint_long(write_cap: &WriteCap, display_name: &str, rng: &mut dyn CryptoRng) -> Minted {
+    let read_cap = write_cap.read_cap().to_bytes().to_vec();
+    let secret = seal_nike().generate_key(rng);
+    let public_key = secret.public_key().to_bytes();
+    let please_add = Value::Map(vec![
+        ("DisplayName".into(), Value::Text(display_name.into())),
+        ("MessageReadCap".into(), Value::Bytes(read_cap)),
+    ])
+    .to_bytes();
+    let signature = write_cap.root_signing_key().sign(&please_add);
+    let signed = Value::Map(vec![
+        ("PleaseAdd".into(), Value::Bytes(please_add)),
+        (
+            "Signature".into(),
+            Value::Bytes(signature.to_bytes().to_vec()),
+        ),
+    ])
+    .to_bytes();
+    let payload = Value::Map(vec![
+        ("SignedPleaseAdd".into(), Value::Bytes(signed)),
+        ("VoucherPubKey".into(), Value::Bytes(public_key.clone())),
+    ])
+    .to_bytes();
+    finish_mint(Form::Long, payload, secret.to_bytes(), public_key)
 }
 
 fn finish_mint(
@@ -496,6 +298,108 @@ fn finish_mint(
     }
 }
 
+/// Answers a voucher: checks the payload and seals a reply to the joiner,
+/// in the form the payload was minted in. The salt and the seal's ephemeral
+/// key are drawn from `rng`, in that order.
+///
+/// `voucher` is the code the joiner handed over, `payload` what box 0 of its
+/// [`VoucherStream`] holds, `who_reply` the group membership to send.
+///
+/// Fails with [`Error::VoucherMismatch`] when the payload is not the one
+/// the voucher names, [`Error::InvalidSignature`] when its signature does
+/// not verify under the read cap it names, and [`Error::InvalidInput`] or
+/// [`Error::InvalidKey`] for anything malformed.
+pub fn induct(
+    voucher: &[u8; VOUCHER_SIZE],
+    payload: &[u8],
+    who_reply: &[u8],
+    rng: &mut dyn CryptoRng,
+) -> Result<Inducted> {
+    let mut salt = [0; SALT_SIZE];
+    rng.fill_bytes(&mut salt);
+    induct_with_salt(voucher, payload, who_reply, &salt, rng)
+}
+
+/// [`induct`] with the salt given, drawing only the seal's ephemeral key
+/// from `rng`. This is the split Go's and Python's `VoucherInduct` take
+/// their `salt` and `seal_seed` arguments in.
+pub fn induct_with_salt(
+    voucher: &[u8; VOUCHER_SIZE],
+    payload: &[u8],
+    who_reply: &[u8],
+    salt: &[u8; SALT_SIZE],
+    rng: &mut dyn CryptoRng,
+) -> Result<Inducted> {
+    let hash = blake2b_256(&[], payload)?;
+    if !bool::from(hash.ct_eq(voucher)) {
+        return Err(Error::VoucherMismatch);
+    }
+    let form = Form::of_payload(payload)?;
+    let (display_name, read_cap, public_key) = match form {
+        Form::Compact => {
+            let [read_cap, public_key, name, signature] =
+                Value::from_bytes(payload)?.into_array()?;
+            let (read_cap, public_key, name) = (
+                read_cap.into_bytes()?,
+                public_key.into_bytes()?,
+                name.into_text()?,
+            );
+            let signed = Value::Array(vec![
+                Value::Bytes(read_cap.clone()),
+                Value::Bytes(public_key.clone()),
+                Value::Text(name.clone()),
+            ])
+            .to_bytes();
+            let read_cap = ReadCap::from_bytes(&read_cap).map_err(|_| MALFORMED)?;
+            verify(&read_cap, &signed, &signature.into_bytes()?)?;
+            (name, read_cap, public_key)
+        }
+        Form::Long => {
+            let [signed, public_key] =
+                Value::from_bytes(payload)?.into_fields(["SignedPleaseAdd", "VoucherPubKey"])?;
+            let [please_add, signature] = Value::from_bytes(&signed.into_bytes()?)?
+                .into_fields(["PleaseAdd", "Signature"])?;
+            let please_add = please_add.into_bytes()?;
+            let [name, read_cap] =
+                Value::from_bytes(&please_add)?.into_fields(["DisplayName", "MessageReadCap"])?;
+            let read_cap = ReadCap::from_bytes(&read_cap.into_bytes()?).map_err(|_| MALFORMED)?;
+            verify(&read_cap, &please_add, &signature.into_bytes()?)?;
+            (name.into_text()?, read_cap, public_key.into_bytes()?)
+        }
+    };
+    let recipient = seal_nike()
+        .public_key_from_bytes(&public_key)
+        .map_err(|_| MALFORMED)?;
+    let sealed_reply = match form {
+        Form::Compact => {
+            let plaintext = Value::Array(vec![
+                Value::Bytes(who_reply.to_vec()),
+                Value::Bytes(salt.to_vec()),
+            ])
+            .to_bytes();
+            SealedBox::new(seal_nike()).seal(&*recipient, &plaintext, rng)?
+        }
+        Form::Long => {
+            let plaintext = Value::Map(vec![
+                ("WhoReply".into(), Value::Bytes(who_reply.to_vec())),
+                ("VoucherSalt".into(), Value::Bytes(salt.to_vec())),
+            ])
+            .to_bytes();
+            let (_, ciphertext) =
+                Mkem::new(seal_nike()).encapsulate(&[&*recipient], &plaintext, rng)?;
+            ciphertext.to_bytes()
+        }
+    };
+    Ok(Inducted {
+        form,
+        display_name,
+        mutated_read_cap: read_cap.mutate_kdf_state(salt),
+        sealed_reply,
+        stream: VoucherStream::derive(voucher),
+        salt: *salt,
+    })
+}
+
 fn verify(read_cap: &ReadCap, message: &[u8], signature: &[u8]) -> Result<()> {
     let signature = Signature::from_slice(signature).map_err(|_| Error::InvalidSignature)?;
     read_cap
@@ -504,55 +408,45 @@ fn verify(read_cap: &ReadCap, message: &[u8], signature: &[u8]) -> Result<()> {
         .map_err(|_| Error::InvalidSignature)
 }
 
-/// [`Vouchers::mint`] over highctidh-rs.
-#[cfg(feature = "ctidh")]
-pub fn mint(write_cap: &WriteCap, display_name: &str, rng: &mut dyn CryptoRng) -> Minted {
-    Vouchers::default().mint(write_cap, display_name, rng)
-}
-
-/// [`Vouchers::mint_compact`] over highctidh-rs.
-#[cfg(feature = "ctidh")]
-pub fn mint_compact(write_cap: &WriteCap, display_name: &str, rng: &mut dyn CryptoRng) -> Minted {
-    Vouchers::default().mint_compact(write_cap, display_name, rng)
-}
-
-/// [`Vouchers::mint_long`] over highctidh-rs.
-#[cfg(feature = "ctidh")]
-pub fn mint_long(write_cap: &WriteCap, display_name: &str, rng: &mut dyn CryptoRng) -> Minted {
-    Vouchers::default().mint_long(write_cap, display_name, rng)
-}
-
-/// [`Vouchers::induct`] over highctidh-rs.
-#[cfg(feature = "ctidh")]
-pub fn induct(
-    voucher: &[u8; VOUCHER_SIZE],
-    payload: &[u8],
-    who_reply: &[u8],
-    rng: &mut dyn CryptoRng,
-) -> Result<Inducted> {
-    Vouchers::default().induct(voucher, payload, who_reply, rng)
-}
-
-/// [`Vouchers::induct_with_salt`] over highctidh-rs.
-#[cfg(feature = "ctidh")]
-pub fn induct_with_salt(
-    voucher: &[u8; VOUCHER_SIZE],
-    payload: &[u8],
-    who_reply: &[u8],
-    salt: &[u8; SALT_SIZE],
-    rng: &mut dyn CryptoRng,
-) -> Result<Inducted> {
-    Vouchers::default().induct_with_salt(voucher, payload, who_reply, salt, rng)
-}
-
-/// [`Vouchers::open_reply`] over highctidh-rs.
-#[cfg(feature = "ctidh")]
+/// Opens the reply to a voucher the caller minted, in either form.
+///
+/// `secret_key` is [`Minted::secret_key`], `sealed_reply` the reply
+/// reassembled from boxes 1 on (compact) or box 1 alone (long), and
+/// `write_cap` the stream the voucher was minted from.
+///
+/// Fails with [`Error::DecryptionFailed`] when the reply was not sealed to
+/// this key or is malformed, and [`Error::InvalidKey`] for a malformed key.
 pub fn open_reply(
     secret_key: &[u8],
     sealed_reply: &[u8],
     write_cap: &WriteCap,
 ) -> Result<OpenedReply> {
-    Vouchers::default().open_reply(secret_key, sealed_reply, write_cap)
+    let private_key = seal_nike().private_key_from_bytes(secret_key)?;
+    let opened = || -> Result<(Vec<u8>, Vec<u8>)> {
+        if is_mkem_reply(sealed_reply) {
+            let mkem = Mkem::new(seal_nike());
+            let plaintext =
+                mkem.decapsulate(&*private_key, &Ciphertext::from_bytes(&mkem, sealed_reply)?)?;
+            let [who, salt] =
+                Value::from_bytes(&plaintext)?.into_fields(["WhoReply", "VoucherSalt"])?;
+            Ok((who.into_bytes()?, salt.into_bytes()?))
+        } else {
+            let plaintext = SealedBox::new(seal_nike()).open(
+                &*private_key,
+                &*private_key.public_key(),
+                sealed_reply,
+            )?;
+            let [who, salt] = Value::from_bytes(&plaintext)?.into_array()?;
+            Ok((who.into_bytes()?, salt.into_bytes()?))
+        }
+    };
+    let (who_reply, salt) = opened().map_err(|_| Error::DecryptionFailed)?;
+    let salt: [u8; SALT_SIZE] = salt.try_into().map_err(|_| Error::DecryptionFailed)?;
+    Ok(OpenedReply {
+        who_reply,
+        salt,
+        mutated_write_cap: write_cap.mutate_kdf_state(&salt),
+    })
 }
 
 /// Whether a reply is the long form's MKEM ciphertext: a CBOR map of
@@ -572,7 +466,7 @@ fn is_mkem_reply(sealed: &[u8]) -> bool {
     }
 }
 
-#[cfg(all(test, feature = "ctidh"))]
+#[cfg(test)]
 mod tests {
     use super::*;
 
