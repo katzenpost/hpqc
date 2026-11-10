@@ -122,11 +122,8 @@ impl Vouchers {
 
 #[cfg(feature = "ctidh")]
 impl Default for Vouchers {
-    /// The registered `CTIDH1024-X25519`, over highctidh-rs.
     fn default() -> Self {
-        Self {
-            seal: crate::nike::schemes::by_name("CTIDH1024-X25519").expect("registered"),
-        }
+        Self::new(Arc::new(crate::nike::ctidh1024::Ctidh1024))
     }
 }
 
