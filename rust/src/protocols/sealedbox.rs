@@ -7,7 +7,7 @@
 //! `"hpqc-nike-sealedbox-v1" || u16be(len(name)) || name || ephemeral
 //! public key || recipient public key`, where `name` is the NIKE's name.
 
-use std::sync::Arc;
+use alloc::sync::Arc;
 
 use crypto_secretbox::aead::Aead;
 use crypto_secretbox::{KeyInit, XSalsa20Poly1305};
@@ -16,6 +16,7 @@ use zeroize::Zeroizing;
 
 use crate::hash::hkdf_blake2b_256;
 use crate::nike::{PrivateKey, PublicKey, Scheme};
+use crate::prelude::*;
 use crate::util::ct_is_zero;
 use crate::{Error, Result};
 

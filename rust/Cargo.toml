@@ -9,23 +9,43 @@ readme = "README.md"
 keywords = ["cryptography", "post-quantum", "kem", "hybrid", "signature"]
 categories = ["cryptography"]
 
+[features]
+default = ["std", "bacap", "voucher", "kem", "ctidh", "mceliece"]
+# The dependencies' std and default features, as before the crate was no_std.
+std = [
+    "aes-gcm-siv/default",
+    "blake2b_simd/default",
+    "chacha20poly1305/default",
+    "ml-dsa/default",
+    "subtle/default",
+    "x448/default",
+]
+bacap = []
+voucher = ["bacap", "ctidh"]
+kem = ["dep:ml-kem"]
+# CTIDH-1024 through highctidh's C library.
+ctidh = ["dep:highctidh"]
+# Classic McEliece, which needs std.
+mceliece = ["std", "kem", "dep:pq-mceliece"]
+
 [dependencies]
-aes-gcm-siv = "0.12.1"
-blake2b_simd = "1.0.5"
-chacha20poly1305 = "0.11.0"
+aes-gcm-siv = { version = "0.12.1", default-features = false, features = ["aes", "alloc"] }
+blake2b_simd = { version = "1.0.5", default-features = false }
+chacha20poly1305 = { version = "0.11.0", default-features = false, features = ["alloc"] }
 crypto_secretbox = { version = "0.1.1", default-features = false, features = ["alloc", "salsa20"] }
 curve25519-dalek = "5.0.0"
 ed25519-dalek = "3.0.0"
-highctidh = { git = "https://github.com/katzenpost/highctidh-rs", rev = "4686e46273d959e59d33736206ed2dbce7f82e57" }
-ml-dsa = { version = "0.1.1", features = ["zeroize"] }
-ml-kem = { version = "0.3.2", features = ["zeroize"] }
-pq-mceliece = { version = "0.3.0", default-features = false, features = ["nist", "keygen", "encapsulate", "decapsulate"] }
+highctidh = { git = "https://github.com/katzenpost/highctidh-rs", rev = "4686e46273d959e59d33736206ed2dbce7f82e57", optional = true }
+ml-dsa = { version = "0.1.1", default-features = false, features = ["alloc", "rand_core", "zeroize"] }
+ml-kem = { version = "0.3.2", features = ["zeroize"], optional = true }
+once_cell = { version = "1.21", default-features = false, features = ["alloc", "race"] }
+pq-mceliece = { version = "0.3.0", default-features = false, features = ["nist", "keygen", "encapsulate", "decapsulate"], optional = true }
 rand_core = "0.10"
 sha2 = "0.11.1"
 sha3 = "0.11.0"
-subtle = "2.6.1"
+subtle = { version = "2.6.1", default-features = false, features = ["i128"] }
 x25519-dalek = { version = "3.0.0", features = ["static_secrets"] }
-x448 = { version = "0.14.0-pre.12", features = ["static_secrets"] }
+x448 = { version = "0.14.0-pre.12", default-features = false, features = ["static_secrets"] }
 zeroize = "1.9.1"
 
 [dev-dependencies]
@@ -37,3 +57,27 @@ serde_json = "1.0.154"
 # Classic McEliece key generation is very slow unoptimized.
 [profile.dev.package.pq-mceliece]
 opt-level = 3
+
+[[test]]
+name = "bacap_vectors"
+required-features = ["bacap"]
+
+[[test]]
+name = "voucher_vectors"
+required-features = ["voucher"]
+
+[[test]]
+name = "kem_vectors"
+required-features = ["kem", "ctidh"]
+
+[[test]]
+name = "mlkem_vectors"
+required-features = ["kem"]
+
+[[test]]
+name = "mceliece_vectors"
+required-features = ["mceliece"]
+
+[[test]]
+name = "nike_vectors"
+required-features = ["ctidh"]

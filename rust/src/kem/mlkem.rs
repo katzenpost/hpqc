@@ -8,8 +8,8 @@
 //! weak RNG. They are not FIPS 203, but share keys, ciphertexts and
 //! decapsulation with the standard variants.
 
-use std::fmt;
-use std::marker::PhantomData;
+use core::fmt;
+use core::marker::PhantomData;
 
 use ml_kem::array::typenum::{U32, U64, Unsigned};
 use ml_kem::kem::{
@@ -21,6 +21,7 @@ use rand_core::CryptoRng;
 use sha3::{Digest, Sha3_256};
 use zeroize::Zeroizing;
 
+use crate::prelude::*;
 use crate::util::{check_len, downcast, split, to_array};
 use crate::{Error, Result, SecretBytes};
 

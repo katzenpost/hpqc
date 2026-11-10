@@ -3,13 +3,14 @@
 //! Private keys encode as their 32-byte seed. Signing is hedged and uses
 //! the empty context string.
 
-use std::fmt;
-use std::marker::PhantomData;
+use core::fmt;
+use core::marker::PhantomData;
 
 use ml_dsa::{B32, KeyInit, Keypair, MlDsaParams, Signature, SigningKey, VerifyingKey};
 use rand_core::CryptoRng;
 use zeroize::Zeroizing;
 
+use crate::prelude::*;
 use crate::util::{check_len, downcast, to_array};
 use crate::{Error, Result, SecretBytes};
 

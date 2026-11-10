@@ -4,13 +4,14 @@
 //! shared secret is [`split_prf`] of the component secrets and
 //! ciphertexts, which stays secure while any one component is.
 
-use std::sync::Arc;
+use alloc::sync::Arc;
 
 use rand_core::CryptoRng;
 use zeroize::Zeroizing;
 
 use super::Scheme;
 use crate::hash::blake2b_256;
+use crate::prelude::*;
 use crate::util::{downcast, len_u32, split};
 use crate::{Error, Result, SecretBytes};
 

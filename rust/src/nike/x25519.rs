@@ -5,6 +5,7 @@ pub use x25519_dalek;
 use x25519_dalek::StaticSecret;
 use zeroize::Zeroizing;
 
+use crate::prelude::*;
 use crate::util::{downcast, to_array};
 use crate::{Error, Result, SecretBytes};
 
@@ -18,8 +19,8 @@ pub struct PublicKey(pub x25519_dalek::PublicKey);
 #[derive(Clone)]
 pub struct PrivateKey(pub StaticSecret);
 
-impl std::fmt::Debug for PrivateKey {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl core::fmt::Debug for PrivateKey {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.debug_struct("x25519::PrivateKey").finish_non_exhaustive()
     }
 }

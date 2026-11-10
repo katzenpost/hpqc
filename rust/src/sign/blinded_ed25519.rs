@@ -112,8 +112,8 @@ impl Drop for BlindedSigningKey {
     }
 }
 
-impl std::fmt::Debug for BlindedSigningKey {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl core::fmt::Debug for BlindedSigningKey {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.debug_struct("BlindedSigningKey")
             .field("verifying_key", &self.verifying_key)
             .finish_non_exhaustive()
