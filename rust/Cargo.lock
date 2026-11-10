@@ -443,7 +443,7 @@ checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
 [[package]]
 name = "highctidh"
 version = "0.1.0"
-source = "git+https://github.com/katzenpost/highctidh-rs?rev=4686e46273d959e59d33736206ed2dbce7f82e57#4686e46273d959e59d33736206ed2dbce7f82e57"
+source = "git+https://github.com/katzenpost/highctidh-rs?rev=9586ee91ecac406f16b54b05c4fbd406b291de79#9586ee91ecac406f16b54b05c4fbd406b291de79"
 dependencies = [
  "cc",
  "rand_core",

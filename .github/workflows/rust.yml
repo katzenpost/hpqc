@@ -35,8 +35,10 @@ jobs:
           persist-credentials: false
       - name: Install Rust
         run: rustup toolchain install stable --profile minimal --component clippy --target thumbv7em-none-eabihf && rustup default stable
+      - name: Install the Arm bare-metal C toolchain for highctidh
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends gcc-arm-none-eabi libnewlib-arm-none-eabi
       - name: cargo build for a no_std target
-        run: cargo build --locked --target thumbv7em-none-eabihf --no-default-features --features bacap,kem
+        run: cargo build --locked --target thumbv7em-none-eabihf --no-default-features --features bacap,voucher,kem
       - name: cargo test bacap and voucher without default features
         run: cargo test --locked --no-default-features --features bacap,voucher
       - name: cargo clippy without default features
