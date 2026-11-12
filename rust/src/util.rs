@@ -1,7 +1,8 @@
-use std::any::Any;
+use core::any::Any;
 
 use subtle::ConstantTimeEq;
 
+use crate::prelude::*;
 use crate::{Error, Result};
 
 pub(crate) fn downcast<T: Any>(key: &dyn Any) -> Result<&T> {
@@ -41,6 +42,7 @@ pub(crate) fn split(bytes: &[u8], sizes: impl IntoIterator<Item = usize>) -> Res
 }
 
 /// The length of `bytes` as a `u32` length prefix.
+#[cfg(feature = "kem")]
 pub(crate) fn len_u32(bytes: &[u8]) -> Result<u32> {
     u32::try_from(bytes.len()).map_err(|_| Error::InvalidInput("input longer than 4 GiB"))
 }

@@ -10,6 +10,7 @@ use rand_core::CryptoRng;
 use zeroize::Zeroizing;
 
 use crate::hash::Blake2Xb;
+use crate::prelude::*;
 use crate::util::{check_len, downcast, to_array};
 use crate::{Error, Result, SecretBytes};
 

@@ -21,6 +21,7 @@ use subtle::{Choice, ConstantTimeEq};
 use zeroize::{Zeroize, ZeroizeOnDrop, Zeroizing};
 
 use crate::hash::hkdf_blake2b;
+use crate::prelude::*;
 use crate::sign::blinded_ed25519::{BlindedSigningKey, blind_verifying_key};
 use crate::util::{check_len, ct_is_zero, to_array};
 use crate::{Error, Result, SecretBytes};
@@ -296,8 +297,8 @@ impl PartialEq for MessageBoxIndex {
 
 impl Eq for MessageBoxIndex {}
 
-impl std::fmt::Debug for MessageBoxIndex {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl core::fmt::Debug for MessageBoxIndex {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.debug_struct("MessageBoxIndex")
             .field("idx64", &self.idx64)
             .finish_non_exhaustive()
@@ -420,6 +421,7 @@ impl WriteCap {
     }
 
     /// The stream's root signing key, for signing on the stream's behalf.
+    #[cfg(feature = "voucher")]
     pub(crate) fn root_signing_key(&self) -> &SigningKey {
         &self.key
     }
@@ -456,8 +458,8 @@ impl WriteCap {
     }
 }
 
-impl std::fmt::Debug for WriteCap {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl core::fmt::Debug for WriteCap {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.debug_struct("WriteCap")
             .field("root_public_key", &self.key.verifying_key())
             .field("index", &self.index)
