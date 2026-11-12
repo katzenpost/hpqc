@@ -20,3 +20,5 @@ jobs:
           go-version-file: go.mod
       - name: Run tests
         run: go test -v ./...
+      - name: Run SQIsign tests (opt-in build tag)
+        run: go test -v -tags sqisign ./sign/sqisign ./sign/hybrid

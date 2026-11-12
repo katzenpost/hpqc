@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: (c) 2026 David Stainton
 // SPDX-License-Identifier: AGPL-3.0-only
 
-//go:build linux && amd64 && !android
+//go:build sqisign && linux && amd64 && !android
 
 // Package sqisign implements the hpqc sign.Scheme interface for SQIsign
 // level 1. The actual cryptographic work is performed by the
@@ -21,6 +21,11 @@
 // This wrapper matches that reach with a `//go:build linux && amd64`
 // constraint; on other platforms the package is empty and the
 // SQIsignLvl1Ed25519 hybrid in sign/hybrid is not defined either.
+//
+// Opt-in. The package also needs the `sqisign` build tag
+// (`go build -tags sqisign`). Without it the package and the hybrid
+// are empty, so programs that import sign/hybrid or sign/schemes do
+// not link the Rust staticlib.
 //
 // SQIsign is a NIST Round 2 candidate; this implementation has not been
 // audited. Treat it as experimental. See the upstream repository's
