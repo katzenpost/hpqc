@@ -36,7 +36,7 @@ chacha20poly1305 = { version = "0.11.0", default-features = false, features = ["
 crypto_secretbox = { version = "0.1.1", default-features = false, features = ["alloc", "salsa20"] }
 curve25519-dalek = "5.0.0"
 ed25519-dalek = "3.0.0"
-highctidh = { git = "https://github.com/katzenpost/highctidh-rs", rev = "45d0ac2a5c7271626e762e2c9fe1d0e442a3fbb8", default-features = false, optional = true }
+highctidh = { git = "https://github.com/katzenpost/highctidh-rs", rev = "feae6de91536f345f55afbf33122b6f43b060378", default-features = false, optional = true }
 ml-dsa = { version = "0.1.1", default-features = false, features = ["alloc", "rand_core", "zeroize"] }
 ml-kem = { version = "0.3.2", features = ["zeroize"], optional = true }
 once_cell = { version = "1.21", default-features = false, features = ["alloc", "race"] }
