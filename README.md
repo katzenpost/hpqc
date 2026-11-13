@@ -11,6 +11,10 @@ and implements the BACAP capability scheme. [Katzenpost](https://katzenpost.netw
 uses it. Go is the reference implementation; the Python and Rust ports
 cover parts of it, and all three check the same [test vectors](testvectors/).
 hpqc has had no external security review and should be considered experimental.
+It is written for developers building post-quantum protocols. It provides no
+protocol, transport or general-purpose cipher API of its own; if you need
+reviewed ML-KEM alone, Go's `crypto/mlkem` or [CIRCL](https://github.com/cloudflare/circl)
+is the better choice.
 
 ```mermaid
 flowchart LR
@@ -21,7 +25,8 @@ flowchart LR
 
 ## Quick start
 
-Go, with cgo and a C compiler (error checks left out):
+Go 1.26.2 or later, with cgo and a C compiler: `go get github.com/katzenpost/hpqc`,
+then (error checks left out):
 
 ```go
 import "github.com/katzenpost/hpqc/kem/schemes"
@@ -53,16 +58,21 @@ then see [rust/README.md](rust/README.md).
 - [Using hpqc from Go](docs/go.md) and the [Python port](py/README.md)
 - [Constructions](docs/constructions.md): the NIKE adapter, KEM combiner, MKEM and sealed box
 - [BACAP](docs/bacap.md) and [CTIDH](docs/ctidh.md)
+- [Related repositories](docs/related.md): the forks hpqc depends on and the projects that use or cross-check it
 - [Building and testing](docs/building.md), [repository layout](docs/layout.md), [breaking changes](BREAKING_CHANGES.md) and [planned changes](PLANNED_CHANGES.md)
 
-## Related
+## Status
 
-- [circl](https://github.com/katzenpost/circl): fork of Cloudflare's CIRCL, source of ML-KEM-512 and -1024, FrodoKEM, Classic McEliece, Kyber768, X448, Ed448 and EdDilithium
-- [sntrup4591761](https://github.com/katzenpost/sntrup4591761), [sphincsplus](https://github.com/katzenpost/sphincsplus), [falcon](https://github.com/katzenpost/falcon) and [sqisign](https://github.com/katzenpost/sqisign): the NTRU Prime, SPHINCS+, Falcon and SQIsign implementations
-- [chacha20](https://github.com/katzenpost/chacha20) and [chacha20poly1305](https://github.com/katzenpost/chacha20poly1305): forks of Yawning Angel's ciphers, used by `rand` and MKEM
-- [highctidh-rs](https://github.com/katzenpost/highctidh-rs): Rust bindings to highctidh's CTIDH-1024
-- [nyquist](https://github.com/katzenpost/nyquist): a fork of Yawning Angel's Noise library that uses hpqc's KEMs
-- [Cryptlib](https://github.com/katzenpost/cryptlib): a Lean cryptography library whose hedged ML-KEM and BACAP agree with hpqc's under shared vectors
+Version 0.0.95 is the latest Go module tag and the current PyPI release
+(Python 3.10 or later); the Rust crate is 0.1.0 and unpublished. Before 1.0
+the API still changes: [BREAKING_CHANGES.md](BREAKING_CHANGES.md) lists each
+break. Interoperability between the ports rests on the shared vectors in
+[testvectors/](testvectors/).
+
+## Testing and contributing
+
+[docs/building.md](docs/building.md) gives the test commands for each
+language. Report bugs and send pull requests on GitHub.
 
 ## License
 
