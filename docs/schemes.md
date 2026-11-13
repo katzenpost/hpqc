@@ -69,7 +69,9 @@ NIKE and any set of KEMs.
 SPHINCS+ is not built on Windows, where `sphincsplus.Scheme()` returns nil.
 `sign/sqisign` implements SQIsign level 1 (`SQIsign-lvl1`), and
 `sign/hybrid` pairs it with Ed25519 as `SQIsign-lvl1-Ed25519`. Neither is
-registered, and both build only on linux/amd64.
+registered, and both build only on linux/amd64 with the `sqisign` build tag
+(`go build -tags sqisign`), so nothing links the SQIsign static library unless
+it asks for it.
 
 ## Python
 

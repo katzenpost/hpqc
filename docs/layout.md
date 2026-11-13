@@ -33,7 +33,7 @@ hpqc/
 │   ├── mldsa/               #   ML-DSA-44, -65, -87
 │   ├── sphincsplus/         #   SPHINCS+ SHAKE-256f
 │   ├── falcon/              #   Falcon-padded-512, -1024
-│   ├── sqisign/             #   SQIsign level 1 (linux/amd64, not registered)
+│   ├── sqisign/             #   SQIsign level 1 (linux/amd64, -tags sqisign)
 │   ├── hybrid/              #   two-scheme hybrid signer
 │   ├── pem/                 #   PEM encoding of signature keys
 │   └── schemes/             #   ByName registry

@@ -13,6 +13,13 @@ go build ./...
 go test ./...
 ```
 
+SQIsign is opt-in: `sign/sqisign` and the `SQIsign-lvl1-Ed25519` hybrid only
+build with the `sqisign` tag, on linux/amd64.
+
+```sh
+go test -tags sqisign ./sign/sqisign ./sign/hybrid
+```
+
 CI runs the tests on Linux, macOS and Windows (MSYS2), and cross-compiles for
 other architectures.
 
