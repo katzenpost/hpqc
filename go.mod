@@ -8,7 +8,6 @@ require (
 	filippo.io/mlkem768 v0.0.0-20260214141301-2e7bebc7d88d
 	github.com/agl/gcmsiv v0.0.0-20190418185415-e8dcd2f151dc
 	github.com/fxamacker/cbor/v2 v2.9.1
-	github.com/go-faster/xor v1.0.0
 	github.com/katzenpost/chacha20 v0.0.1
 	github.com/katzenpost/chacha20poly1305 v0.0.1
 	github.com/katzenpost/circl v1.3.8-0.20260413165442-e2d217fd59f5
@@ -23,8 +22,6 @@ require (
 require github.com/katzenpost/falcon v0.1.0
 
 require github.com/shurlinet/go-hqc v0.1.1
-
-require github.com/katzenpost/sqisign/bindings/go v0.0.0-20261112170845-397386f00c5c
 
 require (
 	filippo.io/mldsa v0.0.0-20260215214346-43d0283efc3e
