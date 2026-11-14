@@ -453,7 +453,7 @@ dependencies = [
 
 [[package]]
 name = "hpqc"
-version = "0.1.0"
+version = "0.0.96"
 dependencies = [
  "aes-gcm-siv",
  "blake2b_simd",
