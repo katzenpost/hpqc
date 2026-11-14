@@ -12,8 +12,6 @@ github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/fxamacker/cbor/v2 v2.9.1 h1:2rWm8B193Ll4VdjsJY28jxs70IdDsHRWgQYAI80+rMQ=
 github.com/fxamacker/cbor/v2 v2.9.1/go.mod h1:vM4b+DJCtHn+zz7h3FFp/hDAI9WNWCsZj23V5ytsSxQ=
-github.com/go-faster/xor v1.0.0 h1:2o8vTOgErSGHP3/7XwA5ib1FTtUsNtwCoLLBjl31X38=
-github.com/go-faster/xor v1.0.0/go.mod h1:x5CaDY9UKErKzqfRfFZdfu+OSTfoZny3w5Ak7UxcipQ=
 github.com/katzenpost/chacha20 v0.0.1 h1:Scu6Pqyginw083FhypKMIBmCI2gQTC1RFD6vqpWwI2Y=
 github.com/katzenpost/chacha20 v0.0.1/go.mod h1:/LIJK/8cUXVJrCh5NypZ8So3gDfQCoQT8lRvy1rYQZA=
 github.com/katzenpost/chacha20poly1305 v0.0.1 h1:yFPxgu/VSWsoCNQ2x15az8xBKKc/9GDY9Pz42MvY9xg=
@@ -26,8 +24,6 @@ github.com/katzenpost/sntrup4591761 v0.0.0-20231024131303-8755eb1986b8 h1:TsKxH0
 github.com/katzenpost/sntrup4591761 v0.0.0-20231024131303-8755eb1986b8/go.mod h1:Hmcrwom7jcEmGdo0CsyuJNnldPeyS+M07FuCbo7I8fw=
 github.com/katzenpost/sphincsplus v0.0.2 h1:W1UWejLK62Lk0uK2R08H/sWEaQrRHWCaMEKO181SoOE=
 github.com/katzenpost/sphincsplus v0.0.2/go.mod h1:ChO9+ojgCH1yEuplGgW4mSI1FwZWtyEmEkG1xL3w264=
-github.com/katzenpost/sqisign/bindings/go v0.0.0-20261112170845-397386f00c5c h1:DFmq2cw65pk9pqIPvepAXTrm8nnvjcBtyVawSrA4wwQ=
-github.com/katzenpost/sqisign/bindings/go v0.0.0-20261112170845-397386f00c5c/go.mod h1:CcVAF5BHgQtHH3lFCmwl3t2KKcXih+8ZcjLbxg8z3D0=
 github.com/mattn/go-pointer v0.0.1 h1:n+XhsuGeVO6MEAp7xyEukFINEa+Quek5psIR/ylA6o0=
 github.com/mattn/go-pointer v0.0.1/go.mod h1:2zXcozF6qYGgmsG+SeTZz3oAbFLdD3OWqnUbNvJZAlc=
 github.com/pkg/errors v0.9.1 h1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=

@@ -4,20 +4,12 @@ Back to the [README](../README.md).
 
 ## Go
 
-The Go packages need cgo and a C compiler: CTIDH, Falcon and SPHINCS+ are C,
-and SQIsign links a static library on linux/amd64. CTIDH has its own build
-notes for musl libc in [ctidh.md](ctidh.md).
+The Go packages need cgo and a C compiler: CTIDH, Falcon and SPHINCS+ are C.
+CTIDH has its own build notes for musl libc in [ctidh.md](ctidh.md).
 
 ```sh
 go build ./...
 go test ./...
-```
-
-SQIsign is opt-in: `sign/sqisign` and the `SQIsign-lvl1-Ed25519` hybrid only
-build with the `sqisign` tag, on linux/amd64.
-
-```sh
-go test -tags sqisign ./sign/sqisign ./sign/hybrid
 ```
 
 CI runs the tests on Linux, macOS and Windows (MSYS2), and cross-compiles for
