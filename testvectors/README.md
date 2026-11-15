@@ -39,6 +39,9 @@ testvectors/
 │   ├── lean_mlkem{512,1024}_hedged_vectors.json
 │   │                           #   hedged ML-KEM-512/1024, from Cryptlib
 │   └── mceliece.json           #   Classic McEliece key derivation and decapsulation
+├── wycheproof/                 # selected C2SP Wycheproof JSON files and Apache-2.0 license
+│   ├── mlkem_{512,768,1024}_test.json
+│   └── mldsa_{44,65,87}_verify_test.json
 ├── nike/schemes.json           # X25519 and X448 keys, secrets and blinding
 ├── protocols/sealedbox.json    # sealed box ciphertexts over X25519 and X25519-CTIDH1024
 ├── sign/schemes.json           # key derivation and signatures of the registered signature schemes
@@ -57,6 +60,14 @@ The vectors form a hierarchy. If a Python (or Go) implementation fails the
 BACAP-level vectors, the primitive-level vectors usually pinpoint where the
 divergence is: a wrong HKDF parameter ordering, an off-by-one nonce slice in
 blinded Ed25519, an AES-GCM-SIV AAD shape mismatch, and so on.
+
+The selected Wycheproof vectors are copied from
+[C2SP/wycheproof](https://github.com/C2SP/wycheproof) at commit
+`65ca494727a52944c204441c860b039e6786b99b`. Their Apache-2.0 license is in
+`wycheproof/LICENSE`. The consuming Go packages link only their files into
+their `testdata/` directories. ML-DSA cases with a non-empty context are
+skipped because the ML-DSA scheme reports `SupportsContext() == false` and
+does not pass `SignatureOpts.Context` to its underlying verifier.
 
 ## How callers reach the vectors
 
