@@ -77,6 +77,27 @@ func CheckPublicKey(pk *PublicKey) bool {
 	return false
 }
 
+// minusOne is L-1 as a scalar, so [minusOne]P + P = [L]P.
+var minusOne = func() *edwards25519.Scalar {
+	one, err := new(edwards25519.Scalar).SetCanonicalBytes(append([]byte{1}, make([]byte, 31)...))
+	if err != nil {
+		panic(err)
+	}
+	return new(edwards25519.Scalar).Negate(one)
+}()
+
+// IsPrimeOrderPoint reports whether b encodes a point of the prime-order
+// subgroup other than the identity: the keys a seed derives, and the ones
+// libsodium's crypto_core_ed25519_is_valid_point accepts.
+func IsPrimeOrderPoint(b []byte) bool {
+	p, err := new(edwards25519.Point).SetBytes(b)
+	if err != nil || p.Equal(edwards25519.NewIdentityPoint()) == 1 {
+		return false
+	}
+	lp := new(edwards25519.Point).ScalarMult(minusOne, p)
+	return lp.Add(lp, p).Equal(edwards25519.NewIdentityPoint()) == 1
+}
+
 // BlindedPrivateKey encapsulates a blinded PrivateKey.
 type BlindedPrivateKey struct {
 	blinded ed25519.PrivateKey
@@ -311,6 +332,9 @@ func (k *PublicKey) Blind(factor []byte) (*PublicKey, error) {
 	factor_sc, err := new(edwards25519.Scalar).SetBytesWithClamping(factor)
 	if err != nil {
 		return nil, errors.New("sha512/256 did not return 32 bytes, impossible")
+	}
+	if !IsPrimeOrderPoint(k.Bytes()) {
+		return nil, errors.New("ed25519: Blind: public key is not in the prime-order subgroup")
 	}
 	// out <- factor*pkA + zero*Basepoint
 	out, err := new(edwards25519.Point).SetBytes(k.Bytes())

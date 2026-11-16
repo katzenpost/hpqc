@@ -267,6 +267,21 @@ func (p *PublicKey) Verify(signature, message []byte) bool {
 	return ed25519.Verify(p.pubKey, message, signature)
 }
 
+// VerifyStrict is Verify that also refuses a small-order public key or R, as
+// libsodium does: under the identity key, R = identity and s = 0 verify any
+// message.
+func (p *PublicKey) VerifyStrict(signature, message []byte) bool {
+	if len(signature) != SignatureSize || isSmallOrder(p.pubKey) || isSmallOrder(signature[:32]) {
+		return false
+	}
+	return p.Verify(signature, message)
+}
+
+func isSmallOrder(b []byte) bool {
+	q, err := new(edwards25519.Point).SetBytes(b)
+	return err == nil && q.MultByCofactor(q).Equal(edwards25519.NewIdentityPoint()) == 1
+}
+
 func (p *PublicKey) Reset() {
 	util.ExplicitBzero(p.pubKey)
 	p.b64String = "[scrubbed]"

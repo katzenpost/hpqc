@@ -24,6 +24,7 @@ the author of the original (3-bit hacker).
 import hashlib
 import nacl.signing
 from nacl.bindings import (
+    crypto_core_ed25519_is_valid_point,
     crypto_scalarmult_ed25519,
     crypto_scalarmult_ed25519_base_noclamp,
 )
@@ -113,6 +114,8 @@ class BlindedSigningKey(SigningKey):
         return signature + message
 
     def blind(self, factor):
+        if not factor:
+            raise ValueError("empty blinding factor")
         return BlindedSigningKey(
             scalar.Multiply(self.encode(), scalar.clamp(Sum512_256(factor)))
         )
@@ -120,6 +123,10 @@ class BlindedSigningKey(SigningKey):
 
 class VerifyKey(nacl.signing.VerifyKey):
     def blind(self, factor):
+        if not factor:
+            raise ValueError("empty blinding factor")
+        if not crypto_core_ed25519_is_valid_point(self.encode()):
+            raise ValueError("public key is not in the prime-order subgroup")
         return VerifyKey(crypto_scalarmult_ed25519(Sum512_256(factor), self.encode()))
 
 

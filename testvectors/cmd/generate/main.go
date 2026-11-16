@@ -16,6 +16,7 @@
 package main
 
 import (
+	"bytes"
 	stded25519 "crypto/ed25519"
 	"crypto/sha3"
 	"crypto/sha512"
@@ -35,6 +36,7 @@ import (
 	"github.com/katzenpost/falcon/padded1024"
 	"github.com/katzenpost/falcon/padded512"
 
+	"filippo.io/edwards25519"
 	"filippo.io/mlkem768"
 
 	"github.com/katzenpost/hpqc/kem/adapter"
@@ -83,6 +85,7 @@ func main() {
 	writeFile(*out, "primitives/hkdf_blake2b.json", genHKDFBlake2b())
 	writeFile(*out, "primitives/aes_gcm_siv.json", genAESGCMSIV())
 	writeFile(*out, "primitives/blinded_ed25519.json", genBlindedEd25519())
+	writeFile(*out, "primitives/blinded_ed25519_negative.json", genBlindedEd25519Negative())
 	writeFile(*out, "primitives/ed25519.json", genEd25519())
 	writeFile(*out, "primitives/falcon_padded_512.json", genFalconPadded512())
 	writeFile(*out, "primitives/falcon_padded_512_ed25519.json", genFalconPadded512Ed25519())
@@ -568,6 +571,128 @@ func computeBlindedEd25519Vector(name, provenance string, privKeyBytes, message 
 		BlindedPubKeyHex: hex.EncodeToString(blindedPub.Bytes()),
 		BlindedSigHex:    hex.EncodeToString(sig),
 	}
+}
+
+// Blinded Ed25519 inputs every implementation must reject: root keys outside
+// the prime-order subgroup, an empty blinding factor, and signatures that
+// verify only for a verifier that skips the small-order checks or is
+// cofactored (issue #165).
+
+type blindedEd25519NegativeVector struct {
+	Name          string `json:"name"`
+	Operation     string `json:"operation"`
+	Category      string `json:"category"`
+	Description   string `json:"description"`
+	PrivateKeyHex string `json:"private_key_hex,omitempty"`
+	PublicKeyHex  string `json:"public_key_hex"`
+	BlindFactor   string `json:"blind_factor_hex,omitempty"`
+	MessageHex    string `json:"message_hex,omitempty"`
+	SignatureHex  string `json:"signature_hex,omitempty"`
+}
+
+func genBlindedEd25519Negative() vectorFile {
+	identity := edwards25519.NewIdentityPoint()
+	order8 := new(edwards25519.Point)
+	_, err := order8.SetBytes(mustHex("26e8958fc2b227b045c3f489f2ef98f0d5dfac05d3c63339b13802886d53fc05"))
+	must(err)
+	four := new(edwards25519.Point).Add(order8, order8)
+	four.Add(four, four)
+	if new(edwards25519.Point).Add(four, four).Equal(identity) != 1 || four.Equal(identity) == 1 {
+		panic("blinded_ed25519_negative: torsion point is not of order 8")
+	}
+
+	// An honest key: the clamped scalar of a fixed seed, as Ed25519 derives it.
+	seed := deterministicBytes("blinded_ed25519_negative", "honest_key", 32)
+	priv := stded25519.NewKeyFromSeed(seed)
+	digest := sha512.Sum512(seed)
+	a, err := new(edwards25519.Scalar).SetBytesWithClamping(digest[:32])
+	must(err)
+	pub := priv.Public().(stded25519.PublicKey)
+	if !bytes.Equal(new(edwards25519.Point).ScalarBaseMult(a).Bytes(), pub) {
+		panic("blinded_ed25519_negative: honest scalar does not match the key")
+	}
+	torsioned := new(edwards25519.Point).Add(new(edwards25519.Point).ScalarBaseMult(a), order8).Bytes()
+	factor := bytesPattern(0, 32)
+	for i := range factor {
+		factor[i] = byte(i)
+	}
+	msg := []byte("a message no signature here should verify for")
+
+	// sign returns (R, s) for R = r*B + t and s = r + H(R || A || msg)*a.
+	sign := func(t *edwards25519.Point) []byte {
+		r, err := new(edwards25519.Scalar).SetUniformBytes(deterministicBytes("blinded_ed25519_negative", "nonce", 64))
+		must(err)
+		R := new(edwards25519.Point).Add(new(edwards25519.Point).ScalarBaseMult(r), t).Bytes()
+		k, err := new(edwards25519.Scalar).SetUniformBytes(sha512Concat(R, pub, msg))
+		must(err)
+		return append(R, new(edwards25519.Scalar).MultiplyAdd(k, a, r).Bytes()...)
+	}
+	// rIdentity: s = H(R || A || msg)*a with R the identity, so s*B - k*A is
+	// the identity and a cofactorless verifier without the small-order check
+	// on R accepts it.
+	k, err := new(edwards25519.Scalar).SetUniformBytes(sha512Concat(identity.Bytes(), pub, msg))
+	must(err)
+	rIdentity := append(identity.Bytes(), new(edwards25519.Scalar).Multiply(k, a).Bytes()...)
+	if !stded25519.Verify(pub, msg, rIdentity) {
+		panic("blinded_ed25519_negative: identity-R signature should pass a plain cofactorless verify")
+	}
+	rTorsion := sign(order8)
+	if stded25519.Verify(pub, msg, rTorsion) {
+		panic("blinded_ed25519_negative: torsioned-R signature passes a cofactorless verify")
+	}
+	identitySig := append(identity.Bytes(), make([]byte, 32)...)
+	if !stded25519.Verify(identity.Bytes(), msg, identitySig) {
+		panic("blinded_ed25519_negative: (R = identity, s = 0) should pass a plain verify under the identity key")
+	}
+
+	h := hex.EncodeToString
+	vs := []blindedEd25519NegativeVector{
+		{
+			Name: "blind_torsioned_root_key", Operation: "blind_public_key", Category: "invalid_key",
+			Description:  "an honest public key plus a point of order 8: on the curve but outside the prime-order subgroup",
+			PublicKeyHex: h(torsioned), BlindFactor: h(factor),
+		},
+		{
+			Name: "blind_identity_root_key", Operation: "blind_public_key", Category: "invalid_key",
+			Description:  "the identity point as a root public key",
+			PublicKeyHex: h(identity.Bytes()), BlindFactor: h(factor),
+		},
+		{
+			Name: "blind_empty_factor", Operation: "blind", Category: "empty_factor",
+			Description:   "an honest key blinded by a factor of 0 bytes, refused for both the private and the public key",
+			PrivateKeyHex: h(priv), PublicKeyHex: h(pub),
+		},
+		{
+			Name: "verify_identity_key", Operation: "verify", Category: "small_order_key",
+			Description:  "the identity as the box ID with R the identity and s = 0, which verifies any message without the small-order check on the key",
+			PublicKeyHex: h(identity.Bytes()), MessageHex: h(msg), SignatureHex: h(identitySig),
+		},
+		{
+			Name: "verify_identity_r", Operation: "verify", Category: "small_order_r",
+			Description:  "an honest key with R the identity and s = H(R || A || M)*a, which a cofactorless verifier accepts without the small-order check on R",
+			PublicKeyHex: h(pub), MessageHex: h(msg), SignatureHex: h(rIdentity),
+		},
+		{
+			Name: "verify_torsioned_r", Operation: "verify", Category: "signature_invalid",
+			Description:  "an honest key with R = r*B plus a point of order 8 and s = r + H(R || A || M)*a, which only a cofactored verifier accepts",
+			PublicKeyHex: h(pub), MessageHex: h(msg), SignatureHex: h(rTorsion),
+		},
+	}
+	return vectorFile{
+		FormatVersion: formatVersion,
+		Generator:     generatorName,
+		Primitive:     "blinded_ed25519_negative",
+		Description:   "Blinded Ed25519 inputs every implementation must reject, by operation. blind_public_key blinds public_key_hex by blind_factor_hex; a BACAP implementation must also refuse a ReadCap whose root public key is public_key_hex. blind blinds private_key_hex (64 bytes, seed || public key) and public_key_hex by an empty factor. verify checks signature_hex over message_hex under public_key_hex as a BACAP box ID; verification is cofactorless and refuses a small-order key or R. category names the failure: invalid_key, empty_factor, small_order_key, small_order_r, signature_invalid.",
+		Vectors:       vs,
+	}
+}
+
+func sha512Concat(parts ...[]byte) []byte {
+	d := sha512.New()
+	for _, p := range parts {
+		d.Write(p)
+	}
+	return d.Sum(nil)
 }
 
 // Plain Ed25519, Falcon-padded-512, and the Falcon-padded-{512,1024}-Ed25519
