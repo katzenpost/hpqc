@@ -1,15 +1,21 @@
 //! The registry of named KEM schemes.
 
-use std::sync::{Arc, LazyLock};
+use alloc::sync::Arc;
+
+use once_cell::race::OnceBox;
 
 use super::Scheme;
 use super::adapter::NikeKem;
 use super::combiner::Combiner;
+#[cfg(feature = "mceliece")]
 use super::mceliece::{Algorithm, McEliece};
 use super::mlkem::{MlKem512, MlKem768, MlKem1024};
 use crate::nike::{x448::X448, x25519::X25519};
+use crate::prelude::*;
 
-static SCHEMES: LazyLock<Vec<Arc<dyn Scheme>>> = LazyLock::new(|| {
+static SCHEMES: OnceBox<Vec<Arc<dyn Scheme>>> = OnceBox::new();
+
+fn build() -> Vec<Arc<dyn Scheme>> {
     let x25519: Arc<dyn Scheme> = Arc::new(NikeKem::new(Arc::new(X25519)));
     let x448: Arc<dyn Scheme> = Arc::new(NikeKem::new(Arc::new(X448)));
     let mlkem: [Arc<dyn Scheme>; 6] = [
@@ -25,6 +31,7 @@ static SCHEMES: LazyLock<Vec<Arc<dyn Scheme>>> = LazyLock::new(|| {
         combiner(&name, vec![x25519.clone(), m])
     });
     let mlkem1024_x448 = combiner("MLKEM1024-X448", vec![x448.clone(), mlkem[2].clone()]);
+    #[cfg(feature = "mceliece")]
     let mceliece = [
         Algorithm::McEliece348864,
         Algorithm::McEliece348864f,
@@ -38,6 +45,7 @@ static SCHEMES: LazyLock<Vec<Arc<dyn Scheme>>> = LazyLock::new(|| {
         Algorithm::McEliece8192128f,
     ]
     .map(|a| -> Arc<dyn Scheme> { Arc::new(McEliece::new(a)) });
+    #[cfg(feature = "mceliece")]
     let mceliece_x25519 = mceliece.clone().map(|m| {
         let name = format!("{}-X25519", m.name());
         combiner(&name, vec![x25519.clone(), m])
@@ -46,10 +54,13 @@ static SCHEMES: LazyLock<Vec<Arc<dyn Scheme>>> = LazyLock::new(|| {
     schemes.extend(mlkem);
     schemes.extend(mlkem_x25519);
     schemes.push(mlkem1024_x448);
-    schemes.extend(mceliece);
-    schemes.extend(mceliece_x25519);
+    #[cfg(feature = "mceliece")]
+    {
+        schemes.extend(mceliece);
+        schemes.extend(mceliece_x25519);
+    }
     schemes
-});
+}
 
 fn combiner(name: &str, schemes: Vec<Arc<dyn Scheme>>) -> Arc<dyn Scheme> {
     Arc::new(Combiner::new(name, schemes).expect("non-empty"))
@@ -57,14 +68,14 @@ fn combiner(name: &str, schemes: Vec<Arc<dyn Scheme>>) -> Arc<dyn Scheme> {
 
 /// Looks up a scheme by name, ignoring ASCII case.
 pub fn by_name(name: &str) -> Option<Arc<dyn Scheme>> {
-    SCHEMES
+    all()
         .iter()
         .find(|s| s.name().eq_ignore_ascii_case(name))
         .cloned()
 }
 
 pub fn all() -> &'static [Arc<dyn Scheme>] {
-    &SCHEMES
+    SCHEMES.get_or_init(|| Box::new(build()))
 }
 
 #[cfg(test)]

@@ -2,6 +2,7 @@
 
 use super::{BoxId, MessageBoxIndex, ReadCap, SIGNATURE_SIZE, WriteCap};
 use crate::Result;
+use crate::prelude::*;
 
 /// A read cap together with one box on its stream. Positions come only from
 /// [`ReadCap::start`], [`ReadCap::position_at`] and moving forward, so a cap

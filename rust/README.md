@@ -15,6 +15,21 @@ behind object-safe traits, so they can be composed and selected at runtime.
 - `protocols`: the sealed box and MKEM over any NIKE.
 - `voucher`: the Contact Voucher, how a newcomer joins a Pigeonhole group.
 
+## Features
+
+The crate is `no_std` with `alloc`, and takes its randomness from the RNG the
+caller passes. The default features build all of it. Without them, firmware
+picks what it needs, e.g. `default-features = false, features = ["bacap",
+"voucher"]`; `nike`, `sign`, `protocols` and `hash` are always built.
+
+- `std`: the dependencies' std and default features.
+- `bacap`, `voucher`: those modules. `voucher` needs `bacap` and `ctidh`.
+- `kem`: the `kem` module.
+- `ctidh`: CTIDH-1024 and its hybrids, through highctidh-rs and highctidh's
+  C library. On bare metal the final link provides
+  `highctidh_1024_randombytes`.
+- `mceliece`: Classic McEliece, which needs `std`.
+
 Each module has a registry that looks schemes up by name:
 
 ```rust

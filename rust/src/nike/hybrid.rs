@@ -2,12 +2,13 @@
 //! concatenation of their halves, and a low-order point in either half is
 //! an error.
 
-use std::sync::Arc;
+use alloc::sync::Arc;
 
 use rand_core::CryptoRng;
 use zeroize::Zeroizing;
 
 use super::Scheme;
+use crate::prelude::*;
 use crate::util::{downcast, split};
 use crate::{Result, SecretBytes};
 

@@ -3,7 +3,7 @@
 //! Keys use the specification's encodings, as Go's circl does: the private
 //! key is the full secret key, which begins with the 32-byte seed.
 
-use std::fmt;
+use core::fmt;
 use std::sync::OnceLock;
 
 pub use pq_mceliece::Algorithm;
@@ -11,6 +11,7 @@ use pq_mceliece::{DecapsulationKey, EncapsulationKey};
 use rand_core::CryptoRng;
 use zeroize::Zeroizing;
 
+use crate::prelude::*;
 use crate::util::{check_len, downcast};
 use crate::{Error, Result, SecretBytes};
 

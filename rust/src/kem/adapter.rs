@@ -3,7 +3,7 @@
 //! The ciphertext is a fresh ephemeral public key, and the shared secret is
 //! a PRF of the Diffie-Hellman output and both public keys.
 
-use std::sync::Arc;
+use alloc::sync::Arc;
 
 use rand_core::{CryptoRng, UnwrapErr};
 use sha2::{Digest, Sha256};
@@ -12,6 +12,7 @@ use zeroize::Zeroizing;
 use super::Scheme as _;
 use crate::hash::{Blake2Xb, blake2b_256};
 use crate::nike;
+use crate::prelude::*;
 use crate::util::{check_len, ct_is_zero, downcast, len_u32};
 use crate::{Error, Result, SecretBytes};
 

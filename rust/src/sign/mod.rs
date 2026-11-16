@@ -6,12 +6,13 @@ pub mod hybrid;
 pub mod mldsa;
 pub mod schemes;
 
-use std::any::Any;
-use std::fmt::Debug;
+use core::any::Any;
+use core::fmt::Debug;
 
 use rand_core::CryptoRng;
 use zeroize::Zeroizing;
 
+use crate::prelude::*;
 use crate::{Result, SecretBytes};
 
 pub trait PublicKey: Any + Debug + Send + Sync {

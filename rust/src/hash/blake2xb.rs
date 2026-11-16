@@ -89,7 +89,7 @@ impl Blake2XbReader {
                 self.next_block();
             }
             let n = out.len().min(BLOCK - self.offset);
-            let (head, tail) = std::mem::take(&mut out).split_at_mut(n);
+            let (head, tail) = core::mem::take(&mut out).split_at_mut(n);
             head.copy_from_slice(&self.block[self.offset..self.offset + n]);
             self.offset = (self.offset + n) % BLOCK;
             out = tail;

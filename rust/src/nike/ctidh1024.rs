@@ -3,6 +3,7 @@
 
 use rand_core::CryptoRng;
 
+use crate::prelude::*;
 use crate::util::downcast;
 use crate::{Error, Result, SecretBytes};
 

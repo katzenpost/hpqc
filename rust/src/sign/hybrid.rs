@@ -1,12 +1,13 @@
 //! Pairs two signature schemes. Keys and signatures are the concatenation
 //! of their halves, and a signature verifies only if both halves do.
 
-use std::sync::Arc;
+use alloc::sync::Arc;
 
 use rand_core::CryptoRng;
 use zeroize::Zeroizing;
 
 use super::Scheme;
+use crate::prelude::*;
 use crate::util::{downcast, split};
 use crate::{Result, SecretBytes};
 

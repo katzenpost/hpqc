@@ -1,40 +1,51 @@
 //! The registry of named NIKE schemes.
 
-use std::sync::{Arc, LazyLock};
+use alloc::sync::Arc;
+
+use once_cell::race::OnceBox;
 
 use super::Scheme;
+#[cfg(feature = "ctidh")]
 use super::ctidh1024::Ctidh1024;
+#[cfg(feature = "ctidh")]
 use super::hybrid::Hybrid;
 use super::x448::X448;
 use super::x25519::X25519;
+use crate::prelude::*;
 
-static SCHEMES: LazyLock<Vec<Arc<dyn Scheme>>> = LazyLock::new(|| {
+static SCHEMES: OnceBox<Vec<Arc<dyn Scheme>>> = OnceBox::new();
+
+fn build() -> Vec<Arc<dyn Scheme>> {
     vec![
         Arc::new(X25519),
         Arc::new(X448),
+        #[cfg(feature = "ctidh")]
         Arc::new(Ctidh1024),
+        #[cfg(feature = "ctidh")]
         Arc::new(x25519_ctidh1024("X25519-CTIDH1024")),
+        #[cfg(feature = "ctidh")]
         Arc::new(x25519_ctidh1024("CTIDH1024-X25519")),
     ]
-});
+}
 
 /// X25519 then CTIDH-1024. Go registers it under two names: the legacy
 /// `CTIDH1024-X25519`, whose name disagrees with its layout but which
 /// deployed code uses, and `X25519-CTIDH1024`.
+#[cfg(feature = "ctidh")]
 fn x25519_ctidh1024(name: &str) -> Hybrid {
     Hybrid::new(name, Arc::new(X25519), Arc::new(Ctidh1024))
 }
 
 /// Looks up a scheme by name, ignoring ASCII case.
 pub fn by_name(name: &str) -> Option<Arc<dyn Scheme>> {
-    SCHEMES
+    all()
         .iter()
         .find(|s| s.name().eq_ignore_ascii_case(name))
         .cloned()
 }
 
 pub fn all() -> &'static [Arc<dyn Scheme>] {
-    &SCHEMES
+    SCHEMES.get_or_init(|| Box::new(build()))
 }
 
 #[cfg(test)]

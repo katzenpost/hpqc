@@ -7,7 +7,7 @@
 //! recipient. Every seal is ChaCha20-Poly1305 with a random nonce written in
 //! front of its ciphertext.
 
-use std::sync::Arc;
+use alloc::sync::Arc;
 
 use chacha20poly1305::aead::Aead;
 use chacha20poly1305::{ChaCha20Poly1305, KeyInit};
@@ -17,6 +17,7 @@ use zeroize::Zeroizing;
 use crate::cbor::Value;
 use crate::hash::blake2b_256;
 use crate::nike::{PrivateKey, PublicKey, Scheme};
+use crate::prelude::*;
 use crate::util::ct_is_zero;
 use crate::{Error, Result};
 

@@ -1,16 +1,18 @@
 //! Non-interactive key exchange.
 
+#[cfg(feature = "ctidh")]
 pub mod ctidh1024;
 pub mod hybrid;
 pub mod schemes;
 pub mod x25519;
 pub mod x448;
 
-use std::any::Any;
-use std::fmt::Debug;
+use core::any::Any;
+use core::fmt::Debug;
 
 use rand_core::CryptoRng;
 
+use crate::prelude::*;
 use crate::{Result, SecretBytes};
 
 pub trait PublicKey: Any + Debug + Send + Sync {

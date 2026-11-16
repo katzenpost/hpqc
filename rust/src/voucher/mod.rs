@@ -63,7 +63,7 @@
 //! exactly; the shared vectors are `voucher/testdata/voucher_vectors.json`
 //! (long form) and `voucher_vectors_v2.json` (compact form).
 
-use std::sync::{Arc, LazyLock};
+use alloc::sync::Arc;
 
 use ed25519_dalek::{Signature, Signer, Verifier};
 use rand_core::{CryptoRng, TryCryptoRng, TryRng};
@@ -75,6 +75,7 @@ use crate::bacap::{ReadCap, WriteCap};
 use crate::cbor::Value;
 use crate::hash::blake2b_256;
 use crate::nike::{Scheme, schemes};
+use crate::prelude::*;
 use crate::protocols::mkem::{Ciphertext, Mkem};
 use crate::protocols::sealedbox::SealedBox;
 use crate::{Error, Result, SecretBytes};
@@ -90,8 +91,9 @@ const MALFORMED: Error = Error::InvalidInput("malformed voucher message");
 
 /// The voucher keypair's NIKE, X25519 then CTIDH-1024 under its legacy name
 /// `CTIDH1024-X25519`, which the sealed box binds into its key derivation.
-static SEAL_NIKE: LazyLock<Arc<dyn Scheme>> =
-    LazyLock::new(|| schemes::by_name("CTIDH1024-X25519").expect("registered"));
+fn seal_nike() -> Arc<dyn Scheme> {
+    schemes::by_name("CTIDH1024-X25519").expect("registered")
+}
 
 /// SHAKE256 of a seed as a deterministic [`CryptoRng`], the stream Go's and
 /// Python's voucher code read their seeded randomness from.
@@ -231,7 +233,7 @@ pub fn mint(write_cap: &WriteCap, display_name: &str, rng: &mut dyn CryptoRng) -
 /// will show. The voucher keypair is drawn from `rng`.
 pub fn mint_compact(write_cap: &WriteCap, display_name: &str, rng: &mut dyn CryptoRng) -> Minted {
     let read_cap = write_cap.read_cap().to_bytes().to_vec();
-    let secret = SEAL_NIKE.generate_key(rng);
+    let secret = seal_nike().generate_key(rng);
     let public_key = secret.public_key().to_bytes();
     let mut fields = vec![
         Value::Bytes(read_cap),
@@ -255,7 +257,7 @@ pub fn mint_compact(write_cap: &WriteCap, display_name: &str, rng: &mut dyn Cryp
 /// Arguments are as for [`mint_compact`].
 pub fn mint_long(write_cap: &WriteCap, display_name: &str, rng: &mut dyn CryptoRng) -> Minted {
     let read_cap = write_cap.read_cap().to_bytes().to_vec();
-    let secret = SEAL_NIKE.generate_key(rng);
+    let secret = seal_nike().generate_key(rng);
     let public_key = secret.public_key().to_bytes();
     let please_add = Value::Map(vec![
         ("DisplayName".into(), Value::Text(display_name.into())),
@@ -365,7 +367,7 @@ pub fn induct_with_salt(
             (name.into_text()?, read_cap, public_key.into_bytes()?)
         }
     };
-    let recipient = SEAL_NIKE
+    let recipient = seal_nike()
         .public_key_from_bytes(&public_key)
         .map_err(|_| MALFORMED)?;
     let sealed_reply = match form {
@@ -375,7 +377,7 @@ pub fn induct_with_salt(
                 Value::Bytes(salt.to_vec()),
             ])
             .to_bytes();
-            SealedBox::new(SEAL_NIKE.clone()).seal(&*recipient, &plaintext, rng)?
+            SealedBox::new(seal_nike()).seal(&*recipient, &plaintext, rng)?
         }
         Form::Long => {
             let plaintext = Value::Map(vec![
@@ -384,7 +386,7 @@ pub fn induct_with_salt(
             ])
             .to_bytes();
             let (_, ciphertext) =
-                Mkem::new(SEAL_NIKE.clone()).encapsulate(&[&*recipient], &plaintext, rng)?;
+                Mkem::new(seal_nike()).encapsulate(&[&*recipient], &plaintext, rng)?;
             ciphertext.to_bytes()
         }
     };
@@ -419,17 +421,17 @@ pub fn open_reply(
     sealed_reply: &[u8],
     write_cap: &WriteCap,
 ) -> Result<OpenedReply> {
-    let private_key = SEAL_NIKE.private_key_from_bytes(secret_key)?;
+    let private_key = seal_nike().private_key_from_bytes(secret_key)?;
     let opened = || -> Result<(Vec<u8>, Vec<u8>)> {
         if is_mkem_reply(sealed_reply) {
-            let mkem = Mkem::new(SEAL_NIKE.clone());
+            let mkem = Mkem::new(seal_nike());
             let plaintext =
                 mkem.decapsulate(&*private_key, &Ciphertext::from_bytes(&mkem, sealed_reply)?)?;
             let [who, salt] =
                 Value::from_bytes(&plaintext)?.into_fields(["WhoReply", "VoucherSalt"])?;
             Ok((who.into_bytes()?, salt.into_bytes()?))
         } else {
-            let plaintext = SealedBox::new(SEAL_NIKE.clone()).open(
+            let plaintext = SealedBox::new(seal_nike()).open(
                 &*private_key,
                 &*private_key.public_key(),
                 sealed_reply,

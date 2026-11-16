@@ -4,6 +4,7 @@ use rand_core::CryptoRng;
 use x448::{X448_BASEPOINT_BYTES, x448_unchecked};
 use zeroize::{Zeroize, ZeroizeOnDrop, Zeroizing};
 
+use crate::prelude::*;
 use crate::util::{ct_is_zero, downcast, to_array};
 use crate::{Error, Result, SecretBytes};
 
@@ -18,8 +19,8 @@ pub struct PublicKey(pub [u8; 56]);
 #[derive(Clone, Zeroize, ZeroizeOnDrop)]
 pub struct PrivateKey(pub [u8; 56]);
 
-impl std::fmt::Debug for PrivateKey {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl core::fmt::Debug for PrivateKey {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         f.debug_struct("x448::PrivateKey").finish_non_exhaustive()
     }
 }

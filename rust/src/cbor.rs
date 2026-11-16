@@ -4,6 +4,7 @@
 //! Go's `cbor.CanonicalEncOptions` and Python's `cbor2` `canonical=True`
 //! produce.
 
+use crate::prelude::*;
 use crate::{Error, Result};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -104,6 +105,7 @@ impl Value {
     }
 
     /// An array of exactly `N` items.
+    #[cfg(feature = "voucher")]
     pub(crate) fn into_array<const N: usize>(self) -> Result<[Value; N]> {
         match self {
             Value::Array(items) => items.try_into().map_err(|_| MALFORMED),
