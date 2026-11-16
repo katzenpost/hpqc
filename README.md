@@ -63,8 +63,8 @@ then see [rust/README.md](rust/README.md).
 
 ## Status
 
-Version 0.0.95 is the latest Go module tag and the current PyPI release
-(Python 3.10 or later); the Rust crate is 0.1.0 and unpublished. Before 1.0
+Version 0.0.96 is the latest Go module tag and the current PyPI release
+(Python 3.10 or later); the Rust crate is 0.0.96 and unpublished. Before 1.0
 the API still changes: [BREAKING_CHANGES.md](BREAKING_CHANGES.md) lists each
 break. Interoperability between the ports rests on the shared vectors in
 [testvectors/](testvectors/).
