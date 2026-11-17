@@ -7,6 +7,7 @@
 
 use curve25519_dalek::edwards::{CompressedEdwardsY, EdwardsPoint};
 use curve25519_dalek::scalar::Scalar;
+use curve25519_dalek::traits::IsIdentity;
 use ed25519_dalek::{Signature, SigningKey, VerifyingKey};
 use sha2::{Digest, Sha512, Sha512_256};
 use zeroize::{Zeroize, Zeroizing};
@@ -33,11 +34,21 @@ fn wide(digest: impl Into<[u8; 64]>) -> Scalar {
     Scalar::from_bytes_mod_order_wide(&digest.into())
 }
 
+/// Refuses a point outside the prime-order subgroup and the identity, as
+/// libsodium's `crypto_core_ed25519_is_valid_point`. A seed derives no other.
+pub(crate) fn check_prime_order(point: &EdwardsPoint) -> Result<()> {
+    if point.is_identity() || !point.is_torsion_free() {
+        return Err(Error::InvalidKey);
+    }
+    Ok(())
+}
+
 /// The public key blinded by `factor`.
 pub fn blind_verifying_key(key: &VerifyingKey, factor: &[u8]) -> Result<VerifyingKey> {
     let point = CompressedEdwardsY(key.to_bytes())
         .decompress()
         .ok_or(Error::InvalidKey)?;
+    check_prime_order(&point)?;
     let blinded = (factor_scalar(factor)? * point).compress();
     VerifyingKey::from_bytes(&blinded.to_bytes()).map_err(|_| Error::InvalidKey)
 }

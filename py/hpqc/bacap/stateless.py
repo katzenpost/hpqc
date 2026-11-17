@@ -20,6 +20,7 @@ from typing import Callable, Optional, Tuple
 import cryptography
 from cryptography.exceptions import InvalidTag
 from cryptography.hazmat.primitives.ciphers.aead import AESGCMSIV
+from nacl.bindings import crypto_core_ed25519_is_valid_point
 from nacl.exceptions import BadSignatureError
 from nacl.signing import VerifyKey as NaclVerifyKey
 
@@ -400,23 +401,6 @@ def _ed25519_64byte_private(sk: BlindableSigningKey) -> bytes:
     return _seed_from_signing_key(sk) + bytes(sk.verify_key)
 
 
-_P = 2**255 - 19
-_D = (-121665 * pow(121666, _P - 2, _P)) % _P
-
-
-def _is_curve_point(encoding: bytes) -> bool:
-    """Whether a 32-byte encoding decodes to a point on edwards25519.
-
-    Accepts exactly what Go's filippo.io/edwards25519 Point.SetBytes accepts:
-    the sign bit is ignored for the check, and y may be unreduced. A point
-    exists for y when x^2 = (y^2 - 1) / (d*y^2 + 1) has a square root.
-    """
-    y = int.from_bytes(encoding, "little") & ((1 << 255) - 1)
-    y2 = y * y % _P
-    x2 = (y2 - 1) * pow(_D * y2 + 1, _P - 2, _P) % _P
-    return x2 == 0 or pow(x2, (_P - 1) // 2, _P) == 1
-
-
 @dataclasses.dataclass(frozen=True)
 class WriteCap:
     """Holds the root private key plus the conversation's first MessageBoxIndex.
@@ -523,8 +507,8 @@ class ReadCap:
     def from_bytes(cls, data: bytes) -> "ReadCap":
         if len(data) != ReadCapSize:
             raise InvalidArgument("invalid ReadCap binary size")
-        if not _is_curve_point(data[:BoxIDSize]):
-            raise InvalidArgument("ReadCap root public key is not a curve point")
+        if not crypto_core_ed25519_is_valid_point(data[:BoxIDSize]):
+            raise InvalidArgument("ReadCap root public key is not in the prime-order subgroup")
         pk = BlindableVerifyKey(data[:BoxIDSize])
         idx = MessageBoxIndex.from_bytes(data[BoxIDSize:])
         return cls(pk, idx)

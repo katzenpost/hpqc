@@ -1,0 +1,59 @@
+{
+  "format_version": 1,
+  "generator": "github.com/katzenpost/hpqc/testvectors/cmd/generate",
+  "primitive": "blinded_ed25519_negative",
+  "description": "Blinded Ed25519 inputs every implementation must reject, by operation. blind_public_key blinds public_key_hex by blind_factor_hex; a BACAP implementation must also refuse a ReadCap whose root public key is public_key_hex. blind blinds private_key_hex (64 bytes, seed || public key) and public_key_hex by an empty factor. verify checks signature_hex over message_hex under public_key_hex as a BACAP box ID; verification is cofactorless and refuses a small-order key or R. category names the failure: invalid_key, empty_factor, small_order_key, small_order_r, signature_invalid.",
+  "vectors": [
+    {
+      "name": "blind_torsioned_root_key",
+      "operation": "blind_public_key",
+      "category": "invalid_key",
+      "description": "an honest public key plus a point of order 8: on the curve but outside the prime-order subgroup",
+      "public_key_hex": "1ba1e31dfce98846b6fd06eab6df926fa910e8923a2a9f4a1abc691e9c5fdf54",
+      "blind_factor_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+    },
+    {
+      "name": "blind_identity_root_key",
+      "operation": "blind_public_key",
+      "category": "invalid_key",
+      "description": "the identity point as a root public key",
+      "public_key_hex": "0100000000000000000000000000000000000000000000000000000000000000",
+      "blind_factor_hex": "000102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f"
+    },
+    {
+      "name": "blind_empty_factor",
+      "operation": "blind",
+      "category": "empty_factor",
+      "description": "an honest key blinded by a factor of 0 bytes, refused for both the private and the public key",
+      "private_key_hex": "dcddf173026098e984354301e0adffd6f557939b889ee7f63031767beebc868beec75c698640a74a0e9105d99c6205ccb35a90bd8700b4aca8f0990a90114e3a",
+      "public_key_hex": "eec75c698640a74a0e9105d99c6205ccb35a90bd8700b4aca8f0990a90114e3a"
+    },
+    {
+      "name": "verify_identity_key",
+      "operation": "verify",
+      "category": "small_order_key",
+      "description": "the identity as the box ID with R the identity and s = 0, which verifies any message without the small-order check on the key",
+      "public_key_hex": "0100000000000000000000000000000000000000000000000000000000000000",
+      "message_hex": "61206d657373616765206e6f207369676e617475726520686572652073686f756c642076657269667920666f72",
+      "signature_hex": "01000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+    },
+    {
+      "name": "verify_identity_r",
+      "operation": "verify",
+      "category": "small_order_r",
+      "description": "an honest key with R the identity and s = H(R || A || M)*a, which a cofactorless verifier accepts without the small-order check on R",
+      "public_key_hex": "eec75c698640a74a0e9105d99c6205ccb35a90bd8700b4aca8f0990a90114e3a",
+      "message_hex": "61206d657373616765206e6f207369676e617475726520686572652073686f756c642076657269667920666f72",
+      "signature_hex": "010000000000000000000000000000000000000000000000000000000000000060f2f4ca0d04c1e868f8df35baa07b4d79550ac4951100827461008b39f2fa0c"
+    },
+    {
+      "name": "verify_torsioned_r",
+      "operation": "verify",
+      "category": "signature_invalid",
+      "description": "an honest key with R = r*B plus a point of order 8 and s = r + H(R || A || M)*a, which only a cofactored verifier accepts",
+      "public_key_hex": "eec75c698640a74a0e9105d99c6205ccb35a90bd8700b4aca8f0990a90114e3a",
+      "message_hex": "61206d657373616765206e6f207369676e617475726520686572652073686f756c642076657269667920666f72",
+      "signature_hex": "f0f66774b10f93fcec8215be0c61ccddcef9582103d847fd2b79653f30acce0ab9e4d60392ea6567a1bdb16bce24d11aa909951203a80729c5ee5748737c2000"
+    }
+  ]
+}

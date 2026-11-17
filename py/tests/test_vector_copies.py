@@ -23,6 +23,7 @@ REPO_ROOT = PY_ROOT.parent
 COPIES = {
     "tests/bacap/vectors/aes_gcm_siv.json": "testvectors/primitives/aes_gcm_siv.json",
     "tests/bacap/vectors/blake2b_512.json": "testvectors/primitives/blake2b_512.json",
+    "tests/bacap/vectors/blinded_ed25519_negative.json": "testvectors/primitives/blinded_ed25519_negative.json",
     "tests/bacap/vectors/box_id.json": "testvectors/bacap/box_id.json",
     "tests/bacap/vectors/encrypt.json": "testvectors/bacap/encrypt.json",
     "tests/bacap/vectors/hkdf_blake2b.json": "testvectors/primitives/hkdf_blake2b.json",

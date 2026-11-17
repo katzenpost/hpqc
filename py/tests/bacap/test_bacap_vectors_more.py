@@ -23,6 +23,7 @@ from hpqc.bacap import (
     SignatureVerificationFailed,
     WriteCap,
 )
+from hpqc.sign.ed25519 import SigningKey, VerifyKey
 
 VECTORS_DIR = Path(__file__).parent / "vectors"
 
@@ -144,3 +145,29 @@ def test_negative(vector: dict) -> None:
 def test_categories_are_bacap_errors() -> None:
     for exc in _CATEGORY.values():
         assert issubclass(exc, BACAPError)
+
+
+@pytest.mark.parametrize(
+    "vector",
+    _load("blinded_ed25519_negative.json", "blinded_ed25519_negative"),
+    ids=lambda v: v["name"],
+)
+def test_blinded_ed25519_negative(vector: dict) -> None:
+    op = vector["operation"]
+    pk = bytes.fromhex(vector["public_key_hex"])
+    if op == "blind_public_key":
+        with pytest.raises(ValueError):
+            VerifyKey(pk).blind(bytes.fromhex(vector["blind_factor_hex"]))
+        with pytest.raises(InvalidArgument):
+            ReadCap.from_bytes(pk + bytes(104))
+    elif op == "blind":
+        with pytest.raises(ValueError):
+            VerifyKey(pk).blind(b"")
+        with pytest.raises(ValueError):
+            SigningKey(bytes.fromhex(vector["private_key_hex"])[:32]).blind(b"")
+    elif op == "verify":
+        msg = bytes.fromhex(vector["message_hex"])
+        sig = bytes.fromhex(vector["signature_hex"])
+        assert MessageBoxIndex.verify_box(pk, msg, sig) is False
+    else:
+        pytest.fail(f"unknown operation {op!r}")

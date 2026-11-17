@@ -146,7 +146,7 @@ func (m *MessageBoxIndex) VerifyBox(box [BoxIDSize]byte, ciphertext []byte, sig 
 	if err = boxPk.FromBytes(box[:]); err != nil {
 		return
 	}
-	if !boxPk.Verify(sig, ciphertext) {
+	if !boxPk.VerifyStrict(sig, ciphertext) {
 		return false, errors.New("signature verification failed")
 	}
 	return true, nil
@@ -185,12 +185,8 @@ func (m *MessageBoxIndex) EncryptForContext(owner *WriteCap, ctx []byte, plainte
 // For tombstones (empty ciphertext), it only verifies the signature and returns
 // empty plaintext without attempting decryption.
 func (m *MessageBoxIndex) DecryptForContext(box [BoxIDSize]byte, ctx []byte, ciphertext []byte, sig []byte) (plaintext []byte, err error) {
-	var boxPk ed25519.PublicKey
-	if err = boxPk.FromBytes(box[:]); err != nil {
-		return
-	}
-	if !boxPk.Verify(sig, ciphertext) {
-		return nil, errors.New("signature verification failed")
+	if _, err = m.VerifyBox(box, ciphertext, sig); err != nil {
+		return nil, err
 	}
 
 	// Handle tombstone: empty ciphertext means the box was tombstoned.

@@ -355,6 +355,9 @@ func (u *ReadCap) UnmarshalBinary(data []byte) error {
 	if err != nil {
 		return err
 	}
+	if !ed25519.IsPrimeOrderPoint(data[:ed25519.PublicKeySize]) {
+		return errors.New("ReadCap root public key is not in the prime-order subgroup")
+	}
 	u.messageBoxIndex = &MessageBoxIndex{}
 	if err := u.messageBoxIndex.UnmarshalBinary(data[ed25519.PublicKeySize:]); err != nil {
 		return err

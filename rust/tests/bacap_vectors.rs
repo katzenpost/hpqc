@@ -378,6 +378,41 @@ fn check_negative(cases: &[Value]) {
     }
 }
 
+fn check_blinded_ed25519_negative(cases: &[Value]) {
+    for c in cases {
+        let n = name(c);
+        let pk_bytes = common::hex(c, "public_key_hex");
+        let pk = VerifyingKey::from_bytes(&pk_bytes.clone().try_into().unwrap()).unwrap();
+        match common::str(c, "operation") {
+            "blind_public_key" => {
+                let factor = common::hex(c, "blind_factor_hex");
+                assert!(blind_verifying_key(&pk, &factor).is_err(), "{n}");
+                let blob = [pk_bytes.as_slice(), &[0u8; 104]].concat();
+                assert!(ReadCap::from_bytes(&blob).is_err(), "{n}");
+            }
+            "blind" => {
+                assert!(blind_verifying_key(&pk, &[]).is_err(), "{n}");
+                let sk = SigningKey::from_keypair_bytes(
+                    &common::hex(c, "private_key_hex").try_into().unwrap(),
+                )
+                .unwrap();
+                assert!(BlindedSigningKey::new(&sk, &[]).is_err(), "{n}");
+            }
+            "verify" => {
+                let (msg, sig) = (
+                    common::hex(c, "message_hex"),
+                    common::hex(c, "signature_hex"),
+                );
+                assert!(
+                    MessageBoxIndex::verify_box(&box_id(c, "public_key_hex"), &msg, &sig).is_err(),
+                    "{n}"
+                );
+            }
+            other => panic!("{n}: unknown operation {other}"),
+        }
+    }
+}
+
 fn checker(primitive: &str) -> fn(&[Value]) {
     match primitive {
         "sha512" => check_sha512,
@@ -387,6 +422,7 @@ fn checker(primitive: &str) -> fn(&[Value]) {
         "aes_gcm_siv" => check_aes_gcm_siv,
         "ed25519" => check_ed25519,
         "blinded_ed25519" => check_blinded_ed25519,
+        "blinded_ed25519_negative" => check_blinded_ed25519_negative,
         "bacap_message_box_index" => check_message_box_index,
         "bacap_box_id" => check_box_id,
         "bacap_encrypt" => check_encrypt,
@@ -421,6 +457,11 @@ vector_test!(
     blinded_ed25519,
     "testvectors/primitives/blinded_ed25519.json",
     "blinded_ed25519"
+);
+vector_test!(
+    blinded_ed25519_negative,
+    "testvectors/primitives/blinded_ed25519_negative.json",
+    "blinded_ed25519_negative"
 );
 vector_test!(
     hkdf_blake2b_512,

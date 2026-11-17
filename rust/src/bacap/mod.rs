@@ -15,14 +15,14 @@ pub use position::{ReadPosition, WritePosition};
 
 use aes_gcm_siv::aead::{Aead, KeyInit, Payload};
 use aes_gcm_siv::{Aes256GcmSiv, Nonce};
-use ed25519_dalek::{Signature, SigningKey, Verifier, VerifyingKey};
+use ed25519_dalek::{Signature, SigningKey, VerifyingKey};
 use rand_core::CryptoRng;
 use subtle::{Choice, ConstantTimeEq};
 use zeroize::{Zeroize, ZeroizeOnDrop, Zeroizing};
 
 use crate::hash::hkdf_blake2b;
 use crate::prelude::*;
-use crate::sign::blinded_ed25519::{BlindedSigningKey, blind_verifying_key};
+use crate::sign::blinded_ed25519::{BlindedSigningKey, blind_verifying_key, check_prime_order};
 use crate::util::{check_len, ct_is_zero, to_array};
 use crate::{Error, Result, SecretBytes};
 
@@ -187,8 +187,9 @@ impl MessageBoxIndex {
     pub fn verify_box(box_id: &BoxId, payload: &[u8], sig: &[u8]) -> Result<()> {
         let key = VerifyingKey::from_bytes(box_id).map_err(|_| Error::InvalidKey)?;
         let sig = Signature::from_bytes(&to_array(sig)?);
-        // Cofactorless with canonical S, as Go's crypto/ed25519.Verify.
-        key.verify(payload, &sig)
+        // Cofactorless with canonical S, refusing a small-order key or R, as
+        // libsodium and Go's VerifyStrict.
+        key.verify_strict(payload, &sig)
             .map_err(|_| Error::InvalidSignature)
     }
 
@@ -328,11 +329,12 @@ pub struct ReadCap {
 }
 
 impl ReadCap {
-    /// Rejects a root key that is not a point on the curve.
+    /// Rejects a root key outside the prime-order subgroup or the identity.
     pub fn from_bytes(bytes: &[u8]) -> Result<Self> {
         check_len(bytes, READ_CAP_SIZE)?;
         let root =
             VerifyingKey::from_bytes(&to_array(&bytes[..32])?).map_err(|_| Error::InvalidKey)?;
+        check_prime_order(&root.to_edwards())?;
         Ok(Self {
             root,
             index: MessageBoxIndex::from_bytes(&bytes[32..])?,

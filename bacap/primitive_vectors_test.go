@@ -19,6 +19,8 @@ import (
 	"github.com/agl/gcmsiv"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/katzenpost/hpqc/sign/ed25519"
 )
 
 // These tests consume the primitive-level JSON vector files used by BACAP.
@@ -172,6 +174,48 @@ func TestPrimitiveSHA512Vectors(t *testing.T) {
 			require.Len(t, expected, 64, "SHA-512 output must be 64 bytes")
 			sum := sha512.Sum512(input)
 			require.Equal(t, expected, sum[:])
+		})
+	}
+}
+
+// Blinded Ed25519 inputs every implementation must reject (issue #165).
+func TestPrimitiveBlindedEd25519NegativeVectors(t *testing.T) {
+	var vectors []struct {
+		Name           string `json:"name"`
+		Operation      string `json:"operation"`
+		PrivateKeyHex  string `json:"private_key_hex"`
+		PublicKeyHex   string `json:"public_key_hex"`
+		BlindFactorHex string `json:"blind_factor_hex"`
+		MessageHex     string `json:"message_hex"`
+		SignatureHex   string `json:"signature_hex"`
+	}
+	loadVectorFile(t, "blinded_ed25519_negative.json", "blinded_ed25519_negative", &vectors)
+	require.NotEmpty(t, vectors)
+
+	for _, v := range vectors {
+		t.Run(v.Name, func(t *testing.T) {
+			pkBytes := mustHex(t, v.PublicKeyHex)
+			pk := new(ed25519.PublicKey)
+			require.NoError(t, pk.FromBytes(pkBytes))
+			switch v.Operation {
+			case "blind_public_key":
+				_, err := pk.Blind(mustHex(t, v.BlindFactorHex))
+				require.Error(t, err)
+				_, err = ReadCapFromBytes(append(pkBytes, make([]byte, MessageBoxIndexSize)...))
+				require.Error(t, err)
+			case "blind":
+				_, err := pk.Blind(nil)
+				require.Error(t, err)
+				priv := new(ed25519.PrivateKey)
+				require.NoError(t, priv.FromBytes(mustHex(t, v.PrivateKeyHex)))
+				require.Panics(t, func() { priv.Blind(nil) })
+			case "verify":
+				ok, err := (&MessageBoxIndex{}).VerifyBox([BoxIDSize]byte(pkBytes), mustHex(t, v.MessageHex), mustHex(t, v.SignatureHex))
+				require.False(t, ok)
+				require.Error(t, err)
+			default:
+				t.Fatalf("unknown operation %q", v.Operation)
+			}
 		})
 	}
 }
